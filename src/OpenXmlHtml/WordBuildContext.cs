@@ -11,6 +11,7 @@
     internal Dictionary<string, StyleType>? StyleMap;
     internal string? ParagraphStyleId;
     internal ParagraphFormatState? ParagraphFormat;
+    internal bool ParagraphRightToLeft;
     internal Stack<(int NumId, int Ilvl, bool IsOrdered, bool Inside, bool NoMarker)> ListStack = new();
     internal int? BulletAbstractNumId;
     internal int NextNumId;

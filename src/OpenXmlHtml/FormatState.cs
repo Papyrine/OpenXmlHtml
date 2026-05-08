@@ -23,7 +23,7 @@ struct FormatState
     internal bool NoWrap { get; set; }
     internal string? UnderlineColor { get; set; }
     internal int? CharacterScale { get; set; }
-    internal bool BdoOverrideRtl { get; set; }
+    internal bool RightToLeft { get; set; }
 
     internal readonly bool HasFormatting =>
         Bold ||
@@ -43,5 +43,5 @@ struct FormatState
         CharacterSpacingTwips != null ||
         UnderlineColor != null ||
         CharacterScale != null ||
-        BdoOverrideRtl;
+        RightToLeft;
 }

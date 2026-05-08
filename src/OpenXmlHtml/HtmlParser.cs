@@ -287,15 +287,18 @@ static class HtmlSegmentParser
             case "small":
                 format.FontSizePt = Math.Round((format.FontSizePt ?? 12) * 0.8, 2);
                 break;
-            case "bdo":
-            {
-                var dir = element.GetAttribute("dir");
-                if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase))
-                {
-                    format.BdoOverrideRtl = true;
-                }
+        }
 
-                break;
+        var dirAttr = element.GetAttribute("dir");
+        if (dirAttr != null)
+        {
+            if (string.Equals(dirAttr, "rtl", StringComparison.OrdinalIgnoreCase))
+            {
+                format.RightToLeft = true;
+            }
+            else if (string.Equals(dirAttr, "ltr", StringComparison.OrdinalIgnoreCase))
+            {
+                format.RightToLeft = false;
             }
         }
 

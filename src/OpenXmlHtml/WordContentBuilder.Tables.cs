@@ -2,6 +2,9 @@ static partial class WordContentBuilder
 {
     static void BuildTable(IElement tableElement, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx)
     {
+        var tableFormat = format;
+        ApplyDirAttribute(tableElement, ref tableFormat);
+
         IElement? caption = null;
         foreach (var child in tableElement.Children)
         {
@@ -14,7 +17,7 @@ static partial class WordContentBuilder
 
         if (caption != null)
         {
-            var captionFormat = format;
+            var captionFormat = tableFormat;
             HtmlSegmentParser.ApplyElementFormatting(caption, "caption", ref captionFormat);
             ProcessChildren(caption, captionFormat, elements, ctx, false);
             FlushParagraph(elements, ctx);
@@ -109,6 +112,11 @@ static partial class WordContentBuilder
             }
         }
 
+        if (tableFormat.RightToLeft)
+        {
+            tblPr.Append(new BiDiVisual());
+        }
+
         table.Append(tblPr);
 
         var columnWidths = GetColumnWidths(tableElement, columnCount);
@@ -131,6 +139,8 @@ static partial class WordContentBuilder
 
         foreach (var row in rows)
         {
+            var rowFormat = tableFormat;
+            ApplyDirAttribute(row, ref rowFormat);
             var tableRow = new TableRow();
 
             var rowHeight = row.GetAttribute("style") is { } rowStyle
@@ -203,7 +213,7 @@ static partial class WordContentBuilder
                     }
                 }
 
-                tableRow.Append(BuildTableCell(cellElement, format, ctx, colspan, rowspan > 1, cellColWidth));
+                tableRow.Append(BuildTableCell(cellElement, rowFormat, ctx, colspan, rowspan > 1, cellColWidth));
 
                 if (rowspan > 1)
                 {
@@ -313,7 +323,8 @@ static partial class WordContentBuilder
             Settings = parentCtx.Settings,
             StyleMap = parentCtx.StyleMap,
             BulletAbstractNumId = parentCtx.BulletAbstractNumId,
-            NextNumId = parentCtx.NextNumId
+            NextNumId = parentCtx.NextNumId,
+            ParagraphRightToLeft = cellFormat.RightToLeft
         };
         ProcessChildren(cellElement, cellFormat, cellElements, cellCtx, false);
         FlushParagraph(cellElements, cellCtx);

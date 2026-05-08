@@ -91,6 +91,7 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `WordWhiteSpaceTests` | `white-space`: pre/pre-wrap/break-spaces (preserve) and nowrap (spaces → nbsp) |
 | `WordClickableImageTests` | Images inside `<a>` tags, external link hyperlinks, fallback without MainPart |
 | `WordWritingModeTests` | `writing-mode` (vertical-rl, vertical-lr), `direction: rtl`, vertical text in cells |
+| `WordDirectionAttributeTests` | HTML `dir="rtl"`/`dir="ltr"` attribute on body, block, inline, and table elements |
 | `WordRowHeightTests` | `height` CSS and HTML attribute on `<tr>` |
 | `WordPageSizeTests` | Explicit `pgSz` (A4) emitted so rendering is locale-independent |
 | `WordPageLayoutTests` | `@page` CSS rule for size, margin, orientation, and column-count |

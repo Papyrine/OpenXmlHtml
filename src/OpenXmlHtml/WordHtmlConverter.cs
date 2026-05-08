@@ -443,7 +443,7 @@ public static class WordHtmlConverter
                 });
         }
 
-        if (format.BdoOverrideRtl)
+        if (format.RightToLeft)
         {
             props.Append(new RightToLeftText());
         }

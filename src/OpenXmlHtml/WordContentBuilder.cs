@@ -27,7 +27,19 @@ static partial class WordContentBuilder
             context.BulletAbstractNumId = session.BulletAbstractNumId;
         }
 
-        ProcessChildren(body, new(), elements, context, false);
+        var rootFormat = new FormatState();
+        if (document.DocumentElement is { } htmlRoot)
+        {
+            ApplyDirAttribute(htmlRoot, ref rootFormat);
+        }
+
+        ApplyDirAttribute(body, ref rootFormat);
+        if (rootFormat.RightToLeft)
+        {
+            context.ParagraphRightToLeft = true;
+        }
+
+        ProcessChildren(body, rootFormat, elements, context, false);
         FlushParagraph(elements, context);
         TrimTrailingEmptyParagraphs(elements);
 
@@ -238,6 +250,11 @@ static partial class WordContentBuilder
                 context.ParagraphFormat = pendingFormat;
             }
 
+            if (newFormat.RightToLeft)
+            {
+                context.ParagraphRightToLeft = true;
+            }
+
             if (tag is "h1" or "h2" or "h3" or "h4" or "h5" or "h6")
             {
                 context.HeadingLevel = tag[1] - '0';
@@ -315,6 +332,24 @@ static partial class WordContentBuilder
         }
     }
 
+    static void ApplyDirAttribute(IElement element, ref FormatState format)
+    {
+        var dir = element.GetAttribute("dir");
+        if (dir == null)
+        {
+            return;
+        }
+
+        if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase))
+        {
+            format.RightToLeft = true;
+        }
+        else if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase))
+        {
+            format.RightToLeft = false;
+        }
+    }
+
     static bool IsPageBreak(Dictionary<string, string> declarations, string key) =>
         declarations.TryGetValue(key, out var value) &&
         (value.Equals("always", StringComparison.OrdinalIgnoreCase) ||
@@ -386,6 +421,7 @@ static partial class WordContentBuilder
             context.HeadingLevel = 0;
             context.ParagraphStyleId = null;
             context.ParagraphFormat = null;
+            context.ParagraphRightToLeft = false;
             context.ListNumId = null;
             context.ListIlvl = null;
             return;
@@ -450,12 +486,20 @@ static partial class WordContentBuilder
             ApplyParagraphFormat(paragraph.ParagraphProperties, context.ParagraphFormat);
         }
 
+        if (context.ParagraphRightToLeft &&
+            context.ParagraphFormat?.WritingMode == null)
+        {
+            paragraph.ParagraphProperties ??= new();
+            paragraph.ParagraphProperties.Append(new BiDi());
+        }
+
         elements.Add(paragraph);
         context.CurrentRuns.Clear();
         context.ListDepth = 0;
         context.HeadingLevel = 0;
         context.ParagraphStyleId = null;
         context.ParagraphFormat = null;
+        context.ParagraphRightToLeft = false;
         context.ListNumId = null;
         context.ListIlvl = null;
         context.ListInside = false;
