@@ -93,6 +93,19 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `WordWritingModeTests` | `writing-mode` (vertical-rl, vertical-lr), `direction: rtl`, vertical text in cells |
 | `WordRowHeightTests` | `height` CSS and HTML attribute on `<tr>` |
 | `WordPageSizeTests` | Explicit `pgSz` (A4) emitted so rendering is locale-independent |
+| `WordPageLayoutTests` | `@page` CSS rule for size, margin, orientation, and column-count |
+| `WordPageBreakTests` | `page-break-before/after` and modern `break-before/after` |
+| `WordFontWeightTests` | Numeric `font-weight` (100–900), `bolder` |
+| `WordTextDecorationColorTests` | `text-decoration-color` for colored underlines |
+| `WordWordSpacingTests` | `word-spacing` CSS |
+| `WordFontStretchTests` | `font-stretch` keywords and percentages → `<w:w>` character scale |
+| `WordVisibilityTests` | `display: none`, `visibility: hidden`, HTML `hidden`, skipping `script`/`style`/`noscript` |
+| `WordCheckboxTests` | `<input type="checkbox" checked>` rendered as ☑/☐ |
+| `WordPictureTests` | `<picture>` with `<source>` siblings, falling back to `<img>` |
+| `WordFieldsetTests` | `<fieldset>` with default border, `<legend>` bolded |
+| `WordRubyTests` | `<ruby>`/`<rt>`/`<rp>` rendered with parens and reduced-size annotation |
+| `WordBdoTests` | `<bdo dir="rtl">` emits `<w:rtl/>`, `<bdi>` falls through |
+| `WordListStyleNoneTests` | `list-style-type: none` suppresses bullet/number, keeps indent |
 | `WordRemoteImageTests` | `ImagePolicy` (Deny/AllowAll/SafeDomains/Filter/SafeDirectories), `FakeImageHandler` |
 | `WordConvertToDocxTests` | Full docx output: images, SVG, footnotes, page breaks, CSS styles, lists, tables |
 | `WordHeaderFooterTests` | `SetHeader`/`SetFooter` with plain and formatted HTML, tables in headers |

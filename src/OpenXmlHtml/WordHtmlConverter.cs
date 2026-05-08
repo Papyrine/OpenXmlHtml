@@ -145,7 +145,7 @@ public static class WordHtmlConverter
         var main = document.AddMainDocumentPart();
         var body = new Body();
         AppendHtml(body, html, main);
-        EnsureSectionProperties(body);
+        EnsureSectionProperties(body, AtPageParser.Parse(html));
         main.Document = new(body);
     }
 
@@ -178,7 +178,7 @@ public static class WordHtmlConverter
         var main = document.AddMainDocumentPart();
         var body = new Body();
         AppendHtml(body, html, main, settings);
-        EnsureSectionProperties(body);
+        EnsureSectionProperties(body, AtPageParser.Parse(html));
         main.Document = new(body);
     }
 
@@ -304,7 +304,10 @@ public static class WordHtmlConverter
 
     // A4 in twips; emitted so rendering is not subject to the host system's
     // regional paper-size default (e.g. CI rendering Letter vs dev rendering A4).
-    internal static SectionProperties EnsureSectionProperties(Body body)
+    internal static SectionProperties EnsureSectionProperties(Body body) =>
+        EnsureSectionProperties(body, null);
+
+    internal static SectionProperties EnsureSectionProperties(Body body, AtPageLayout? layout)
     {
         var sectionProps = body.GetFirstChild<SectionProperties>();
         if (sectionProps != null)
@@ -312,22 +315,39 @@ public static class WordHtmlConverter
             return sectionProps;
         }
 
-        sectionProps = new(
-            new PageSize
-            {
-                Width = 11906,
-                Height = 16838
-            },
-            new PageMargin
-            {
-                Top = 1440,
-                Right = 1440,
-                Bottom = 1440,
-                Left = 1440,
-                Header = 720,
-                Footer = 720,
-                Gutter = 0
-            });
+        var pageSize = new PageSize
+        {
+            Width = (uint)(layout?.WidthTwips ?? 11906),
+            Height = (uint)(layout?.HeightTwips ?? 16838)
+        };
+        if (layout?.Landscape == true)
+        {
+            pageSize.Orient = PageOrientationValues.Landscape;
+        }
+
+        var pageMargin = new PageMargin
+        {
+            Top = layout?.MarginTopTwips ?? 1440,
+            Right = (uint)(layout?.MarginRightTwips ?? 1440),
+            Bottom = layout?.MarginBottomTwips ?? 1440,
+            Left = (uint)(layout?.MarginLeftTwips ?? 1440),
+            Header = 720,
+            Footer = 720,
+            Gutter = 0
+        };
+
+        sectionProps = new(pageSize, pageMargin);
+
+        if (layout?.ColumnCount is { } cc && cc > 1)
+        {
+            sectionProps.Append(
+                new Columns
+                {
+                    ColumnCount = (short)cc,
+                    EqualWidth = true
+                });
+        }
+
         body.Append(sectionProps);
         return sectionProps;
     }
@@ -378,10 +398,16 @@ public static class WordHtmlConverter
 
         if (format.UnderlineStyle != null)
         {
-            props.Append(new Underline
+            var underline = new Underline
             {
                 Val = format.UnderlineStyle
-            });
+            };
+            if (format.UnderlineColor != null)
+            {
+                underline.Color = format.UnderlineColor;
+            }
+
+            props.Append(underline);
         }
 
         if (format.Strikethrough)
@@ -406,6 +432,20 @@ public static class WordHtmlConverter
                 {
                     Val = format.CharacterSpacingTwips.Value
                 });
+        }
+
+        if (format.CharacterScale != null)
+        {
+            props.Append(
+                new CharacterScale
+                {
+                    Val = format.CharacterScale.Value
+                });
+        }
+
+        if (format.BdoOverrideRtl)
+        {
+            props.Append(new RightToLeftText());
         }
 
         if (format.Color != null)

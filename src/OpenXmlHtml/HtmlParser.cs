@@ -44,6 +44,11 @@ static class HtmlSegmentParser
     static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
     {
         var tag = element.LocalName;
+        if (IsHiddenElement(element, tag))
+        {
+            return;
+        }
+
         var newFormat = format;
         ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
         inPre = ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
@@ -87,6 +92,17 @@ static class HtmlSegmentParser
                 var imageFormat = format;
                 imageFormat.Image = ParseSvgElement(element);
                 segments.Add(new("\uFFFC", imageFormat));
+                return;
+            }
+            case "input":
+            {
+                var inputType = element.GetAttribute("type");
+                if (string.Equals(inputType, "checkbox", StringComparison.OrdinalIgnoreCase))
+                {
+                    var checkedAttr = element.HasAttribute("checked");
+                    segments.Add(new(checkedAttr ? "\u2611 " : "\u2610 ", format));
+                }
+
                 return;
             }
         }
@@ -160,6 +176,17 @@ static class HtmlSegmentParser
                 segments.Add(new("\u201D", format));
                 return;
             }
+            case "rt":
+            {
+                segments.Add(new("(", format));
+                var rtFormat = newFormat;
+                rtFormat.FontSizePt = Math.Round((rtFormat.FontSizePt ?? 12) * 0.6, 2);
+                ProcessNode(element, rtFormat, segments, inPre, settings);
+                segments.Add(new(")", format));
+                return;
+            }
+            case "rp":
+                return;
             case "td" or "th":
             {
                 ProcessNode(element, newFormat, segments, inPre, settings);
@@ -224,7 +251,7 @@ static class HtmlSegmentParser
     {
         switch (tag)
         {
-            case "b" or "strong" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "th" or "caption" or "dt":
+            case "b" or "strong" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "th" or "caption" or "dt" or "legend":
                 format.Bold = true;
                 break;
             case "i" or "em" or "cite" or "dfn" or "var":
@@ -260,6 +287,16 @@ static class HtmlSegmentParser
             case "small":
                 format.FontSizePt = Math.Round((format.FontSizePt ?? 12) * 0.8, 2);
                 break;
+            case "bdo":
+            {
+                var dir = element.GetAttribute("dir");
+                if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase))
+                {
+                    format.BdoOverrideRtl = true;
+                }
+
+                break;
+            }
         }
 
         if (tag == "font")
@@ -288,6 +325,15 @@ static class HtmlSegmentParser
         }
 
         ApplyInlineStyle(element, ref format, out declarations);
+
+        if (tag == "fieldset")
+        {
+            declarations ??= new(StringComparer.OrdinalIgnoreCase);
+            if (!declarations.ContainsKey("border"))
+            {
+                declarations["border"] = "1pt solid #808080";
+            }
+        }
     }
 
     static void ApplyInlineStyle(IElement element, ref FormatState format, out Dictionary<string, string>? declarations)
@@ -303,7 +349,12 @@ static class HtmlSegmentParser
 
         if (declarations.TryGetValue("font-weight", out var fontWeight))
         {
-            if (fontWeight is "bold" or "bolder" or "700" or "800" or "900")
+            if (fontWeight is "bold" or "bolder")
+            {
+                format.Bold = true;
+            }
+            else if (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out var fw) &&
+                     fw >= 600)
             {
                 format.Bold = true;
             }
@@ -348,6 +399,15 @@ static class HtmlSegmentParser
                 {
                     format.Strikethrough = true;
                 }
+            }
+        }
+
+        if (declarations.TryGetValue("text-decoration-color", out var decorationColor))
+        {
+            var parsedDecoration = ColorParser.Parse(decorationColor);
+            if (parsedDecoration != null)
+            {
+                format.UnderlineColor = parsedDecoration;
             }
         }
 
@@ -450,6 +510,25 @@ static class HtmlSegmentParser
             }
         }
 
+        if (declarations.TryGetValue("word-spacing", out var wordSpacing) &&
+            !wordSpacing.Equals("normal", StringComparison.OrdinalIgnoreCase))
+        {
+            var twips = StyleParser.ParseLengthToTwips(wordSpacing);
+            if (twips != null)
+            {
+                format.CharacterSpacingTwips = (format.CharacterSpacingTwips ?? 0) + twips.Value;
+            }
+        }
+
+        if (declarations.TryGetValue("font-stretch", out var fontStretch))
+        {
+            var scale = StyleParser.ParseFontStretch(fontStretch);
+            if (scale != null)
+            {
+                format.CharacterScale = scale;
+            }
+        }
+
         if (declarations.TryGetValue("vertical-align", out var verticalAlign))
         {
             switch (verticalAlign)
@@ -466,6 +545,45 @@ static class HtmlSegmentParser
         }
     }
 
+    internal static bool IsHiddenElement(IElement element, string tag)
+    {
+        // Always skip non-rendered metadata/script/form-control tags.
+        // (input is intentionally NOT here so checkboxes can be rendered.)
+        if (tag is "script" or "style" or "head" or "meta" or "link" or "title" or
+                   "noscript" or "template" or "base" or "track" or "source" or
+                   "param" or "audio" or "video" or "canvas" or "iframe" or "object" or "embed")
+        {
+            return true;
+        }
+
+        if (element.HasAttribute("hidden"))
+        {
+            return true;
+        }
+
+        var style = element.GetAttribute("style");
+        if (style == null)
+        {
+            return false;
+        }
+
+        var declarations = StyleParser.Parse(style);
+        if (declarations.TryGetValue("display", out var display) &&
+            display.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (declarations.TryGetValue("visibility", out var visibility) &&
+            (visibility.Equals("hidden", StringComparison.OrdinalIgnoreCase) ||
+             visibility.Equals("collapse", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     internal static bool IsBlockElement(string tag) =>
         tag is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6"
             or "ul" or "ol" or "li" or "blockquote" or "pre" or "table"
@@ -473,6 +591,7 @@ static class HtmlSegmentParser
             or "nav" or "aside" or "main" or "figure" or "figcaption" or "details"
             or "summary" or "address" or "dt" or "dd" or "dl"
             or "caption" or "tbody" or "thead" or "tfoot"
+            or "fieldset" or "legend"
             or "body" or "html";
 
     internal static bool IsInterBlockWhitespace(IText textNode)

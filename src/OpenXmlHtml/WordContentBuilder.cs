@@ -72,6 +72,11 @@ static partial class WordContentBuilder
     static void ProcessElement(IElement element, FormatState format, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
     {
         var tag = element.LocalName;
+        if (HtmlSegmentParser.IsHiddenElement(element, tag))
+        {
+            return;
+        }
+
         var newFormat = format;
         HtmlSegmentParser.ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
@@ -125,6 +130,17 @@ static partial class WordContentBuilder
             }
             case "col":
                 return;
+            case "input":
+            {
+                var inputType = element.GetAttribute("type");
+                if (string.Equals(inputType, "checkbox", StringComparison.OrdinalIgnoreCase))
+                {
+                    var checkedAttr = element.HasAttribute("checked");
+                    AddTextRun(checkedAttr ? "☑ " : "☐ ", format, context);
+                }
+
+                return;
+            }
             case "table":
                 FlushParagraph(elements, context);
                 BuildTable(element, format, elements, context);
@@ -152,6 +168,17 @@ static partial class WordContentBuilder
                 FlushParagraph(elements, context);
                 return;
             }
+            case "rt":
+            {
+                AddTextRun("(", format, context);
+                var rtFormat = newFormat;
+                rtFormat.FontSizePt = Math.Round((rtFormat.FontSizePt ?? 12) * 0.6, 2);
+                ProcessChildren(element, rtFormat, elements, context, inPre);
+                AddTextRun(")", format, context);
+                return;
+            }
+            case "rp":
+                return;
             case "abbr" or "acronym":
             {
                 ProcessChildren(element, newFormat, elements, context, inPre);
@@ -192,8 +219,10 @@ static partial class WordContentBuilder
             ParagraphFormatState? pendingFormat = null;
             if (styleDeclarations != null)
             {
-                pageBreakBefore = styleDeclarations.TryGetValue("page-break-before", out var pbb) && pbb == "always";
-                pageBreakAfter = styleDeclarations.TryGetValue("page-break-after", out var pba) && pba == "always";
+                pageBreakBefore = IsPageBreak(styleDeclarations, "page-break-before") ||
+                                  IsPageBreak(styleDeclarations, "break-before");
+                pageBreakAfter = IsPageBreak(styleDeclarations, "page-break-after") ||
+                                 IsPageBreak(styleDeclarations, "break-after");
 
                 var pf = ParagraphFormatState.ParseFrom(styleDeclarations);
                 if (pf.HasProperties)
@@ -285,6 +314,15 @@ static partial class WordContentBuilder
             }
         }
     }
+
+    static bool IsPageBreak(Dictionary<string, string> declarations, string key) =>
+        declarations.TryGetValue(key, out var value) &&
+        (value.Equals("always", StringComparison.OrdinalIgnoreCase) ||
+         value.Equals("page", StringComparison.OrdinalIgnoreCase) ||
+         value.Equals("left", StringComparison.OrdinalIgnoreCase) ||
+         value.Equals("right", StringComparison.OrdinalIgnoreCase) ||
+         value.Equals("recto", StringComparison.OrdinalIgnoreCase) ||
+         value.Equals("verso", StringComparison.OrdinalIgnoreCase));
 
     static void AddTextRun(string text, FormatState format, WordBuildContext ctx)
     {
