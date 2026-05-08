@@ -218,6 +218,67 @@ static class StyleParser
         return (v0, v1, v2, v3);
     }
 
+    internal static int? ParseFontStretch(string value)
+    {
+        var span = value.AsSpan().Trim();
+
+        if (span.EndsWith("%".AsSpan(), StringComparison.Ordinal) &&
+            double.TryParse(span[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
+        {
+            return Clamp((int)Math.Round(pct));
+        }
+
+        if (span.Equals("ultra-condensed", StringComparison.OrdinalIgnoreCase))
+        {
+            return 50;
+        }
+
+        if (span.Equals("extra-condensed", StringComparison.OrdinalIgnoreCase))
+        {
+            return 62;
+        }
+
+        if (span.Equals("condensed", StringComparison.OrdinalIgnoreCase))
+        {
+            return 75;
+        }
+
+        if (span.Equals("semi-condensed", StringComparison.OrdinalIgnoreCase))
+        {
+            return 87;
+        }
+
+        if (span.Equals("normal", StringComparison.OrdinalIgnoreCase))
+        {
+            return 100;
+        }
+
+        if (span.Equals("semi-expanded", StringComparison.OrdinalIgnoreCase))
+        {
+            return 112;
+        }
+
+        if (span.Equals("expanded", StringComparison.OrdinalIgnoreCase))
+        {
+            return 125;
+        }
+
+        if (span.Equals("extra-expanded", StringComparison.OrdinalIgnoreCase))
+        {
+            return 150;
+        }
+
+        if (span.Equals("ultra-expanded", StringComparison.OrdinalIgnoreCase))
+        {
+            return 200;
+        }
+
+        return null;
+
+        static int Clamp(int v) =>
+            v < 1 ? 1 : v > 600 ? 600 : v;
+    }
+
     internal static JustificationValues? ParseTextAlign(string value)
     {
         var span = value.AsSpan().Trim();

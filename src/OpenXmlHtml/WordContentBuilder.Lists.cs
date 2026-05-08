@@ -47,6 +47,17 @@ static partial class WordContentBuilder
         var inside = listDeclarations != null &&
                      listDeclarations.TryGetValue("list-style-position", out var pos) &&
                      pos.Equals("inside", StringComparison.OrdinalIgnoreCase);
+        var noMarker = string.Equals(listStyleCss, "none", StringComparison.OrdinalIgnoreCase);
+
+        if (noMarker)
+        {
+            var ilvlNoMarker = context.ListStack.Count > 0 ? context.ListStack.Peek().Ilvl + 1 : 0;
+            context.ListStack.Push((0, ilvlNoMarker, isOrdered, inside, true));
+            ProcessChildren(element, newFormat, elements, context, inPre);
+            context.ListStack.Pop();
+            return;
+        }
+
         var format = WordNumberingBuilder.ParseListStyleType(typeAttr, listStyleCss, isOrdered);
 
         int abstractNumId;
@@ -80,7 +91,7 @@ static partial class WordContentBuilder
         WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride);
         var ilvl = context.ListStack.Count > 0 ? context.ListStack.Peek().Ilvl + 1 : 0;
         var parentInside = context.ListStack.Count > 0 && context.ListStack.Peek().Inside;
-        context.ListStack.Push((numId, ilvl, isOrdered, inside || parentInside));
+        context.ListStack.Push((numId, ilvl, isOrdered, inside || parentInside, false));
         ProcessChildren(element, newFormat, elements, context, inPre);
         context.ListStack.Pop();
     }
@@ -90,10 +101,18 @@ static partial class WordContentBuilder
         FlushParagraph(elements, context);
         if (context.ListStack.Count > 0)
         {
-            var (numId, ilvl, _, inside) = context.ListStack.Peek();
-            context.ListNumId = numId;
-            context.ListIlvl = ilvl;
-            context.ListInside = inside;
+            var (numId, ilvl, _, inside, noMarker) = context.ListStack.Peek();
+            if (noMarker)
+            {
+                // list-style-type:none — render as plain paragraph with indentation
+                context.ListDepth = ilvl + 1;
+            }
+            else
+            {
+                context.ListNumId = numId;
+                context.ListIlvl = ilvl;
+                context.ListInside = inside;
+            }
         }
         else
         {
