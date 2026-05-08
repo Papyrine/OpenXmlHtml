@@ -752,7 +752,10 @@ static class HtmlSegmentParser
 #endif
 
         var (width, height) = ImageResolver.ParseImageDimensions(element);
-        return new(bytes, contentType, width, height);
+        return new(bytes, contentType, width, height)
+        {
+            Float = ImageResolver.ParseFloat(element)
+        };
     }
 
     internal static ImageData ParseSvgElement(IElement element)
@@ -767,7 +770,10 @@ static class HtmlSegmentParser
         var svgBytes = Encoding.UTF8.GetBytes(writer.ToString());
 
         var (width, height) = ResolveSvgDimensions(element);
-        return new(svgBytes, "image/svg+xml", width, height);
+        return new(svgBytes, "image/svg+xml", width, height)
+        {
+            Float = ImageResolver.ParseFloat(element)
+        };
     }
 
     static (int? Width, int? Height) ResolveSvgDimensions(IElement element)

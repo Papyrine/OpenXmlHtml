@@ -338,7 +338,7 @@ public static class WordHtmlConverter
 
         sectionProps = new(pageSize, pageMargin);
 
-        if (layout?.ColumnCount is { } cc && cc > 1)
+        if (layout?.ColumnCount is { } cc and > 1)
         {
             sectionProps.Append(
                 new Columns
@@ -548,7 +548,8 @@ public static class WordHtmlConverter
                 Embed = relationshipId
             },
             widthEmu,
-            heightEmu);
+            heightEmu,
+            image.Float);
 
         var run = new Run();
         run.Append(drawing);
@@ -590,66 +591,125 @@ public static class WordHtmlConverter
         extList.Append(ext);
         blip.Append(extList);
 
-        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu);
+        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float);
 
         var run = new Run();
         run.Append(drawing);
         return run;
     }
 
-    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu) =>
-        new(
-            new DW.Inline(
+    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide)
+    {
+        var graphic = new A.Graphic(
+            new A.GraphicData(
+                new PIC.Picture(
+                    new PIC.NonVisualPictureProperties(
+                        new PIC.NonVisualDrawingProperties
+                        {
+                            Id = 0U,
+                            Name = "Image"
+                        },
+                        new PIC.NonVisualPictureDrawingProperties()),
+                    new PIC.BlipFill(
+                        blip,
+                        new A.Stretch(new A.FillRectangle())),
+                    new PIC.ShapeProperties(
+                        new A.Transform2D(
+                            new A.Offset
+                            {
+                                X = 0,
+                                Y = 0
+                            },
+                            new A.Extents
+                            {
+                                Cx = widthEmu,
+                                Cy = heightEmu
+                            }),
+                        new A.PresetGeometry(new A.AdjustValueList())
+                        {
+                            Preset = A.ShapeTypeValues.Rectangle
+                        })))
+            {
+                Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+            });
+
+        if (floatSide == FloatSide.None)
+        {
+            return new Drawing(
+                new DW.Inline(
+                    new DW.Extent
+                    {
+                        Cx = widthEmu,
+                        Cy = heightEmu
+                    },
+                    new DW.DocProperties
+                    {
+                        Id = 1U,
+                        Name = "Image"
+                    },
+                    graphic)
+                {
+                    DistanceFromTop = 0U,
+                    DistanceFromBottom = 0U,
+                    DistanceFromLeft = 0U,
+                    DistanceFromRight = 0U
+                });
+        }
+
+        var alignment = floatSide == FloatSide.Left ? "left" : "right";
+        return new Drawing(
+            new DW.Anchor(
+                new DW.SimplePosition
+                {
+                    X = 0L,
+                    Y = 0L
+                },
+                new DW.HorizontalPosition(
+                    new DW.HorizontalAlignment(alignment))
+                {
+                    RelativeFrom = DW.HorizontalRelativePositionValues.Margin
+                },
+                new DW.VerticalPosition(
+                    new DW.PositionOffset("0"))
+                {
+                    RelativeFrom = DW.VerticalRelativePositionValues.Paragraph
+                },
                 new DW.Extent
                 {
                     Cx = widthEmu,
                     Cy = heightEmu
+                },
+                new DW.EffectExtent
+                {
+                    LeftEdge = 0L,
+                    TopEdge = 0L,
+                    RightEdge = 0L,
+                    BottomEdge = 0L
+                },
+                new DW.WrapSquare
+                {
+                    WrapText = DW.WrapTextValues.BothSides
                 },
                 new DW.DocProperties
                 {
                     Id = 1U,
                     Name = "Image"
                 },
-                new A.Graphic(
-                    new A.GraphicData(
-                        new PIC.Picture(
-                            new PIC.NonVisualPictureProperties(
-                                new PIC.NonVisualDrawingProperties
-                                {
-                                    Id = 0U,
-                                    Name = "Image"
-                                },
-                                new PIC.NonVisualPictureDrawingProperties()),
-                            new PIC.BlipFill(
-                                blip,
-                                new A.Stretch(new A.FillRectangle())),
-                            new PIC.ShapeProperties(
-                                new A.Transform2D(
-                                    new A.Offset
-                                    {
-                                        X = 0,
-                                        Y = 0
-                                    },
-                                    new A.Extents
-                                    {
-                                        Cx = widthEmu,
-                                        Cy = heightEmu
-                                    }),
-                                new A.PresetGeometry(new A.AdjustValueList())
-                                {
-                                    Preset = A.ShapeTypeValues.Rectangle
-                                }))
-                    )
-                    {
-                        Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture"
-                    })
-            )
+                new DW.NonVisualGraphicFrameDrawingProperties(),
+                graphic)
             {
                 DistanceFromTop = 0U,
                 DistanceFromBottom = 0U,
-                DistanceFromLeft = 0U,
-                DistanceFromRight = 0U
+                DistanceFromLeft = 114300U,
+                DistanceFromRight = 114300U,
+                SimplePos = false,
+                RelativeHeight = 0U,
+                BehindDoc = false,
+                Locked = false,
+                LayoutInCell = true,
+                AllowOverlap = true
             });
+    }
 
     static string GetImagePartType(string contentType)
     {

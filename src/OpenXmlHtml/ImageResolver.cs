@@ -100,7 +100,37 @@ static class ImageResolver
         contentType ??= "image/png";
 
         var (width, height) = ParseImageDimensions(element);
-        return new(bytes, contentType, width, height);
+        return new(bytes, contentType, width, height)
+        {
+            Float = ParseFloat(element)
+        };
+    }
+
+    internal static FloatSide ParseFloat(IElement element)
+    {
+        var style = element.GetAttribute("style");
+        if (style == null)
+        {
+            return FloatSide.None;
+        }
+
+        var declarations = StyleParser.Parse(style);
+        if (!declarations.TryGetValue("float", out var value))
+        {
+            return FloatSide.None;
+        }
+
+        if (value.Equals("left", StringComparison.OrdinalIgnoreCase))
+        {
+            return FloatSide.Left;
+        }
+
+        if (value.Equals("right", StringComparison.OrdinalIgnoreCase))
+        {
+            return FloatSide.Right;
+        }
+
+        return FloatSide.None;
     }
 
     internal static (int? Width, int? Height) ParseImageDimensions(IElement element)

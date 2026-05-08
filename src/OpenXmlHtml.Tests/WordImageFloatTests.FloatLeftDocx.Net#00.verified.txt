@@ -1,0 +1,3 @@
+﻿{
+  Text:  body text after image
+}
