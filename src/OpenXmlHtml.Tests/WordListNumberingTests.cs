@@ -99,6 +99,39 @@ public class WordListNumberingTests
     }
 
     [Test]
+    public Task DeeplyNestedListCappedAtIlvl8()
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """
+            <ul><li>1
+              <ul><li>2
+                <ul><li>3
+                  <ul><li>4
+                    <ul><li>5
+                      <ul><li>6
+                        <ul><li>7
+                          <ul><li>8
+                            <ul><li>9
+                              <ul><li>10
+                                <ul><li>11</li></ul>
+                              </li></ul>
+                            </li></ul>
+                          </li></ul>
+                        </li></ul>
+                      </li></ul>
+                    </li></ul>
+                  </li></ul>
+                </li></ul>
+              </li></ul>
+            </li></ul>
+            """,
+            stream);
+        stream.Position = 0;
+        return Verify(stream, "docx");
+    }
+
+    [Test]
     public Task FallbackWithoutMainDocumentPart()
     {
         var elements = WordHtmlConverter.ToElements(

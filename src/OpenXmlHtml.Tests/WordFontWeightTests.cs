@@ -24,4 +24,28 @@ public class WordFontWeightTests
     [Test]
     public Task FontWeightBolder() =>
         Verify(WordHtmlConverter.ToParagraphs("""<span style="font-weight: bolder">bolder</span>"""));
+
+    [Test]
+    public Task FontWeightNormalResetsBold() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<b>bold <span style="font-weight: normal">not bold</span></b>"""));
+
+    [Test]
+    public Task FontWeightLighterResetsBold() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<b>bold <span style="font-weight: lighter">not bold</span></b>"""));
+
+    [Test]
+    public Task FontWeight300ResetsBold() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<b>bold <span style="font-weight: 300">not bold</span></b>"""));
+
+    [Test]
+    public Task FontWeightUppercaseBold() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<span style="font-weight: BOLD">bold</span>"""));
+
+    [Test]
+    public Task FontStyleNormalResetsItalic() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<i>italic <span style="font-style: normal">not italic</span></i>"""));
+
+    [Test]
+    public Task FontStyleUppercaseItalic() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<span style="font-style: ITALIC">italic</span>"""));
 }

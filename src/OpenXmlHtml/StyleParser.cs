@@ -166,7 +166,7 @@ static class StyleParser
         var i = 0;
         while (i < span.Length)
         {
-            while (i < span.Length && span[i] == ' ')
+            while (i < span.Length && char.IsWhiteSpace(span[i]))
             {
                 i++;
             }
@@ -177,7 +177,7 @@ static class StyleParser
             }
 
             var start = i;
-            while (i < span.Length && span[i] != ' ')
+            while (i < span.Length && !char.IsWhiteSpace(span[i]))
             {
                 i++;
             }
@@ -315,7 +315,7 @@ static class StyleParser
         var i = 0;
         while (i < span.Length)
         {
-            while (i < span.Length && span[i] == ' ')
+            while (i < span.Length && char.IsWhiteSpace(span[i]))
             {
                 i++;
             }
@@ -326,7 +326,7 @@ static class StyleParser
             }
 
             var start = i;
-            while (i < span.Length && span[i] != ' ')
+            while (i < span.Length && !char.IsWhiteSpace(span[i]))
             {
                 i++;
             }

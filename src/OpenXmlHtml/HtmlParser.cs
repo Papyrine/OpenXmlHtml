@@ -352,22 +352,32 @@ static class HtmlSegmentParser
 
         if (declarations.TryGetValue("font-weight", out var fontWeight))
         {
-            if (fontWeight is "bold" or "bolder")
+            if (fontWeight.Equals("bold", StringComparison.OrdinalIgnoreCase) ||
+                fontWeight.Equals("bolder", StringComparison.OrdinalIgnoreCase))
             {
                 format.Bold = true;
             }
-            else if (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out var fw) &&
-                     fw >= 600)
+            else if (fontWeight.Equals("normal", StringComparison.OrdinalIgnoreCase) ||
+                     fontWeight.Equals("lighter", StringComparison.OrdinalIgnoreCase))
             {
-                format.Bold = true;
+                format.Bold = false;
+            }
+            else if (int.TryParse(fontWeight, NumberStyles.Integer, CultureInfo.InvariantCulture, out var fw))
+            {
+                format.Bold = fw >= 600;
             }
         }
 
         if (declarations.TryGetValue("font-style", out var fontStyle))
         {
-            if (fontStyle is "italic" or "oblique")
+            if (fontStyle.Equals("italic", StringComparison.OrdinalIgnoreCase) ||
+                fontStyle.Equals("oblique", StringComparison.OrdinalIgnoreCase))
             {
                 format.Italic = true;
+            }
+            else if (fontStyle.Equals("normal", StringComparison.OrdinalIgnoreCase))
+            {
+                format.Italic = false;
             }
         }
 
