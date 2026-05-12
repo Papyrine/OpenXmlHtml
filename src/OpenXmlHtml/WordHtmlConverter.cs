@@ -635,7 +635,7 @@ public static class WordHtmlConverter
 
         if (floatSide == FloatSide.None)
         {
-            return new Drawing(
+            return new(
                 new DW.Inline(
                     new DW.Extent
                     {
@@ -657,7 +657,7 @@ public static class WordHtmlConverter
         }
 
         var alignment = floatSide == FloatSide.Left ? "left" : "right";
-        return new Drawing(
+        return new(
             new DW.Anchor(
                 new DW.SimplePosition
                 {
