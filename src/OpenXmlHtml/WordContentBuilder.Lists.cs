@@ -51,7 +51,7 @@ static partial class WordContentBuilder
 
         if (noMarker)
         {
-            var ilvlNoMarker = context.ListStack.Count > 0 ? context.ListStack.Peek().Ilvl + 1 : 0;
+            var ilvlNoMarker = context.ListStack.Count > 0 ? Math.Min(context.ListStack.Peek().Ilvl + 1, 8) : 0;
             context.ListStack.Push((0, ilvlNoMarker, isOrdered, inside, true));
             ProcessChildren(element, newFormat, elements, context, inPre);
             context.ListStack.Pop();
@@ -89,7 +89,7 @@ static partial class WordContentBuilder
 
         var numId = WordNumberingBuilder.GetNextId(numbering);
         WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride);
-        var ilvl = context.ListStack.Count > 0 ? context.ListStack.Peek().Ilvl + 1 : 0;
+        var ilvl = context.ListStack.Count > 0 ? Math.Min(context.ListStack.Peek().Ilvl + 1, 8) : 0;
         var parentInside = context.ListStack.Count > 0 && context.ListStack.Peek().Inside;
         context.ListStack.Push((numId, ilvl, isOrdered, inside || parentInside, false));
         ProcessChildren(element, newFormat, elements, context, inPre);

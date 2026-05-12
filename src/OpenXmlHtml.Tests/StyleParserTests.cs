@@ -86,4 +86,24 @@ public class StyleParserTests
         Assert.That(result.Bottom, Is.Null);
         Assert.That(result.Left, Is.Null);
     }
+
+    [Test]
+    public void MarginShorthandTabSeparated()
+    {
+        var result = StyleParser.ParseMarginShorthand("10px\t20px");
+        Assert.That(result.Top, Is.EqualTo(150));
+        Assert.That(result.Right, Is.EqualTo(300));
+        Assert.That(result.Bottom, Is.EqualTo(150));
+        Assert.That(result.Left, Is.EqualTo(300));
+    }
+
+    [Test]
+    public void BorderShorthandTabSeparated()
+    {
+        var result = StyleParser.ParseBorder("1px\tsolid\tred");
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.Style, Is.EqualTo(BorderValues.Single));
+        Assert.That(result.Color, Is.EqualTo("FF0000"));
+        Assert.That(result.SizeEighths, Is.EqualTo(6));
+    }
 }
