@@ -51,7 +51,8 @@ public class SpreadsheetSamples
         #region SpreadsheetRichContent
 
         var cell = new SpreadsheetCell();
-        SpreadsheetHtmlConverter.SetCellHtml(cell,
+        SpreadsheetHtmlConverter.SetCellHtml(
+            cell,
             """
             <h2>Q1 Report</h2>
             <p>Revenue: <b style="color: green">$1.2M</b></p>
@@ -72,7 +73,8 @@ public class SpreadsheetSamples
     public Task BugReportCell()
     {
         var cell = new SpreadsheetCell();
-        SpreadsheetHtmlConverter.SetCellHtml(cell,
+        SpreadsheetHtmlConverter.SetCellHtml(
+            cell,
             """
             <h3>BUG-4821: Login fails after password reset</h3>
             <p><b>Priority:</b> <span style="color: red">Critical</span>

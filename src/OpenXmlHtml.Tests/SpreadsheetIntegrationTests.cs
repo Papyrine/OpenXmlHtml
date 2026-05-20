@@ -41,7 +41,8 @@ public class SpreadsheetIntegrationTests
     public Task RichFormattedCell()
     {
         var cell = new SpreadsheetCell();
-        SpreadsheetHtmlConverter.SetCellHtml(cell,
+        SpreadsheetHtmlConverter.SetCellHtml(
+            cell,
             """
             <p>Report <b>Summary</b></p>
             <ul>
@@ -77,7 +78,8 @@ public class SpreadsheetIntegrationTests
                 RowIndex = 1
             };
             var cell = new SpreadsheetCell();
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """
                 <ul>
                   <li>Top level</li>
@@ -131,7 +133,8 @@ public class SpreadsheetIntegrationTests
             {
                 CellReference = "A1"
             };
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """See the <a href="https://example.com/report">full report</a> for details.""",
                 worksheetPart);
             row.Append(cell);
@@ -170,7 +173,8 @@ public class SpreadsheetIntegrationTests
             {
                 CellReference = "A1"
             };
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """Email <a href="mailto:support@example.com">support</a>.""",
                 worksheetPart);
             row.Append(cell);
@@ -209,7 +213,8 @@ public class SpreadsheetIntegrationTests
             {
                 CellReference = "A1"
             };
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """<a href="https://example.com" title="Open Example">Example</a>""",
                 worksheetPart);
             row.Append(cell);
@@ -248,7 +253,8 @@ public class SpreadsheetIntegrationTests
             {
                 CellReference = "A1"
             };
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """<a href="https://example.com">Link 1</a> and <a href="https://other.com">Link 2</a>""",
                 worksheetPart);
             row.Append(cell);
@@ -287,7 +293,8 @@ public class SpreadsheetIntegrationTests
             {
                 CellReference = "A1"
             };
-            SpreadsheetHtmlConverter.SetCellHtml(cell,
+            SpreadsheetHtmlConverter.SetCellHtml(
+                cell,
                 """See <a href="/reports/q1">Q1 report</a>.""",
                 worksheetPart);
             row.Append(cell);
@@ -302,7 +309,8 @@ public class SpreadsheetIntegrationTests
     public Task ComplexTable()
     {
         var cell = new SpreadsheetCell();
-        SpreadsheetHtmlConverter.SetCellHtml(cell,
+        SpreadsheetHtmlConverter.SetCellHtml(
+            cell,
             """
             <b>Q1 Results</b><br>
             Revenue: <font color="#008000">$1.2M</font><br>

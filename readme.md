@@ -67,7 +67,8 @@ var inlineString = SpreadsheetHtmlConverter.ToInlineString(
 <a id='snippet-SpreadsheetRichContent'></a>
 ```cs
 var cell = new SpreadsheetCell();
-SpreadsheetHtmlConverter.SetCellHtml(cell,
+SpreadsheetHtmlConverter.SetCellHtml(
+    cell,
     """
     <h2>Q1 Report</h2>
     <p>Revenue: <b style="color: green">$1.2M</b></p>
@@ -79,7 +80,7 @@ SpreadsheetHtmlConverter.SetCellHtml(cell,
     </table>
     """);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L51-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetRichContent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L51-L67' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetRichContent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
