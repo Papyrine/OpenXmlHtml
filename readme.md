@@ -10,9 +10,9 @@ Uses [AngleSharp](https://github.com/AangleSharp/AngleSharp) for HTML parsing an
 
 ## Open Source Maintenance Fee
 
-This project participates in the [Open Source Maintenance Fee](https://opensourcemaintenancefee.org). The source code is freely available under the terms of the [license](license.txt). To support sustainable maintenance, use of the project's official binary releases in revenue-generating activities requires adherence to the [Open Source Maintenance Fee EULA](OSMFEULA.txt). The fee is paid by [sponsoring Papyrine](https://github.com/sponsors/Papyrine).
+This project participates in the [Open Source Maintenance Fee](https://opensourcemaintenancefee.org). The source code is freely available under the terms of the [license](license.txt). To support sustainable maintenance, use of the project's official binary releases in revenue-generating activities and all government agencies requires adherence to the [Open Source Maintenance Fee EULA](OSMFEULA.txt). The fee is paid by [sponsoring Papyrine](https://github.com/sponsors/Papyrine).
 
-This project uses [SponsorCheck](https://github.com/SimonCropp/SponsorCheck) to surface a build-time reminder in consuming projects that are not yet sponsoring. See the [EULA](OSMFEULA.txt) for the revenue threshold (US$10,000 annual gross revenue) and exemptions.
+This project uses [SponsorCheck](https://github.com/SimonCropp/SponsorCheck) to surface a build-time reminder in consuming projects that are not yet sponsoring.
 
 
 ## NuGet package
