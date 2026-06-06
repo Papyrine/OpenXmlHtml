@@ -8,6 +8,7 @@
     <PackageReference Include="Polyfill" PrivateAssets="all" />
     <PackageReference Include="System.Memory" />
     <PackageReference Include="ProjectDefaults" PrivateAssets="all" />
+    <PackageReference Include="SponsorCheck" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Net.Http" />
