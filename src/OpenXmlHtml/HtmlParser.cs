@@ -18,6 +18,7 @@ static class HtmlSegmentParser
 
     static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
     {
+        var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
             switch (child)
@@ -35,22 +36,25 @@ static class HtmlSegmentParser
                     break;
                 }
                 case IElement element:
-                    ProcessElement(element, format, segments, inPre, settings);
+                {
+                    var listIndex = element.LocalName == "li" ? ++orderedIndex : 0;
+                    ProcessElement(element, format, segments, inPre, settings, listIndex);
                     break;
+                }
             }
         }
     }
 
-    static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
+    static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, int listIndex = 0)
     {
         var tag = element.LocalName;
-        if (IsHiddenElement(element, tag))
+        var newFormat = format;
+        ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
+        if (IsHiddenElement(element, tag, styleDeclarations))
         {
             return;
         }
 
-        var newFormat = format;
-        ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
         inPre = ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
         switch (tag)
@@ -124,21 +128,7 @@ static class HtmlSegmentParser
                 bulletFormat.ListDepth = depth;
                 if (parent == "ol")
                 {
-                    var index = 1;
-                    foreach (var sibling in element.ParentElement!.Children)
-                    {
-                        if (sibling == element)
-                        {
-                            break;
-                        }
-
-                        if (sibling.LocalName == "li")
-                        {
-                            index++;
-                        }
-                    }
-
-                    segments.Add(new($"{indent}{index}. ", bulletFormat));
+                    segments.Add(new($"{indent}{listIndex}. ", bulletFormat));
                 }
                 else
                 {
@@ -523,13 +513,16 @@ static class HtmlSegmentParser
             }
         }
 
-        if (declarations.TryGetValue("word-spacing", out var wordSpacing) &&
+        // Word runs have no separate word-spacing; approximate it with character spacing,
+        // but only when letter-spacing has not already set it (otherwise the two would sum).
+        if (format.CharacterSpacingTwips == null &&
+            declarations.TryGetValue("word-spacing", out var wordSpacing) &&
             !wordSpacing.Equals("normal", StringComparison.OrdinalIgnoreCase))
         {
             var twips = StyleParser.ParseLengthToTwips(wordSpacing);
             if (twips != null)
             {
-                format.CharacterSpacingTwips = (format.CharacterSpacingTwips ?? 0) + twips.Value;
+                format.CharacterSpacingTwips = twips;
             }
         }
 
@@ -544,21 +537,20 @@ static class HtmlSegmentParser
 
         if (declarations.TryGetValue("vertical-align", out var verticalAlign))
         {
-            switch (verticalAlign)
+            if (verticalAlign.Equals("super", StringComparison.OrdinalIgnoreCase))
             {
-                case "super":
-                    format.Superscript = true;
-                    format.Subscript = false;
-                    break;
-                case "sub":
-                    format.Subscript = true;
-                    format.Superscript = false;
-                    break;
+                format.Superscript = true;
+                format.Subscript = false;
+            }
+            else if (verticalAlign.Equals("sub", StringComparison.OrdinalIgnoreCase))
+            {
+                format.Subscript = true;
+                format.Superscript = false;
             }
         }
     }
 
-    internal static bool IsHiddenElement(IElement element, string tag)
+    internal static bool IsHiddenElement(IElement element, string tag, Dictionary<string, string>? declarations)
     {
         // Always skip non-rendered metadata/script/form-control tags.
         // (input is intentionally NOT here so checkboxes can be rendered.)
@@ -574,13 +566,11 @@ static class HtmlSegmentParser
             return true;
         }
 
-        var style = element.GetAttribute("style");
-        if (style == null)
+        if (declarations == null)
         {
             return false;
         }
 
-        var declarations = StyleParser.Parse(style);
         if (declarations.TryGetValue("display", out var display) &&
             display.Equals("none", StringComparison.OrdinalIgnoreCase))
         {

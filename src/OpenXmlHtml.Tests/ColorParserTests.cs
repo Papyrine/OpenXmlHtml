@@ -16,6 +16,10 @@ public class ColorParserTests
     [TestCase("rgba(0, 128, 0, 1)", "008000")]
     [TestCase("rgba(0,0,255,0)", "0000FF")]
     [TestCase("rgba(100, 200, 50, 0.8)", "64C832")]
+    [TestCase("rgb(100%, 0%, 0%)", "FF0000")]
+    [TestCase("rgb(0%, 100%, 0%)", "00FF00")]
+    [TestCase("rgba(0%, 0%, 100%, 0.5)", "0000FF")]
+    [TestCase("rgb(255.0, 0, 0)", "FF0000")]
     public void ValidColors(string input, string expected) =>
         Assert.That(ColorParser.Parse(input), Is.EqualTo(expected));
 

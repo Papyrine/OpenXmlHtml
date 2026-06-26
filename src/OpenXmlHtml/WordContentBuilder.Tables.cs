@@ -166,16 +166,18 @@ static partial class WordContentBuilder
             {
                 if (rowspanTracker.TryGetValue(colIndex, out var spanInfo))
                 {
-                    var contTcPr = new TableCellProperties(new VerticalMerge());
+                    // CT_TcPr requires gridSpan before vMerge.
+                    var contTcPr = new TableCellProperties();
                     if (spanInfo.Colspan > 1)
                     {
                         contTcPr.Append(
                             new GridSpan
-                        {
-                            Val = spanInfo.Colspan
-                        });
+                            {
+                                Val = spanInfo.Colspan
+                            });
                     }
 
+                    contTcPr.Append(new VerticalMerge());
                     tableRow.Append(new TableCell(contTcPr, new Paragraph()));
 
                     if (spanInfo.Remaining <= 1)
@@ -309,6 +311,7 @@ static partial class WordContentBuilder
 
         if (cellProperties != null)
         {
+            ReorderCellProperties(cellProperties);
             tc.Append(cellProperties);
         }
 
@@ -324,6 +327,8 @@ static partial class WordContentBuilder
             StyleMap = parentCtx.StyleMap,
             BulletAbstractNumId = parentCtx.BulletAbstractNumId,
             NextNumId = parentCtx.NextNumId,
+            FootnoteIndex = parentCtx.FootnoteIndex,
+            BookmarkId = parentCtx.BookmarkId,
             ParagraphRightToLeft = cellFormat.RightToLeft
         };
         ProcessChildren(cellElement, cellFormat, cellElements, cellCtx, false);
@@ -331,6 +336,8 @@ static partial class WordContentBuilder
         parentCtx.ImageIndex = cellCtx.ImageIndex;
         parentCtx.NextNumId = cellCtx.NextNumId;
         parentCtx.BulletAbstractNumId = cellCtx.BulletAbstractNumId;
+        parentCtx.FootnoteIndex = cellCtx.FootnoteIndex;
+        parentCtx.BookmarkId = cellCtx.BookmarkId;
 
         if (cellElements.Count == 0)
         {
@@ -577,18 +584,44 @@ static partial class WordContentBuilder
     static int GetColumnCount(List<IElement> rows)
     {
         var maxCols = 0;
+        // Mirror the render loop's rowspan tracking so rowspans originating in earlier rows
+        // are counted; otherwise later, wider rows would be truncated and cells lost.
+        var rowspanTracker = new Dictionary<int, (int Remaining, int Colspan)>();
         foreach (var row in rows)
         {
-            var cols = 0;
-            foreach (var cell in row.Children)
+            var cells = GetCells(row);
+            var cellIndex = 0;
+            var colIndex = 0;
+            while (cellIndex < cells.Count || rowspanTracker.ContainsKey(colIndex))
             {
-                if (cell.LocalName is "td" or "th")
+                if (rowspanTracker.TryGetValue(colIndex, out var spanInfo))
                 {
-                    cols += ParseIntAttribute(cell, "colspan", 1);
+                    if (spanInfo.Remaining <= 1)
+                    {
+                        rowspanTracker.Remove(colIndex);
+                    }
+                    else
+                    {
+                        rowspanTracker[colIndex] = (spanInfo.Remaining - 1, spanInfo.Colspan);
+                    }
+
+                    colIndex += spanInfo.Colspan;
+                    continue;
                 }
+
+                var cell = cells[cellIndex];
+                cellIndex++;
+                var colspan = ParseIntAttribute(cell, "colspan", 1);
+                var rowspan = ParseIntAttribute(cell, "rowspan", 1);
+                if (rowspan > 1)
+                {
+                    rowspanTracker[colIndex] = (rowspan - 1, colspan);
+                }
+
+                colIndex += colspan;
             }
 
-            maxCols = Math.Max(maxCols, cols);
+            maxCols = Math.Max(maxCols, colIndex);
         }
 
         return Math.Max(1, maxCols);
@@ -603,5 +636,35 @@ static partial class WordContentBuilder
         }
 
         return defaultValue;
+    }
+
+    static readonly Type[] cellPropertyOrder =
+    [
+        typeof(TableCellWidth),
+        typeof(GridSpan),
+        typeof(VerticalMerge),
+        typeof(TableCellBorders),
+        typeof(Shading),
+        typeof(TableCellMargin),
+        typeof(TextDirection),
+        typeof(TableCellVerticalAlignment)
+    ];
+
+    // The various cell-style sources append in a convenient order; CT_TcPr requires a fixed
+    // schema sequence, so normalise the children before emitting the cell.
+    static void ReorderCellProperties(TableCellProperties tcPr)
+    {
+        var sorted = tcPr.ChildElements
+            .OrderBy(_ =>
+            {
+                var index = Array.IndexOf(cellPropertyOrder, _.GetType());
+                return index < 0 ? int.MaxValue : index;
+            })
+            .ToList();
+        tcPr.RemoveAllChildren();
+        foreach (var child in sorted)
+        {
+            tcPr.Append(child);
+        }
     }
 }

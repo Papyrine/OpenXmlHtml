@@ -65,7 +65,7 @@ static partial class WordContentBuilder
         {
             if (context.BulletAbstractNumId == null)
             {
-                var id = WordNumberingBuilder.GetNextId(numbering);
+                var id = context.NextNumId++;
                 context.BulletAbstractNumId = WordNumberingBuilder.CreateBulletAbstractNum(numbering, id);
             }
 
@@ -73,8 +73,8 @@ static partial class WordContentBuilder
         }
         else
         {
-            // Each ordered format type gets its own abstract num
-            var id = WordNumberingBuilder.GetNextId(numbering);
+            // Each ordered list gets its own abstract num (for independent restart/start)
+            var id = context.NextNumId++;
             abstractNumId = WordNumberingBuilder.CreateOrderedAbstractNum(numbering, id, format);
         }
 
@@ -87,7 +87,7 @@ static partial class WordContentBuilder
             startOverride = startVal;
         }
 
-        var numId = WordNumberingBuilder.GetNextId(numbering);
+        var numId = context.NextNumId++;
         WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride);
         var ilvl = context.ListStack.Count > 0 ? Math.Min(context.ListStack.Peek().Ilvl + 1, 8) : 0;
         var parentInside = context.ListStack.Count > 0 && context.ListStack.Peek().Inside;
@@ -96,7 +96,7 @@ static partial class WordContentBuilder
         context.ListStack.Pop();
     }
 
-    static void BuildListItem(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
+    static void BuildListItem(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex)
     {
         FlushParagraph(elements, context);
         if (context.ListStack.Count > 0)
@@ -123,20 +123,7 @@ static partial class WordContentBuilder
 
             if (parent == "ol")
             {
-                var index = 1;
-                foreach (var sibling in element.ParentElement!.Children)
-                {
-                    if (sibling == element)
-                    {
-                        break;
-                    }
-
-                    if (sibling.LocalName == "li")
-                    {
-                        index++;
-                    }
-                }
-
+                var index = listIndex;
                 if (context.ReversedStart != null)
                 {
                     index = context.ReversedStart.Value - (index - 1);
