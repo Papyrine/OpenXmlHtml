@@ -47,6 +47,8 @@ static class PaddingHelper
         where T : OpenXmlCompositeElement, new()
     {
         var margin = new T();
+        // Both CT_TcMar (w:tcMar) and CT_TblCellMar (w:tblCellMar) use w:left/w:right; the w:start/w:end
+        // variants are not schema-valid here and are silently dropped by stricter consumers.
         if (top != null)
         {
             margin.Append(
@@ -60,7 +62,7 @@ static class PaddingHelper
         if (left != null)
         {
             margin.Append(
-                new StartMargin
+                new LeftMargin
                 {
                     Width = left.Value.ToString(),
                     Type = TableWidthUnitValues.Dxa
@@ -80,7 +82,7 @@ static class PaddingHelper
         if (right != null)
         {
             margin.Append(
-                new EndMargin
+                new RightMargin
                 {
                     Width = right.Value.ToString(),
                     Type = TableWidthUnitValues.Dxa
