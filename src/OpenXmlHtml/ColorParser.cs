@@ -233,14 +233,40 @@ static class ColorParser
             bSpan = bSpan[..thirdComma];
         }
 
-        if (!int.TryParse(inner[..firstComma].Trim(), out var r) ||
-            !int.TryParse(rest[..secondComma].Trim(), out var g) ||
-            !int.TryParse(bSpan.Trim(), out var b))
+        if (!TryParseComponent(inner[..firstComma], out var r) ||
+            !TryParseComponent(rest[..secondComma], out var g) ||
+            !TryParseComponent(bSpan, out var b))
         {
             return null;
         }
 
-        return $"{Clamp(r):X2}{Clamp(g):X2}{Clamp(b):X2}";
+        return $"{r:X2}{g:X2}{b:X2}";
+    }
+
+    // Parses a single rgb() component: integer, decimal, or percentage (e.g. "255", "49.5", "50%").
+    static bool TryParseComponent(ReadOnlySpan<char> value, out int component)
+    {
+        value = value.Trim();
+        if (value.EndsWith("%".AsSpan(), StringComparison.Ordinal))
+        {
+            if (double.TryParse(value[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
+            {
+                component = Clamp((int)Math.Round(percent / 100 * 255));
+                return true;
+            }
+
+            component = 0;
+            return false;
+        }
+
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            component = Clamp((int)Math.Round(number));
+            return true;
+        }
+
+        component = 0;
+        return false;
     }
 
     static int Clamp(int value) =>

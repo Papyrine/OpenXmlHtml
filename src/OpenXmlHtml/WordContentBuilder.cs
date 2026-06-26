@@ -22,6 +22,17 @@ static partial class WordContentBuilder
             context.NextNumId = 1;
         }
 
+        // Seed the footnote counter from any existing footnotes so a later Build call against
+        // the same document continues numbering instead of emitting colliding footnote IDs.
+        if (main?.FootnotesPart?.Footnotes is { } existingFootnotes)
+        {
+            context.FootnoteIndex = (int)existingFootnotes
+                .Elements<Footnote>()
+                .Select(_ => _.Id?.Value ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+        }
+
         if (settings?.NumberingSession is { } session)
         {
             context.BulletAbstractNumId = session.BulletAbstractNumId;
@@ -58,6 +69,7 @@ static partial class WordContentBuilder
 
     static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
+        var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
             switch (child)
@@ -75,22 +87,25 @@ static partial class WordContentBuilder
                     break;
                 }
                 case IElement element:
-                    ProcessElement(element, format, elements, ctx, inPre);
+                {
+                    var listIndex = element.LocalName == "li" ? ++orderedIndex : 0;
+                    ProcessElement(element, format, elements, ctx, inPre, listIndex);
                     break;
+                }
             }
         }
     }
 
-    static void ProcessElement(IElement element, FormatState format, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
+    static void ProcessElement(IElement element, FormatState format, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex = 0)
     {
         var tag = element.LocalName;
-        if (HtmlSegmentParser.IsHiddenElement(element, tag))
+        var newFormat = format;
+        HtmlSegmentParser.ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
+        if (HtmlSegmentParser.IsHiddenElement(element, tag, styleDeclarations))
         {
             return;
         }
 
-        var newFormat = format;
-        HtmlSegmentParser.ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
         switch (tag)
@@ -161,7 +176,7 @@ static partial class WordContentBuilder
                 BuildList(element, tag, newFormat, elements, context, inPre);
                 return;
             case "li":
-                BuildListItem(element, newFormat, elements, context, inPre);
+                BuildListItem(element, newFormat, elements, context, inPre, listIndex);
                 return;
             case "a":
                 BuildAnchor(element, format, newFormat, elements, context, inPre);
@@ -424,6 +439,8 @@ static partial class WordContentBuilder
             context.ParagraphRightToLeft = false;
             context.ListNumId = null;
             context.ListIlvl = null;
+            context.ListInside = false;
+            context.ListDepth = 0;
             return;
         }
 
@@ -541,8 +558,9 @@ static partial class WordContentBuilder
             pf.MarginRightTwips != null ||
             pf.TextIndentTwips != null)
         {
-            var indent = props.GetFirstChild<Indentation>() ?? new Indentation();
-            if (props.GetFirstChild<Indentation>() == null)
+            var existingIndent = props.GetFirstChild<Indentation>();
+            var indent = existingIndent ?? new Indentation();
+            if (existingIndent == null)
             {
                 props.Append(indent);
             }

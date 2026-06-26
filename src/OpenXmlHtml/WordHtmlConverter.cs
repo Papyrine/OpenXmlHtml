@@ -386,6 +386,19 @@ public static class WordHtmlConverter
                 });
         }
 
+        // Children are appended in OOXML CT_RPr schema order (rFonts, b, i, smallCaps,
+        // strike, shadow, color, spacing, w, sz, u, bdr, shd, vertAlign, rtl). Out-of-order
+        // children produce schema-invalid runs that strict consumers reject.
+        if (format.FontFamily != null)
+        {
+            props.Append(
+                new RunFonts
+                {
+                    Ascii = format.FontFamily,
+                    HighAnsi = format.FontFamily
+                });
+        }
+
         if (format.Bold)
         {
             props.Append(new Bold());
@@ -396,18 +409,9 @@ public static class WordHtmlConverter
             props.Append(new Italic());
         }
 
-        if (format.UnderlineStyle != null)
+        if (format.SmallCaps)
         {
-            var underline = new Underline
-            {
-                Val = format.UnderlineStyle
-            };
-            if (format.UnderlineColor != null)
-            {
-                underline.Color = format.UnderlineColor;
-            }
-
-            props.Append(underline);
+            props.Append(new SmallCaps());
         }
 
         if (format.Strikethrough)
@@ -415,14 +419,18 @@ public static class WordHtmlConverter
             props.Append(new Strike());
         }
 
-        if (format.SmallCaps)
-        {
-            props.Append(new SmallCaps());
-        }
-
         if (format.Shadow)
         {
             props.Append(new Shadow());
+        }
+
+        if (format.Color != null)
+        {
+            props.Append(
+                new Color
+                {
+                    Val = format.Color
+                });
         }
 
         if (format.CharacterSpacingTwips != null)
@@ -443,20 +451,6 @@ public static class WordHtmlConverter
                 });
         }
 
-        if (format.RightToLeft)
-        {
-            props.Append(new RightToLeftText());
-        }
-
-        if (format.Color != null)
-        {
-            props.Append(
-                new Color
-                {
-                    Val = format.Color
-                });
-        }
-
         if (format.FontSizePt != null)
         {
             var halfPoints = (int)(format.FontSizePt.Value * 2);
@@ -467,13 +461,40 @@ public static class WordHtmlConverter
                 });
         }
 
-        if (format.FontFamily != null)
+        if (format.UnderlineStyle != null)
+        {
+            var underline = new Underline
+            {
+                Val = format.UnderlineStyle
+            };
+            if (format.UnderlineColor != null)
+            {
+                underline.Color = format.UnderlineColor;
+            }
+
+            props.Append(underline);
+        }
+
+        if (format.Border != null &&
+            format.Border.Style != BorderValues.None)
         {
             props.Append(
-                new RunFonts
+                new Border
                 {
-                    Ascii = format.FontFamily,
-                    HighAnsi = format.FontFamily
+                    Val = format.Border.Style,
+                    Size = (uint)format.Border.SizeEighths,
+                    Space = 1,
+                    Color = format.Border.Color ?? "auto"
+                });
+        }
+
+        if (format.BackgroundColor != null)
+        {
+            props.Append(
+                new Shading
+                {
+                    Val = ShadingPatternValues.Clear,
+                    Fill = format.BackgroundColor
                 });
         }
 
@@ -494,27 +515,9 @@ public static class WordHtmlConverter
                 });
         }
 
-        if (format.BackgroundColor != null)
+        if (format.RightToLeft)
         {
-            props.Append(
-                new Shading
-                {
-                    Val = ShadingPatternValues.Clear,
-                    Fill = format.BackgroundColor
-                });
-        }
-
-        if (format.Border != null &&
-            format.Border.Style != BorderValues.None)
-        {
-            props.Append(
-                new Border
-                {
-                    Val = format.Border.Style,
-                    Size = (uint)format.Border.SizeEighths,
-                    Space = 1,
-                    Color = format.Border.Color ?? "auto"
-                });
+            props.Append(new RightToLeftText());
         }
 
         return props;

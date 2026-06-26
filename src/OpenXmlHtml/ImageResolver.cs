@@ -1,6 +1,15 @@
 static class ImageResolver
 {
-    static readonly HttpClient sharedClient = new();
+    // The default client does NOT auto-redirect: redirects are followed manually so each hop is
+    // re-checked against the image policy. Otherwise a redirect from an allowed host could point
+    // at an internal address and bypass SafeDomains (an SSRF vector).
+    static readonly HttpClient sharedClient = new(new HttpClientHandler { AllowAutoRedirect = false })
+    {
+        Timeout = TimeSpan.FromSeconds(30)
+    };
+
+    const int maxRedirects = 5;
+    const long maxImageBytes = 50L * 1024 * 1024;
 
     static readonly Dictionary<string, string> extensionToContentType = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -48,14 +57,14 @@ static class ImageResolver
             var client = settings.HttpClient ?? sharedClient;
             try
             {
-                using var response = client.GetAsync(src).GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
+                var downloaded = Download(client, src, settings.WebImages);
+                if (downloaded == null)
                 {
                     return null;
                 }
 
-                bytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
-                contentType = response.Content.Headers.ContentType?.MediaType;
+                bytes = downloaded.Value.Bytes;
+                contentType = downloaded.Value.ContentType;
             }
             catch
             {
@@ -156,7 +165,7 @@ static class ImageResolver
         if (width == null)
         {
             var widthAttr = element.GetAttribute("width");
-            if (widthAttr != null && int.TryParse(widthAttr, out var w))
+            if (widthAttr != null && int.TryParse(widthAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var w))
             {
                 width = w;
             }
@@ -165,13 +174,86 @@ static class ImageResolver
         if (height == null)
         {
             var heightAttr = element.GetAttribute("height");
-            if (heightAttr != null && int.TryParse(heightAttr, out var h))
+            if (heightAttr != null && int.TryParse(heightAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var h))
             {
                 height = h;
             }
         }
 
         return (width, height);
+    }
+
+    // Downloads an image, following redirects manually so each hop is policy-checked, and
+    // capping the response size to guard against unbounded memory use.
+    static (byte[] Bytes, string? ContentType)? Download(HttpClient client, string url, ImagePolicy policy)
+    {
+        for (var redirect = 0; redirect <= maxRedirects; redirect++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            using var response = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+
+            if (IsRedirect(response))
+            {
+                var location = response.Headers.Location;
+                if (location == null)
+                {
+                    return null;
+                }
+
+                url = (location.IsAbsoluteUri ? location : new Uri(new Uri(url), location)).ToString();
+                if (!policy.IsAllowed(url))
+                {
+                    return null;
+                }
+
+                continue;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            if (response.Content.Headers.ContentLength > maxImageBytes)
+            {
+                return null;
+            }
+
+            var bytes = ReadCapped(response);
+            if (bytes == null)
+            {
+                return null;
+            }
+
+            return (bytes, response.Content.Headers.ContentType?.MediaType);
+        }
+
+        return null;
+    }
+
+    static byte[]? ReadCapped(HttpResponseMessage response)
+    {
+        using var stream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+        using var memory = new MemoryStream();
+        var buffer = new byte[81920];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (memory.Length + read > maxImageBytes)
+            {
+                return null;
+            }
+
+            memory.Write(buffer, 0, read);
+        }
+
+        return memory.ToArray();
+    }
+
+    static bool IsRedirect(HttpResponseMessage response)
+    {
+        var code = (int)response.StatusCode;
+        return code is >= 300 and <= 399 && code != 304;
     }
 
     static string GuessContentType(string path) =>

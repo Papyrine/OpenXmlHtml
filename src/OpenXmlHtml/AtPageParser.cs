@@ -14,13 +14,12 @@ static class AtPageParser
             return null;
         }
 
-        var braceEnd = html.IndexOf('}', braceStart);
-        if (braceEnd < 0)
+        var body = ExtractBlockBody(html, braceStart);
+        if (body == null)
         {
             return null;
         }
 
-        var body = html.Substring(braceStart + 1, braceEnd - braceStart - 1);
         var declarations = StyleParser.Parse(body);
 
         var layout = new AtPageLayout();
@@ -208,5 +207,60 @@ static class AtPageParser
         width = 0;
         height = 0;
         return false;
+    }
+
+    // Extracts the top-level declarations of the @page block starting at the given '{'.
+    // Nested margin-box rules (e.g. @top-center { ... }) and their selectors are skipped
+    // so sibling declarations such as margin/size are not lost. Returns null if unbalanced.
+    static string? ExtractBlockBody(string html, int braceStart)
+    {
+        var builder = new StringBuilder();
+        var depth = 0;
+        for (var i = braceStart; i < html.Length; i++)
+        {
+            var current = html[i];
+            if (current == '{')
+            {
+                if (depth == 1)
+                {
+                    // Drop the buffered selector that precedes this nested block.
+                    builder.Length = LastSeparatorIndex(builder) + 1;
+                }
+
+                depth++;
+                continue;
+            }
+
+            if (current == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    return builder.ToString();
+                }
+
+                continue;
+            }
+
+            if (depth == 1)
+            {
+                builder.Append(current);
+            }
+        }
+
+        return null;
+    }
+
+    static int LastSeparatorIndex(StringBuilder builder)
+    {
+        for (var i = builder.Length - 1; i >= 0; i--)
+        {
+            if (builder[i] == ';')
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }
