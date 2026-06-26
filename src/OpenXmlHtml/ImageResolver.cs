@@ -200,7 +200,7 @@ static class ImageResolver
                     return null;
                 }
 
-                url = (location.IsAbsoluteUri ? location : new Uri(new Uri(url), location)).ToString();
+                url = (location.IsAbsoluteUri ? location : new(new(url), location)).ToString();
                 if (!policy.IsAllowed(url))
                 {
                     return null;
