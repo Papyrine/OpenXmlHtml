@@ -322,10 +322,7 @@ static class HtmlSegmentParser
         if (tag == "fieldset")
         {
             declarations ??= new(StringComparer.OrdinalIgnoreCase);
-            if (!declarations.ContainsKey("border"))
-            {
-                declarations["border"] = "1pt solid #808080";
-            }
+            declarations.TryAdd("border", "1pt solid #808080");
         }
     }
 

@@ -270,7 +270,7 @@ static class ColorParser
     }
 
     static int Clamp(int value) =>
-        Math.Max(0, Math.Min(255, value));
+        Math.Clamp(value, 0, 255);
 
     static bool IsValidHex(ReadOnlySpan<char> hex)
     {
