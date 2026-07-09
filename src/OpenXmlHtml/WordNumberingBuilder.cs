@@ -10,9 +10,49 @@ static class WordNumberingBuilder
             return part;
         }
 
-        part = main.AddNewPart<NumberingDefinitionsPart>();
+        // Use an explicit, deterministic relationship id (matching the rImage{n} convention) so the
+        // output is byte-reproducible. AddNewPart's default generates a random id, which breaks
+        // deterministic packaging for consumers relying on reproducible output.
+        part = main.AddNewPart<NumberingDefinitionsPart>(NextRelationshipId(main));
         part.Numbering = new();
         return part;
+    }
+
+    static string NextRelationshipId(MainDocumentPart main)
+    {
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var pair in main.Parts)
+        {
+            used.Add(pair.RelationshipId);
+        }
+
+        foreach (var relationship in main.ExternalRelationships)
+        {
+            used.Add(relationship.Id);
+        }
+
+        foreach (var relationship in main.HyperlinkRelationships)
+        {
+            used.Add(relationship.Id);
+        }
+
+        foreach (var relationship in main.DataPartReferenceRelationships)
+        {
+            used.Add(relationship.Id);
+        }
+
+        if (!used.Contains("rNumbering"))
+        {
+            return "rNumbering";
+        }
+
+        var index = 1;
+        while (used.Contains($"rNumbering{index}"))
+        {
+            index++;
+        }
+
+        return $"rNumbering{index}";
     }
 
     internal static int GetNextId(Numbering numbering)
