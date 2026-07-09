@@ -143,4 +143,45 @@ public class WordListNumberingTests
             """);
         return Verify(elements);
     }
+
+    [Test]
+    public void NumberingPartUsesDeterministicRelationshipId()
+    {
+        // The numbering part must be added with an explicit, deterministic relationship id — the
+        // OpenXML default is random, which makes output non-reproducible.
+        using var stream = new MemoryStream();
+        using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+        main.Document = new(new Body());
+        WordHtmlConverter.AppendHtml(main.Document.Body!, "<ul><li>Alpha</li><li>Beta</li></ul>", main);
+
+        var numberingPart = main.NumberingDefinitionsPart;
+        Assert.That(numberingPart, Is.Not.Null);
+        Assert.That(main.GetIdOfPart(numberingPart!), Is.EqualTo("rNumbering"));
+    }
+
+    [Test]
+    public void ListDocxIsByteReproducible()
+    {
+        // Converting the same list HTML twice (into a document with no pre-existing numbering part)
+        // must produce byte-identical packages — guards the numbering relationship id determinism.
+        var first = RenderListDocx();
+        var second = RenderListDocx();
+        Assert.That(first, Is.EqualTo(second));
+    }
+
+    static byte[] RenderListDocx()
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """
+            <p>Intro</p>
+            <ul>
+              <li>Alpha</li>
+              <li>Beta</li>
+            </ul>
+            """,
+            stream);
+        return stream.ToArray();
+    }
 }

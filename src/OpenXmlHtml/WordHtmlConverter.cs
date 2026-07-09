@@ -143,6 +143,9 @@ public static class WordHtmlConverter
     {
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
         var main = document.AddMainDocumentPart();
+        // AddMainDocumentPart generates a random relationship id; pin it so the package is
+        // byte-reproducible.
+        document.ChangeIdOfPart(main, "rMainDocument");
         var body = new Body();
         AppendHtml(body, html, main);
         EnsureSectionProperties(body, AtPageParser.Parse(html));
@@ -176,6 +179,9 @@ public static class WordHtmlConverter
     {
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
         var main = document.AddMainDocumentPart();
+        // AddMainDocumentPart generates a random relationship id; pin it so the package is
+        // byte-reproducible.
+        document.ChangeIdOfPart(main, "rMainDocument");
         var body = new Body();
         AppendHtml(body, html, main, settings);
         EnsureSectionProperties(body, AtPageParser.Parse(html));
