@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L296-L300' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L314-L318' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -234,7 +234,7 @@ WordHtmlConverter.SetHeader(headerMainPart,
 WordHtmlConverter.SetFooter(headerMainPart,
     """<p style="text-align: center; font-size: 9pt; color: gray">Confidential</p>""");
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L220-L239' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L238-L257' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Headers and footers support all the same HTML elements and CSS properties as the document body (tables, formatting, images, etc.). Overloads accepting `HtmlConvertSettings` are also available.
@@ -301,6 +301,26 @@ var second = WordHtmlConverter.ToElements("<ul><li>c</li><li>d</li></ul>", mainP
 Without a session each `ToElements` call allocates its own abstract, which is harmless but produces redundant definitions. A session is only needed when you call `ToElements` several times against the same `MainDocumentPart` within one render.
 
 
+### Seeding List Definitions
+
+A numbering part is created only when the converted HTML actually contains a list. That is usually what you want, but it leaves a protected document unable to accept one: applying a bullet in Word writes a definition to `word/numbering.xml`, a document-level part, and under `w:documentProtection w:edit="readOnly"` that part sits outside every editable range. Word responds by disabling the bullet and numbering commands — even inside a rich-text content control the user is otherwise allowed to edit.
+
+`WordNumbering.EnsureListDefinitions` seeds the definitions up front, so Word only has to reference them:
+
+<!-- snippet: EnsureListDefinitions -->
+<a id='snippet-EnsureListDefinitions'></a>
+```cs
+// A bullet and a decimal definition for Word to reference, so it never has to create one.
+WordNumbering.EnsureListDefinitions(mainPart);
+```
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L225-L230' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureListDefinitions' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+It adds one bullet and one decimal definition, each with a numbering instance (Word cannot apply an abstract definition that no instance points at). It is idempotent and safe to call either side of a conversion: a format already present is left alone, and new ids continue past the highest in use. The part is created with a deterministic relationship id, so output stays byte-reproducible.
+
+Seed only when the document is protected and users are expected to edit rich-text regions. An unprotected document needs nothing — Word will create definitions on demand.
+
+
 ### CSS Class to Word Style Mapping
 
 When converting with a `MainDocumentPart` that has a `StyleDefinitionsPart`, CSS class names are matched against Word style definitions:
@@ -319,7 +339,7 @@ WordHtmlConverter.AppendHtml(
     """,
     styleMainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L270-L283' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L288-L301' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
  * Paragraph styles (`w:type="paragraph"`) are applied via `ParagraphStyleId`
