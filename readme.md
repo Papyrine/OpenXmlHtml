@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L314-L318' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L332-L336' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -234,7 +234,7 @@ WordHtmlConverter.SetHeader(headerMainPart,
 WordHtmlConverter.SetFooter(headerMainPart,
     """<p style="text-align: center; font-size: 9pt; color: gray">Confidential</p>""");
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L238-L257' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L256-L275' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Headers and footers support all the same HTML elements and CSS properties as the document body (tables, formatting, images, etc.). Overloads accepting `HtmlConvertSettings` are also available.
@@ -321,6 +321,26 @@ It adds one bullet and one decimal definition, each with a numbering instance (W
 Seed only when the document is protected and users are expected to edit rich-text regions. An unprotected document needs nothing — Word will create definitions on demand.
 
 
+### Seeding Style Definitions
+
+The same problem applies to named paragraph styles. Applying **Heading 1** (or any style) in Word writes a definition to `word/styles.xml`, another document-level part that `w:documentProtection w:edit="readOnly"` locks. So the style gallery and the Heading buttons are greyed out inside an editable rich-text region unless the definitions already exist.
+
+`WordStyles.EnsureStyleDefinitions` seeds them:
+
+<!-- snippet: EnsureStyleDefinitions -->
+<a id='snippet-EnsureStyleDefinitions'></a>
+```cs
+// Normal + Heading1-6 + ListParagraph, so Word's style gallery is available.
+WordStyles.EnsureStyleDefinitions(mainPart);
+```
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L243-L248' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureStyleDefinitions' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+It adds `Normal`, `Heading1`–`Heading6`, and `ListParagraph` with their built-in `w:styleId`s (Word links its Heading buttons to those ids, so they must be exact). It is idempotent — a style already present by id is left untouched, so a template's own definitions win — and the part is created with a deterministic relationship id, so output stays byte-reproducible.
+
+Pair it with `EnsureListDefinitions` when a protected document exposes a rich-text region: numbering enables the list buttons, styles enable the gallery.
+
+
 ### CSS Class to Word Style Mapping
 
 When converting with a `MainDocumentPart` that has a `StyleDefinitionsPart`, CSS class names are matched against Word style definitions:
@@ -339,7 +359,7 @@ WordHtmlConverter.AppendHtml(
     """,
     styleMainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L288-L301' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L306-L319' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
  * Paragraph styles (`w:type="paragraph"`) are applied via `ParagraphStyleId`
