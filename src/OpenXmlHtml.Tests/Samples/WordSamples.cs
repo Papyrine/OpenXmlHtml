@@ -215,6 +215,42 @@ public class WordSamples
     }
 
     [Test]
+    public void EnsureListDefinitions()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new(new Body());
+
+        #region EnsureListDefinitions
+
+        // A bullet and a decimal definition for Word to reference, so it never has to create one.
+        WordNumbering.EnsureListDefinitions(mainPart);
+
+        #endregion
+
+        Assert.That(mainPart.NumberingDefinitionsPart, Is.Not.Null);
+    }
+
+    [Test]
+    public void EnsureStyleDefinitions()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new(new Body());
+
+        #region EnsureStyleDefinitions
+
+        // Normal + Heading1-6 + ListParagraph, so Word's style gallery is available.
+        WordStyles.EnsureStyleDefinitions(mainPart);
+
+        #endregion
+
+        Assert.That(mainPart.StyleDefinitionsPart, Is.Not.Null);
+    }
+
+    [Test]
     public Task HeadersAndFooters()
     {
         #region HeadersAndFooters
