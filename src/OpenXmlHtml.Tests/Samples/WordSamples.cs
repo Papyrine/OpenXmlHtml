@@ -233,6 +233,24 @@ public class WordSamples
     }
 
     [Test]
+    public void EnsureStyleDefinitions()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new(new Body());
+
+        #region EnsureStyleDefinitions
+
+        // Normal + Heading1-6 + ListParagraph, so Word's style gallery is available.
+        WordStyles.EnsureStyleDefinitions(mainPart);
+
+        #endregion
+
+        Assert.That(mainPart.StyleDefinitionsPart, Is.Not.Null);
+    }
+
+    [Test]
     public Task HeadersAndFooters()
     {
         #region HeadersAndFooters
