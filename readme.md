@@ -5,7 +5,7 @@
 
 Converts HTML to OpenXml elements for use in xlsx and docx files.
 
-Uses [AngleSharp](https://github.com/AangleSharp/AngleSharp) for HTML parsing and [DocumentFormat.OpenXml](https://github.com/dotnet/Open-XML-SDK) for OpenXml generation.
+Uses [AngleSharp](https://github.com/AngleSharp/AngleSharp) for HTML parsing and [DocumentFormat.OpenXml](https://github.com/dotnet/Open-XML-SDK) for OpenXml generation.
 
 
 ## Open Source Maintenance Fee
