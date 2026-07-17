@@ -1,3 +1,0 @@
-﻿{
-  Text: Note: This is a callout box with border and background.
-}

@@ -263,12 +263,14 @@ public static class SpreadsheetHtmlConverter
     {
         var props = new SpreadsheetRunProperties();
 
-        if (format.Bold)
+        // Excel has no paragraph-style inheritance to override, so an explicit-off (Bold == false)
+        // is indistinguishable from unset here and emits nothing.
+        if (format.Bold == true)
         {
             props.Append(new SpreadsheetBold());
         }
 
-        if (format.Italic)
+        if (format.Italic == true)
         {
             props.Append(new SpreadsheetItalic());
         }

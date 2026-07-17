@@ -1,3 +1,0 @@
-﻿{
-  Text: Wide cell	Narrow cell
-}

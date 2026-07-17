@@ -1,3 +1,0 @@
-﻿{
-  Text: Padded cell	Normal cell
-}

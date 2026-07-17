@@ -36,6 +36,12 @@ public static class WordHtmlConverter
 
         foreach (var segment in segments)
         {
+            if (segment.IsLineBreak)
+            {
+                currentRuns.Add(new Run(new Break()));
+                continue;
+            }
+
             if (segment.Text == "\n")
             {
                 paragraphs.Add(BuildParagraph(currentRuns, listDepth));
@@ -405,14 +411,28 @@ public static class WordHtmlConverter
                 });
         }
 
-        if (format.Bold)
+        if (format.Bold == true)
         {
             props.Append(new Bold());
         }
+        else if (format.Bold == false)
+        {
+            props.Append(new Bold
+            {
+                Val = false
+            });
+        }
 
-        if (format.Italic)
+        if (format.Italic == true)
         {
             props.Append(new Italic());
+        }
+        else if (format.Italic == false)
+        {
+            props.Append(new Italic
+            {
+                Val = false
+            });
         }
 
         if (format.SmallCaps)

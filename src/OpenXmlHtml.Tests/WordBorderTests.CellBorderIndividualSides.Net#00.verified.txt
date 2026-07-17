@@ -1,3 +1,0 @@
-﻿{
-  Text: Bottom double border
-}

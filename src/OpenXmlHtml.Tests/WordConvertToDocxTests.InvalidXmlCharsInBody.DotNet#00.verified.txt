@@ -1,3 +1,0 @@
-﻿{
-  Text: before�after
-}

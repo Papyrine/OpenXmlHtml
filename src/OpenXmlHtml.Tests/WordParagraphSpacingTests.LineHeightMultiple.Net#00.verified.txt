@@ -1,3 +1,0 @@
-﻿{
-  Text: Double spaced line
-}

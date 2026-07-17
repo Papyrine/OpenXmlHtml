@@ -1,3 +1,0 @@
-﻿{
-  Text: Vertical cell text	Normal cell text
-}

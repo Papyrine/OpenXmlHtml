@@ -1,3 +1,0 @@
-﻿{
-  Text: Cell with HTML cellpadding	Applied via attribute
-}

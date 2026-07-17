@@ -48,4 +48,11 @@ public class WordFontWeightTests
     [Test]
     public Task FontStyleUppercaseItalic() =>
         Verify(WordHtmlConverter.ToParagraphs("""<span style="font-style: ITALIC">italic</span>"""));
+
+    // Heading3 carries Bold in its style run properties, so ", John" needs an explicit
+    // <w:b w:val="0"/> to render unbolded — omitting <w:b/> would inherit the style's bold.
+    [Test]
+    public Task FontWeightNormalOverridesBoldHeadingStyle() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<h3><b>SMITH</b><span style="font-weight: normal">, John</span></h3>"""));
 }

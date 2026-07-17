@@ -10,8 +10,31 @@ public class WordEdgeCaseTests
         Verify(WordHtmlConverter.ToParagraphs("one<br><br><br>two"));
 
     [Test]
+    public Task LineBreakInElements() =>
+        Verify(WordHtmlConverter.ToElements("<p>a<br>b</p>"));
+
+    [Test]
+    public Task LineBreakInListItem() =>
+        Verify(WordHtmlConverter.ToElements("<ul><li>a<br>b</li><li>c</li></ul>"));
+
+    [Test]
+    public Task HorizontalRuleStillBreaksParagraph() =>
+        Verify(WordHtmlConverter.ToParagraphs("one<hr>two"));
+
+
+    [Test]
     public Task WhitespaceCollapsing() =>
         Verify(WordHtmlConverter.ToParagraphs("  lots   of    spaces  "));
+
+    [Test]
+    public Task WhitespaceFoldsWithinTextNode() =>
+        Verify(WordHtmlConverter.ToParagraphs("<p>Line1\r\n\r\nLine2</p>"));
+
+    // Each text node collapses on its own, so without carrying the folding state across the inline
+    // boundaries this rendered as "a  x  y   z".
+    [Test]
+    public Task WhitespaceFoldsAcrossInlineNodes() =>
+        Verify(WordHtmlConverter.ToParagraphs("<p>a <b> x</b> <i>y </i> z</p>"));
 
     [Test]
     public Task SpecialCharacters() =>

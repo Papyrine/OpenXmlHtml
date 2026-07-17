@@ -1,3 +1,0 @@
-﻿{
-  Text: No borders	Borderless table
-}

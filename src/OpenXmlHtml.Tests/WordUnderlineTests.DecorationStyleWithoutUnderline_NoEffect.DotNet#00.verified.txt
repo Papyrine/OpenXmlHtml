@@ -1,3 +1,0 @@
-﻿{
-  Text: No underline set, style should be ignored
-}

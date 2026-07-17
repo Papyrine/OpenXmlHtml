@@ -1,3 +1,0 @@
-﻿{
-  Text: Text with bordered span inline.
-}

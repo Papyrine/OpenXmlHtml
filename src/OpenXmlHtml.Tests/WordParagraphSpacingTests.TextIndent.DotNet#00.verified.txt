@@ -1,3 +1,0 @@
-﻿{
-  Text: First line indented
-}

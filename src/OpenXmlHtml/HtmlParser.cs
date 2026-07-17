@@ -25,7 +25,10 @@ static class HtmlSegmentParser
             {
                 case IText textNode:
                 {
-                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data);
+                    // The already-emitted segments carry the folding state across inline
+                    // boundaries, so no separate tracking is needed through the recursion.
+                    var lastWasSpace = segments.Count > 0 && segments[^1].Text.EndsWith(' ');
+                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
                           IsInterBlockWhitespace(textNode)))
@@ -60,7 +63,7 @@ static class HtmlSegmentParser
         switch (tag)
         {
             case "br":
-                segments.Add(new("\n", format));
+                segments.Add(new("\n", format, IsLineBreak: true));
                 return;
             case "wbr":
                 segments.Add(new("\u200B", format));
@@ -615,11 +618,17 @@ static class HtmlSegmentParser
         return hasChildren;
     }
 
-    internal static string CollapseWhitespace(string text)
+    internal static string CollapseWhitespace(string text) =>
+        CollapseWhitespace(text, false);
+
+    // lastWasSpace carries the folding state across text nodes. Html folds whitespace that spans an
+    // inline boundary — a browser renders "<p>a <b> x</b></p>" as "a x" — but each text node is
+    // parsed on its own, so without this both sides keep their space and Word receives "a  x".
+    internal static string CollapseWhitespace(string text, bool lastWasSpace)
     {
         // Fast scan: if every whitespace char is already a single ' ' with a non-space neighbor,
         // the input is already in collapsed form and can be returned without allocation.
-        var lastWasSpace = false;
+        var seed = lastWasSpace;
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
@@ -627,7 +636,7 @@ static class HtmlSegmentParser
             {
                 if (c != ' ' || lastWasSpace)
                 {
-                    return CollapseWhitespaceSlow(text);
+                    return CollapseWhitespaceSlow(text, seed);
                 }
 
                 lastWasSpace = true;
@@ -641,10 +650,9 @@ static class HtmlSegmentParser
         return text;
     }
 
-    static string CollapseWhitespaceSlow(string text)
+    static string CollapseWhitespaceSlow(string text, bool lastWasSpace)
     {
         var builder = new StringBuilder(text.Length);
-        var lastWasSpace = false;
         foreach (var c in text)
         {
             if (char.IsWhiteSpace(c))

@@ -1,5 +1,0 @@
-﻿{
-  Text:
-Cell A	Cell B
-Cell C	Cell D
-}

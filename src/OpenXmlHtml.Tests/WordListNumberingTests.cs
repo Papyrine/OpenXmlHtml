@@ -144,6 +144,27 @@ public class WordListNumberingTests
         return Verify(elements);
     }
 
+    // A block-level child makes BuildElement flush before its own children are processed. That
+    // flush used to clear the list state BuildListItem had just set, so "x" lost its numPr while
+    // the plain <li>y</li> kept its own.
+    [Test]
+    public Task BlockParagraphInsideListItemKeepsNumbering() =>
+        VerifyWithMainPart("<ul><li><p>x</p></li><li>y</li></ul>");
+
+    // The guard that fixes the above must not keep list state alive past the list itself.
+    [Test]
+    public Task EmptyListItemDoesNotLeakNumberingToNextParagraph() =>
+        VerifyWithMainPart("<ul><li></li></ul><p>after</p>");
+
+    static Task VerifyWithMainPart(string html)
+    {
+        using var stream = new MemoryStream();
+        using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = doc.AddMainDocumentPart();
+        main.Document = new(new Body());
+        return Verify(WordHtmlConverter.ToElements(html, main));
+    }
+
     [Test]
     public void NumberingPartUsesDeterministicRelationshipId()
     {

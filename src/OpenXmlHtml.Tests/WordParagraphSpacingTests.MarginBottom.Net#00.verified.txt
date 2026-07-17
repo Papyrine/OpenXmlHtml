@@ -1,5 +1,0 @@
-﻿{
-  Text:
-Bottom margin
-Next paragraph
-}

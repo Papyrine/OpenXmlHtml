@@ -1,3 +1,0 @@
-﻿{
-  Text: Normal text with highlighted span inline.
-}

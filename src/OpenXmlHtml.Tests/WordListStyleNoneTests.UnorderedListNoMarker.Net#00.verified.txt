@@ -1,5 +1,0 @@
-﻿{
-  Text:
-Item one
-Item two
-}

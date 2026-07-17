@@ -1,5 +1,0 @@
-﻿{
-  Text:
-Paragraph with gray background
-Normal paragraph
-}
