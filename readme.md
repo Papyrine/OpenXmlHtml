@@ -416,16 +416,23 @@ WordHtmlConverter.AppendHtml(
  * `caption` - Table caption (bold)
  * `cellpadding` - HTML attribute for default cell padding (Word)
  * `bgcolor` - HTML attribute for cell background color (Word)
- * `width` - HTML attribute for cell width (Word)
+ * `width` - HTML attribute for cell width (Word). Absolute (`px`, `pt`, `in`, `cm`, `mm`, or a bare
+   number treated as `px`) or a percentage, which maps to `w:type="pct"`
  * Nested tables supported (Word)
- * Cell CSS: `padding`, `width`, `background-color`, `vertical-align` (top/middle/bottom) (Word)
- * Table CSS: `width`, `background-color`, `padding` (default cell padding) (Word)
+ * Cell CSS: `padding`, `width`, `background-color`, `vertical-align` (top/middle/bottom) (Word).
+   `width` accepts the same units as the attribute above
+ * Table CSS: `width`, `background-color`, `padding` (default cell padding) (Word). An absolute
+   table `width` is shared across the columns and switches the table to fixed layout, since Word's
+   default autofit treats the width as a preference and resizes columns to their content
  * Row CSS: `height` or HTML `height` attribute on `<tr>` (Word)
+ * `col` / `colgroup` widths must be absolute — Word's `w:gridCol` has no percentage unit, so a
+   percentage there is ignored
 
 
 ### Inline / Other
 
- * `br` - Line break
+ * `br` - Line break within the current paragraph (Word: `<w:br/>`; Spreadsheet: a newline inside the
+   cell). Contrast `hr`, which ends the paragraph
  * `span` - Generic inline container
  * `font` - Font styling (color, size, face attributes)
  * `time` - Time element

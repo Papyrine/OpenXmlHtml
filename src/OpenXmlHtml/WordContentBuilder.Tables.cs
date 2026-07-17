@@ -69,17 +69,18 @@ static partial class WordContentBuilder
             },
             tableBorders);
 
+        WidthValue? explicitTableWidth = null;
         if (declarations != null)
         {
             if (declarations.TryGetValue("width", out var tableWidth))
             {
-                var twips = StyleParser.ParseLengthToTwips(tableWidth);
-                if (twips != null)
+                explicitTableWidth = StyleParser.ParseWidth(tableWidth);
+                if (explicitTableWidth is { } width)
                 {
                     tblPr.TableWidth = new()
                     {
-                        Width = twips.Value.ToString(),
-                        Type = TableWidthUnitValues.Dxa
+                        Width = width.Value.ToString(),
+                        Type = ToWidthUnit(width.Unit)
                     };
                 }
             }
@@ -117,9 +118,35 @@ static partial class WordContentBuilder
             tblPr.Append(new BiDiVisual());
         }
 
+        var columnWidths = GetColumnWidths(tableElement, columnCount);
+
+        // Word's default table layout is autofit, under which tblW is only a *preferred* width and
+        // every column gets resized to fit its content — so an explicit table width renders as a
+        // box hugging the text rather than the width that was asked for. Sharing the width out
+        // across the columns and switching to fixed layout makes Word honour it. Only absolute
+        // widths can be shared out like this: gridCol has no percentage unit.
+        if (columnCount > 0 &&
+            explicitTableWidth is { Unit: WidthUnit.Twips } tableTwips &&
+            columnWidths.TrueForAll(_ => _ == null))
+        {
+            var each = tableTwips.Value / columnCount;
+            for (var i = 0; i < columnCount; i++)
+            {
+                columnWidths[i] = each;
+            }
+        }
+
+        // Widths are only meaningful under fixed layout; autofit would recompute them from content.
+        if (columnWidths.Exists(_ => _ != null))
+        {
+            tblPr.TableLayout = new()
+            {
+                Type = TableLayoutValues.Fixed
+            };
+        }
+
         table.Append(tblPr);
 
-        var columnWidths = GetColumnWidths(tableElement, columnCount);
         var grid = new TableGrid();
         for (var i = 0; i < columnCount; i++)
         {
@@ -284,15 +311,15 @@ static partial class WordContentBuilder
         var widthAttr = cellElement.GetAttribute("width");
         if (widthAttr != null)
         {
-            var twips = StyleParser.ParseLengthToTwips(widthAttr);
-            if (twips != null)
+            var width = StyleParser.ParseWidth(widthAttr);
+            if (width != null)
             {
                 cellProperties ??= new();
                 cellProperties.Append(
                     new TableCellWidth
                     {
-                        Width = twips.Value.ToString(),
-                        Type = TableWidthUnitValues.Dxa
+                        Width = width.Value.Value.ToString(),
+                        Type = ToWidthUnit(width.Value.Unit)
                     });
             }
         }
@@ -360,20 +387,23 @@ static partial class WordContentBuilder
         return tc;
     }
 
+    static TableWidthUnitValues ToWidthUnit(WidthUnit unit) =>
+        unit == WidthUnit.Percent ? TableWidthUnitValues.Pct : TableWidthUnitValues.Dxa;
+
     static TableCellProperties ApplyCellStyles(Dictionary<string, string> declarations, TableCellProperties? tcPr)
     {
         tcPr ??= new();
 
         if (declarations.TryGetValue("width", out var cellWidth))
         {
-            var twips = StyleParser.ParseLengthToTwips(cellWidth);
-            if (twips != null)
+            var width = StyleParser.ParseWidth(cellWidth);
+            if (width != null)
             {
                 tcPr.Append(
                     new TableCellWidth
                     {
-                        Width = twips.Value.ToString(),
-                        Type = TableWidthUnitValues.Dxa
+                        Width = width.Value.Value.ToString(),
+                        Type = ToWidthUnit(width.Value.Unit)
                     });
             }
         }

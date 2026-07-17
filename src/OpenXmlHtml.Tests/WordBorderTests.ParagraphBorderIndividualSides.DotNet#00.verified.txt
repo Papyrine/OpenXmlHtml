@@ -1,3 +1,0 @@
-﻿{
-  Text: Left and bottom borders
-}

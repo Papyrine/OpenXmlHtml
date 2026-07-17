@@ -87,4 +87,54 @@ public class WordTableTests
     [Test]
     public Task EmptyTable() =>
         Verify(WordHtmlConverter.ToElements("<table></table>"));
+
+    // Word measures pct widths in fiftieths of a percent, so 35% emits w:w="1750" w:type="pct".
+    [Test]
+    public Task CellPercentageWidthAttribute() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table><tr><td width="35%">A</td><td width="65%">B</td></tr></table>"""));
+
+    [Test]
+    public Task CellPercentageCssWidth() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table><tr><td style="width: 35%">A</td></tr></table>"""));
+
+    [Test]
+    public Task TablePercentageWidth() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table style="width: 100%"><tr><td>A</td></tr></table>"""));
+
+    // A bare number is still px, so this must stay dxa rather than becoming a percentage.
+    [Test]
+    public Task CellBareNumberWidthStaysDxa() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table><tr><td width="35">A</td></tr></table>"""));
+
+    [Test]
+    public Task CellPixelWidthStaysDxa() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table><tr><td style="width: 250px">A</td></tr></table>"""));
+
+    // Under Word's default autofit layout this rendered as a box hugging "single cell" rather than
+    // the 602px asked for, because tblW is only a preferred width there.
+    [Test]
+    public Task SingleCellTableHonoursExplicitWidth()
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """<table style="width: 602px"><tr><td>single cell</td></tr></table>""",
+            stream);
+        stream.Position = 0;
+        return Verify(stream, "docx");
+    }
+
+    [Test]
+    public Task TableWidthSharedAcrossColumns() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table style="width: 600px"><tr><td>A</td><td>B</td><td>C</td></tr></table>"""));
+
+    // No explicit width means nothing to honour, so autofit stays and no tblLayout is emitted.
+    [Test]
+    public Task TableWithoutWidthStaysAutofit() =>
+        Verify(WordHtmlConverter.ToElements("<table><tr><td>A</td><td>B</td></tr></table>"));
 }

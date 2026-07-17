@@ -1,6 +1,0 @@
-﻿{
-  Text:
-Numbered 
-Bulleted child
-Another numbered
-}

@@ -1,3 +1,0 @@
-﻿{
-  Text: Fixed 18pt line height
-}

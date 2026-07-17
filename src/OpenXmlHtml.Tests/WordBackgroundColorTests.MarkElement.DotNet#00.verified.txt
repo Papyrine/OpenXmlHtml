@@ -1,3 +1,0 @@
-﻿{
-  Text: Please review the important section before proceeding.
-}

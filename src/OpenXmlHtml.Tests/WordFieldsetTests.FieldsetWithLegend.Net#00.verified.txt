@@ -1,6 +1,0 @@
-﻿{
-  Text:
-Personal Info
-Name: Alice
-Age: 30
-}

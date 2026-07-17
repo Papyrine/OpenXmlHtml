@@ -1,3 +1,0 @@
-﻿{
-  Text: One and a half spacing
-}

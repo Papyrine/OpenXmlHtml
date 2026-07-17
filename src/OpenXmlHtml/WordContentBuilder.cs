@@ -76,12 +76,13 @@ static partial class WordContentBuilder
             {
                 case IText textNode:
                 {
-                    var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data);
+                    var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
                           HtmlSegmentParser.IsInterBlockWhitespace(textNode)))
                     {
                         AddTextRun(text, format, ctx);
+                        ctx.LastWasSpace = !inPre && text[^1] == ' ';
                     }
 
                     break;
@@ -111,7 +112,7 @@ static partial class WordContentBuilder
         switch (tag)
         {
             case "br":
-                ForceFlushParagraph(elements, context);
+                AddBreakRun(format, context);
                 return;
             case "wbr":
                 AddTextRun("\u200B", format, context);
@@ -391,6 +392,23 @@ static partial class WordContentBuilder
         ctx.CurrentRuns.Add(run);
     }
 
+    static void AddBreakRun(FormatState format, WordBuildContext ctx)
+    {
+        var run = new Run();
+
+        if (format.HasFormatting)
+        {
+            run.Append(WordHtmlConverter.BuildWordRunProperties(format));
+        }
+
+        run.Append(new Break());
+        ctx.CurrentRuns.Add(run);
+
+        // A browser drops whitespace straight after a <br>, so treat the break as a space for
+        // folding purposes.
+        ctx.LastWasSpace = true;
+    }
+
     internal static string ApplyTextTransform(string text, FormatState format)
     {
         var transformed = format.TextTransform switch
@@ -431,16 +449,21 @@ static partial class WordContentBuilder
 
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context)
     {
+        context.LastWasSpace = false;
         if (context.CurrentRuns.Count == 0)
         {
             context.HeadingLevel = 0;
             context.ParagraphStyleId = null;
             context.ParagraphFormat = null;
             context.ParagraphRightToLeft = false;
-            context.ListNumId = null;
-            context.ListIlvl = null;
-            context.ListInside = false;
-            context.ListDepth = 0;
+            if (context.ListItemDepth == 0)
+            {
+                context.ListNumId = null;
+                context.ListIlvl = null;
+                context.ListInside = false;
+                context.ListDepth = 0;
+            }
+
             return;
         }
 
@@ -626,13 +649,6 @@ static partial class WordContentBuilder
             BorderEmitter.AppendSides(borders, pf.BorderTop, pf.BorderLeft, pf.BorderBottom, pf.BorderRight, 1);
             props.Append(borders);
         }
-    }
-
-    static void ForceFlushParagraph(List<OpenXmlElement> elements, WordBuildContext ctx)
-    {
-        elements.Add(WordHtmlConverter.BuildParagraph(ctx.CurrentRuns, ctx.ListDepth));
-        ctx.CurrentRuns.Clear();
-        ctx.ListDepth = 0;
     }
 
     static void TrimTrailingEmptyParagraphs(List<OpenXmlElement> elements)

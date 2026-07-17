@@ -1,5 +1,0 @@
-﻿{
-  Text:
-Custom border
-Content
-}

@@ -1,3 +1,0 @@
-﻿{
-  Text: Normal text with small caps text inline.
-}

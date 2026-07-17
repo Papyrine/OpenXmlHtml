@@ -1,7 +1,11 @@
 struct FormatState
 {
-    internal bool Bold { get; set; }
-    internal bool Italic { get; set; }
+    // Bold and Italic are tri-state: null means "not specified", so the run inherits from its
+    // paragraph style. false means "explicitly off" (font-weight:normal / font-style:normal) and
+    // has to reach Word as <w:b w:val="0"/> to override a bold style such as Heading3 — the
+    // absence of <w:b/> would inherit instead.
+    internal bool? Bold { get; set; }
+    internal bool? Italic { get; set; }
     internal UnderlineValues? UnderlineStyle { get; set; }
     internal bool Strikethrough { get; set; }
     internal string? Color { get; set; }
@@ -26,8 +30,8 @@ struct FormatState
     internal bool RightToLeft { get; set; }
 
     internal readonly bool HasFormatting =>
-        Bold ||
-        Italic ||
+        Bold != null ||
+        Italic != null ||
         UnderlineStyle != null ||
         Strikethrough ||
         Superscript ||

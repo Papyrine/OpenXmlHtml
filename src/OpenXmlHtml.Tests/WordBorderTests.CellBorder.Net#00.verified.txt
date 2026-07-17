@@ -1,3 +1,0 @@
-﻿{
-  Text: Red bordered cell	Normal cell
-}

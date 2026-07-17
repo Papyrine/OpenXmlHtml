@@ -1,3 +1,0 @@
-﻿{
-  Text: This has bold highlighted and italic highlighted text.
-}

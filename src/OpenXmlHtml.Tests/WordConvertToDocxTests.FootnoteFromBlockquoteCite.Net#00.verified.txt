@@ -1,5 +1,0 @@
-﻿{
-  Text:
- To be or not to be, that is the question. 
-Normal paragraph after quote.
-}

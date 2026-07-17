@@ -143,7 +143,12 @@ static partial class WordContentBuilder
             }
         }
 
+        context.ListItemDepth++;
         ProcessChildren(element, newFormat, elements, context, inPre);
+        context.ListItemDepth--;
+
+        // Decremented first, so an empty <li></li> clears the list state here rather than leaking
+        // it onto whatever follows the list.
         FlushParagraph(elements, context);
     }
 }

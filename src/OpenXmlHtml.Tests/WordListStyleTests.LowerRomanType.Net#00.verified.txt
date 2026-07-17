@@ -1,6 +1,0 @@
-﻿{
-  Text:
-First
-Second
-Third
-}

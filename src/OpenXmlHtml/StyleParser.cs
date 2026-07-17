@@ -100,6 +100,35 @@ static class StyleParser
         return null;
     }
 
+    internal static WidthValue? ParseWidth(string value) =>
+        ParseWidth(value.AsSpan());
+
+    // Like ParseLengthToTwips, but keeps a percentage as a percentage instead of failing to parse
+    // it. Word measures pct widths in fiftieths of a percent, so 35% is 1750 and 100% is 5000.
+    internal static WidthValue? ParseWidth(ReadOnlySpan<char> value)
+    {
+        var span = value.Trim();
+        if (span.Length > 1 &&
+            span[^1] == '%')
+        {
+            if (double.TryParse(span[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var percent) &&
+                percent >= 0)
+            {
+                return new((int)Math.Round(percent * 50), WidthUnit.Percent);
+            }
+
+            return null;
+        }
+
+        var twips = ParseLengthToTwips(span);
+        if (twips == null)
+        {
+            return null;
+        }
+
+        return new(twips.Value, WidthUnit.Twips);
+    }
+
     internal static int? ParseLengthToTwips(string value) =>
         ParseLengthToTwips(value.AsSpan());
 
