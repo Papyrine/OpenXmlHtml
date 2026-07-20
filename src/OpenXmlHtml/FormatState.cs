@@ -1,9 +1,14 @@
 struct FormatState
 {
-    // Bold and Italic are tri-state: null means "not specified", so the run inherits from its
-    // paragraph style. false means "explicitly off" (font-weight:normal / font-style:normal) and
-    // has to reach Word as <w:b w:val="0"/> to override a bold style such as Heading3 — the
-    // absence of <w:b/> would inherit instead.
+    // Bold, Italic, SmallCaps and Shadow are tri-state: null means "not specified", so the run
+    // inherits from its paragraph style or from an enclosing element. false means "explicitly off"
+    // (font-weight:normal, font-style:normal, font-variant:normal, text-shadow:none) and has to
+    // reach Word as <w:b w:val="0"/> and its equivalents to override what would otherwise be
+    // inherited — the absence of the element inherits instead.
+    //
+    // Strikethrough stays a plain bool deliberately: css text-decoration propagates to descendants
+    // and cannot be cancelled by a descendant's text-decoration:none, so absent-means-off is the
+    // correct model there.
     internal bool? Bold { get; set; }
     internal bool? Italic { get; set; }
     internal UnderlineValues? UnderlineStyle { get; set; }
@@ -20,9 +25,9 @@ struct FormatState
     internal string? RunStyleId { get; set; }
     internal string? BackgroundColor { get; set; }
     internal BorderInfo? Border { get; set; }
-    internal bool SmallCaps { get; set; }
+    internal bool? SmallCaps { get; set; }
     internal string? TextTransform { get; set; }
-    internal bool Shadow { get; set; }
+    internal bool? Shadow { get; set; }
     internal int? CharacterSpacingTwips { get; set; }
     internal bool NoWrap { get; set; }
     internal string? UnderlineColor { get; set; }
@@ -42,8 +47,8 @@ struct FormatState
         RunStyleId != null ||
         BackgroundColor != null ||
         Border != null ||
-        SmallCaps ||
-        Shadow ||
+        SmallCaps != null ||
+        Shadow != null ||
         CharacterSpacingTwips != null ||
         UnderlineColor != null ||
         CharacterScale != null ||

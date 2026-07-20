@@ -474,6 +474,12 @@ static class HtmlSegmentParser
             {
                 format.SmallCaps = true;
             }
+            // font-variant inherits, so `normal` is how a descendant turns it back off. Leaving it
+            // unset would inherit the enclosing small-caps instead of cancelling it.
+            else if (fontVariant.Trim().Equals("normal", StringComparison.OrdinalIgnoreCase))
+            {
+                format.SmallCaps = false;
+            }
         }
 
         if (declarations.TryGetValue("text-transform", out var textTransform))
@@ -497,10 +503,11 @@ static class HtmlSegmentParser
             format.Border = StyleParser.ParseBorder(borderVal);
         }
 
-        if (declarations.TryGetValue("text-shadow", out var textShadow) &&
-            !textShadow.Equals("none", StringComparison.OrdinalIgnoreCase))
+        if (declarations.TryGetValue("text-shadow", out var textShadow))
         {
-            format.Shadow = true;
+            // text-shadow inherits too, so `none` cancels an enclosing shadow rather than merely
+            // declining to add one.
+            format.Shadow = !textShadow.Trim().Equals("none", StringComparison.OrdinalIgnoreCase);
         }
 
         if (declarations.TryGetValue("letter-spacing", out var letterSpacing) &&
