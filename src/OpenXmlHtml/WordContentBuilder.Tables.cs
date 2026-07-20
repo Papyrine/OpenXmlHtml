@@ -308,8 +308,14 @@ static partial class WordContentBuilder
             }
         }
 
+        // ApplyCellStyles above may already have emitted a tcW from a css `width`. A tcPr permits
+        // one, and a css declaration outranks a presentational attribute, so the attribute only
+        // fills a gap — the same shape as the colgroup fallback below. Without the guard
+        // `<td width="35%" style="width:200px">` emitted two, and since percentages parse they
+        // could disagree on unit as well as value.
         var widthAttr = cellElement.GetAttribute("width");
-        if (widthAttr != null)
+        if (widthAttr != null &&
+            cellProperties?.GetFirstChild<TableCellWidth>() == null)
         {
             var width = StyleParser.ParseWidth(widthAttr);
             if (width != null)

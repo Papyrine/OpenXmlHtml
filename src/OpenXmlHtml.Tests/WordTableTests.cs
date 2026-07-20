@@ -115,6 +115,13 @@ public class WordTableTests
         Verify(WordHtmlConverter.ToElements(
             """<table><tr><td style="width: 250px">A</td></tr></table>"""));
 
+    // A tcPr permits one tcW. Both sources emitted unconditionally, so this produced two — and once
+    // percentages parsed they could differ in unit too. Css outranks the presentational attribute.
+    [Test]
+    public Task CellWidthAttributeAndCssEmitsOneWidth() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table><tr><td width="35%" style="width: 200px">A</td></tr></table>"""));
+
     // Under Word's default autofit layout this rendered as a box hugging "single cell" rather than
     // the 602px asked for, because tblW is only a preferred width there.
     [Test]
