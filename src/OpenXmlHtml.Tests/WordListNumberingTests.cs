@@ -156,6 +156,14 @@ public class WordListNumberingTests
     public Task EmptyListItemDoesNotLeakNumberingToNextParagraph() =>
         VerifyWithMainPart("<ul><li></li></ul><p>after</p>");
 
+    // A <br> inside an <li> used to flush the paragraph, which reset ListDepth to 0 and so dropped
+    // the indentation for everything after it. AddBreakRun does not touch list state now, but the
+    // existing coverage ran without a MainDocumentPart and so only exercised depth 0. This nests
+    // two levels deep, where a reset would be visible as a lost ilvl.
+    [Test]
+    public Task BreakInsideNestedListItemKeepsIndentation() =>
+        VerifyWithMainPart("<ul><li>outer<ul><li>a<br>b</li><li>c</li></ul></li></ul>");
+
     static Task VerifyWithMainPart(string html)
     {
         using var stream = new MemoryStream();

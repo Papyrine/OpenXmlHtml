@@ -43,7 +43,10 @@ public class WordImageSizingTests
     public Task HtmlAttributeStillWorks() =>
         Verify(Build($"""<p><img src="data:image/png;base64,{png}" width="75" height="60"></p>"""));
 
+    // Narrower than the old name (CssPercentageIgnored) implied: a percentage on a table or cell
+    // width is honoured. An inline image's `wp:extent` is an absolute EMU extent with no percentage
+    // form, so the width attribute is used instead.
     [Test]
-    public Task CssPercentageIgnored() =>
+    public Task PercentageWidthIgnoredBecauseExtentHasNoPercentForm() =>
         Verify(Build($"""<p><img src="data:image/png;base64,{png}" style="width: 50%" width="150"></p>"""));
 }

@@ -432,7 +432,8 @@ WordHtmlConverter.AppendHtml(
 ### Inline / Other
 
  * `br` - Line break within the current paragraph (Word: `<w:br/>`; Spreadsheet: a newline inside the
-   cell). Contrast `hr`, which ends the paragraph
+   cell). Contrast `hr`, which ends the paragraph. Whitespace immediately after a `br` is dropped,
+   as a browser drops it
  * `span` - Generic inline container
  * `font` - Font styling (color, size, face attributes)
  * `time` - Time element

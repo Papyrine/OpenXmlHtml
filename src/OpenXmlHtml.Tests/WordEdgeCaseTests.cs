@@ -36,6 +36,18 @@ public class WordEdgeCaseTests
     public Task WhitespaceFoldsAcrossInlineNodes() =>
         Verify(WordHtmlConverter.ToParagraphs("<p>a <b> x</b> <i>y </i> z</p>"));
 
+    // Browsers drop the space after a line break. The element path always did; the segment path
+    // seeded its fold state from EndsWith(' '), and a <br> segment is "\n", so the two disagreed —
+    // ToParagraphs kept the space where ToElements dropped it. Both forms are pinned since the
+    // point is that they now agree.
+    [Test]
+    public Task SpaceAfterBreakIsDroppedInSegments() =>
+        Verify(WordHtmlConverter.ToParagraphs("<p>a<br> b</p>"));
+
+    [Test]
+    public Task SpaceAfterBreakIsDroppedInElements() =>
+        Verify(WordHtmlConverter.ToElements("<p>a<br> b</p>"));
+
     [Test]
     public Task SpecialCharacters() =>
         Verify(WordHtmlConverter.ToParagraphs("price: $100 &amp; tax &lt; 10%"));

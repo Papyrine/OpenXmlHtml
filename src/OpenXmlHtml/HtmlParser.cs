@@ -26,8 +26,12 @@ static class HtmlSegmentParser
                 case IText textNode:
                 {
                     // The already-emitted segments carry the folding state across inline
-                    // boundaries, so no separate tracking is needed through the recursion.
-                    var lastWasSpace = segments.Count > 0 && segments[^1].Text.EndsWith(' ');
+                    // boundaries, so no separate tracking is needed through the recursion. A line
+                    // break counts as trailing space: browsers drop the space after a <br>, and the
+                    // element path already does this (WordContentBuilder.AddBreakRun). Reading only
+                    // EndsWith(' ') left the two paths disagreeing, since a <br> segment is "\n".
+                    var lastWasSpace = segments.Count > 0 &&
+                                       (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
                     var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
