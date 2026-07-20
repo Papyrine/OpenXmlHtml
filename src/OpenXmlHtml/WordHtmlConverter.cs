@@ -435,9 +435,16 @@ public static class WordHtmlConverter
             });
         }
 
-        if (format.SmallCaps)
+        if (format.SmallCaps == true)
         {
             props.Append(new SmallCaps());
+        }
+        else if (format.SmallCaps == false)
+        {
+            props.Append(new SmallCaps
+            {
+                Val = false
+            });
         }
 
         if (format.Strikethrough)
@@ -445,9 +452,16 @@ public static class WordHtmlConverter
             props.Append(new Strike());
         }
 
-        if (format.Shadow)
+        if (format.Shadow == true)
         {
             props.Append(new Shadow());
+        }
+        else if (format.Shadow == false)
+        {
+            props.Append(new Shadow
+            {
+                Val = false
+            });
         }
 
         if (format.Color != null)

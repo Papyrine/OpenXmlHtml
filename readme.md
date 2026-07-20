@@ -471,11 +471,22 @@ Inline `style` attributes are supported:
  * `line-height` - Line spacing: numeric multiple (1.5), percentage (150%), or fixed length (18pt) (Word)
  * `background-color` - Background shading on runs and paragraphs (Word); also on table cells
  * `font-variant: small-caps` - Small capitals (Word)
+ * `text-shadow` - Text shadow (Word); any value other than `none` turns it on
  * `text-transform` - Transform text: `uppercase`, `lowercase`, `capitalize` (Word)
  * `writing-mode` - Text direction: `vertical-rl`, `vertical-lr` (Word, on paragraphs and table cells)
  * `direction: rtl` - Right-to-left text direction (Word)
 
 CSS length units supported: `pt`, `px`, `em`, `in`, `cm`, `mm`.
+
+`font-weight`, `font-style`, `font-variant` and `text-shadow` all inherit in CSS, so their off values
+— `normal`, `normal`, `normal` and `none` — are emitted as explicit overrides (`<w:b w:val="false"/>`
+and equivalents) rather than by leaving the element out. Omitting it would inherit instead of
+cancelling, which matters most against a paragraph style: `<h3>` carries bold, so
+`<span style="font-weight: normal">` inside one only renders unbolded because the override is
+explicit. As a result a run whose only styling is an off value still carries run properties.
+
+`text-decoration` is deliberately not in that group. It propagates to descendants and cannot be
+cancelled by a descendant's `text-decoration: none`, so absent-means-off is the correct model.
 
 
 ### CSS Class Attribute

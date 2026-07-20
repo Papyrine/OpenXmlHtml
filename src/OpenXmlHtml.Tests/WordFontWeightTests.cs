@@ -55,4 +55,30 @@ public class WordFontWeightTests
     public Task FontWeightNormalOverridesBoldHeadingStyle() =>
         Verify(WordHtmlConverter.ToElements(
             """<h3><b>SMITH</b><span style="font-weight: normal">, John</span></h3>"""));
+
+    // font-variant inherits, so the inner span has to emit an explicit off. Left unset it inherits
+    // the enclosing small-caps and renders identically to the text around it.
+    [Test]
+    public Task FontVariantNormalResetsSmallCaps() =>
+        Verify(WordHtmlConverter.ToParagraphs(
+            """<span style="font-variant: small-caps">caps <span style="font-variant: normal">not caps</span></span>"""));
+
+    [Test]
+    public Task FontVariantSmallCaps() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<span style="font-variant: small-caps">caps</span>"""));
+
+    // A run whose only styling is the reset still needs an rPr to carry it.
+    [Test]
+    public Task FontVariantNormalAloneStillEmitsRunProperties() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<span style="font-variant: normal">plain</span>"""));
+
+    // text-shadow inherits as well, so `none` cancels rather than merely declining to add.
+    [Test]
+    public Task TextShadowNoneResetsShadow() =>
+        Verify(WordHtmlConverter.ToParagraphs(
+            """<span style="text-shadow: 1px 1px">shadowed <span style="text-shadow: none">not shadowed</span></span>"""));
+
+    [Test]
+    public Task TextShadow() =>
+        Verify(WordHtmlConverter.ToParagraphs("""<span style="text-shadow: 1px 1px">shadowed</span>"""));
 }
