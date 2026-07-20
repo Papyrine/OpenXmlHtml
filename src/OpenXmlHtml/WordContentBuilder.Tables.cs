@@ -174,15 +174,35 @@ static partial class WordContentBuilder
                 ? StyleParser.ParseLengthToTwips(StyleParser.Parse(rowStyle).GetValueOrDefault("height") ?? "")
                 : null;
             rowHeight ??= row.GetAttribute("height") is { } rh ? StyleParser.ParseLengthToTwips(rh) : null;
-            if (rowHeight != null)
+
+            // A thead row repeats at the top of every page the table spans. Without it a table
+            // broken across a page break loses its header on each page after the first, which for a
+            // long table is the difference between readable and not. Rows are flattened out of
+            // thead/tbody/tfoot before rendering, so the section is read back off the parent rather
+            // than threaded through. Word repeats only rows that lead the table and ignores
+            // tblHeader elsewhere, so a thead written after a tbody needs no handling here.
+            var isHeaderRow = row.ParentElement?.LocalName == "thead";
+            if (rowHeight != null ||
+                isHeaderRow)
             {
-                tableRow.Append(
-                    new TableRowProperties(
+                // CT_TrPrBase orders trHeight before tblHeader.
+                var rowProperties = new TableRowProperties();
+                if (rowHeight != null)
+                {
+                    rowProperties.Append(
                         new TableRowHeight
                         {
                             Val = (uint)rowHeight.Value,
                             HeightType = HeightRuleValues.AtLeast
-                        }));
+                        });
+                }
+
+                if (isHeaderRow)
+                {
+                    rowProperties.Append(new TableHeader());
+                }
+
+                tableRow.Append(rowProperties);
             }
 
             var cells = GetCells(row);

@@ -84,6 +84,35 @@ public class WordTableTests
             </table>
             """));
 
+    // Every thead row carries tblHeader, so a multi-row header repeats intact. Body rows must not,
+    // or Word repeats the whole table.
+    [Test]
+    public Task TheadRowsRepeatAcrossPages() =>
+        Verify(WordHtmlConverter.ToElements(
+            """
+            <table>
+              <thead><tr><th>H1</th></tr><tr><th>H2</th></tr></thead>
+              <tbody><tr><td>Body</td></tr></tbody>
+            </table>
+            """));
+
+    // A bare table has no thead, so nothing repeats and no trPr is emitted at all.
+    [Test]
+    public Task TableWithoutTheadHasNoRepeatingRow() =>
+        Verify(WordHtmlConverter.ToElements(
+            "<table><tr><th>H</th></tr><tr><td>Body</td></tr></table>"));
+
+    // trHeight and tblHeader share a trPr, and CT_TrPrBase requires trHeight first.
+    [Test]
+    public Task TheadRowWithHeightEmitsBothRowProperties() =>
+        Verify(WordHtmlConverter.ToElements(
+            """
+            <table>
+              <thead><tr style="height: 40px"><th>H</th></tr></thead>
+              <tbody><tr><td>Body</td></tr></tbody>
+            </table>
+            """));
+
     [Test]
     public Task EmptyTable() =>
         Verify(WordHtmlConverter.ToElements("<table></table>"));

@@ -412,7 +412,7 @@ WordHtmlConverter.AppendHtml(
    * Word: real `Table`/`TableRow`/`TableCell` elements with borders
    * Spreadsheet: tab-separated cells, newline-separated rows
  * `colspan`, `rowspan` - Cell spanning (Word)
- * `thead`, `tbody`, `tfoot` - Table sections
+ * `thead`, `tbody`, `tfoot` - Table sections. Every `thead` row is marked as a repeating header (`w:tblHeader`), so a table broken across a page break keeps its header on each later page. Word repeats only rows that lead the table, so a `thead` written after a `tbody` has no effect
  * `caption` - Table caption (bold)
  * `cellpadding` - HTML attribute for default cell padding (Word)
  * `bgcolor` - HTML attribute for cell background color (Word)
