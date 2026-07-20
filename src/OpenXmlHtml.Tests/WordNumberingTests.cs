@@ -12,7 +12,7 @@ public class WordNumberingTests
         WordNumbering.EnsureListDefinitions(main);
 
         var numbering = main.NumberingDefinitionsPart!.Numbering!;
-        Assert.That(Formats(numbering), Is.EquivalentTo(new[] { NumberFormatValues.Bullet, NumberFormatValues.Decimal }));
+        Assert.That(Formats(numbering), Is.EquivalentTo([NumberFormatValues.Bullet, NumberFormatValues.Decimal]));
 
         // Word can only apply a definition that an instance points at.
         foreach (var abstractNum in numbering.Elements<AbstractNum>())
