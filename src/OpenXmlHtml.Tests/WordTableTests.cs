@@ -144,6 +144,16 @@ public class WordTableTests
         Verify(WordHtmlConverter.ToElements(
             """<table><tr><td style="width: 250px">A</td></tr></table>"""));
 
+    // An absolute table width is shared across the columns and switched to fixed layout, because
+    // Word's autofit would otherwise treat it as a preference and resize to content. A percentage
+    // width deliberately keeps autofit: `w:gridCol` has no percentage unit, so there is nothing to
+    // share out and fixed layout is inexpressible — and a percentage-width table with auto columns
+    // is what a browser does too. So no tblLayout here, unlike SingleCellTableHonoursExplicitWidth.
+    [Test]
+    public Task PercentageTableWidthStaysOnAutofit() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<table style="width: 35%"><tr><td>A</td><td>B</td></tr></table>"""));
+
     // A tcPr permits one tcW. Both sources emitted unconditionally, so this produced two — and once
     // percentages parsed they could differ in unit too. Css outranks the presentational attribute.
     [Test]

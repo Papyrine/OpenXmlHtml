@@ -115,8 +115,11 @@ public class WordColgroupTests
             </table>
             """));
 
+    // Narrower than the old name (PercentageWidthIgnored) implied: a percentage on a `td` or on the
+    // `table` is honoured and emits w:type="pct". `w:gridCol` has no percentage unit at all, so a
+    // percentage there has nowhere to go.
     [Test]
-    public Task PercentageWidthIgnored() =>
+    public Task ColPercentageWidthIgnoredBecauseGridColHasNoPercentUnit() =>
         Verify(WordHtmlConverter.ToElements(
             """
             <table>
