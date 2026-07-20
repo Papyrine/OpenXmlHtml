@@ -20,15 +20,29 @@ cd src && dotnet test OpenXmlHtml.slnx --filter "TestName"
 
 The solution file is at `src/OpenXmlHtml.slnx`. All commands must run from the `src/` directory.
 
+Local `Release` builds need `-p:IsPackable=false`, or SponsorCheck fails the build with `SC100: Platform fetch failed. GitHub GraphQL HTTP 401` — it only bundles on CI, where it has credentials.
+
 Building the test project triggers MarkdownSnippets, which updates `readme.md` from `#region` snippets in `src/OpenXmlHtml.Tests/Samples/`.
 
 ## Verify Snapshot Testing
 
 Tests use [Verify](https://github.com/VerifyTests/Verify) with NUnit. When test output changes:
 - `.received.*` files appear next to `.verified.*` files
-- Accept changes by copying received to verified: `cp file.received.xml file.verified.xml`
+- **Received and verified are not named the same stem**, so accepting is a rename. Received carries a target-framework tag; verified is named for the runtime:
+  - `Foo.DotNet10_0.received.xml` → `Foo.DotNet.verified.xml`
+  - `Foo.Net4_8.received.xml` → `Foo.Net.verified.xml`
+
+  Copying the stem verbatim writes a second, parallel snapshot corpus no test ever reads, leaving the real baseline stale and the suite still failing. `dotnet verify accept` derives one name from the other and does the same thing — do not use it here. Map by hand.
+- A new snapshot test needs **both** baselines, since the suite multi-targets `net10.0` and `net48`. A missing `.Net.verified.xml` fails only on the net48 run.
 - Tests producing docx binaries or floating-point output use `.UniqueForTargetFrameworkAndVersion()` since output differs between net10.0 and net48
 - Custom Verify converters in `VerifyOpenXmlConverter.cs` serialize OpenXml objects to `.OuterXml`
+
+**Reading the png snapshots.** A `.verified.png` is Morph's deterministic render of the docx, so it is coupled to the exact `Morph.Skia` version pinned in `src/Directory.Packages.props`, and two failure shapes look alike:
+
+- **PNG moved, docx identical** → the rasterizer changed, not this library. Every `Morph.Skia` bump so far has done this: 1.1.3→1.1.4 and 1.1.5 each failed a wave of the text-heavy full-page tests (`FullFeatureDocx`, `EmployeeOnboardingGuide`, `ConvertFullHtmlPage`, `RichDocument`, `NestedCombinations`, `PageBreaks`, `BorderStyleVariants`, `BookmarksAndLinksDocx`, `CombinedCellStyles`) with byte-identical docx output. Re-accept the pngs. Expect it on the next bump.
+- **PNG moved and docx moved** → read the docx diff before assuming the render is wrong. Morph is not Word: it treats `w:tblHeader` as affecting layout and renders a marked header row slightly taller, though the flag is pure pagination and Word lays out a single page identically with or without it. Deterministic, so a changed png with a one-element docx diff can still be correct.
+
+Always diff the docx xml first — it is the thing this library produces.
 
 ## Architecture
 
@@ -37,6 +51,17 @@ Two code paths exist for Word output:
 **Flat segment path** (`ToParagraphs`): HTML → AngleSharp DOM → `List<TextSegment>` → `Paragraph`/`Run` elements. Simple, no `MainDocumentPart` required, but no tables, headings styles, numbering, or style mapping.
 
 **DOM-based path** (`ToElements`/`AppendHtml`/`ConvertToDocx`): HTML → AngleSharp DOM → `WordContentBuilder.Build` → `List<OpenXmlElement>`. Full-featured: tables, heading styles, real list numbering, CSS class→style mapping, paragraph spacing, images, footnotes, bookmarks.
+
+**The two paths must agree on text handling, and each tracks its state differently** — this is the most common source of subtle bugs here. Whitespace folding is the worst offender: the segment path carries fold state through the already-emitted `segments` list (`segments[^1]`), while the DOM path carries it on `WordBuildContext.LastWasSpace`. A rule added to one and not the other produces output that differs between `ToParagraphs` and `ToElements` for identical html, which no single test catches. When changing either, add the same case to both — `WordEdgeCaseTests` pairs them deliberately.
+
+**`SpreadsheetHtmlConverter` rides the segment path**, so a segment-path change moves xlsx output too. Dropping the space after a `<br>` re-baselined three spreadsheet snapshots that had nothing to do with Word.
+
+### Design decisions worth not undoing
+
+- **`FormatState.Bold`, `Italic`, `SmallCaps` and `Shadow` are `bool?`, and the "off" value is emitted unconditionally.** `null` means unspecified (inherit); `false` means explicitly off and reaches Word as `<w:b w:val="false"/>` and friends. The off cannot be suppressed when no enclosing element set the property, because a run also inherits from its **paragraph style**, which the html parser never sees — that is the `<h3>` case, where `font-weight: normal` renders unbolded only because the override is explicit. The cost is an explicit off in the standalone case (a bare `text-shadow: none` carries one), which is correct rather than noise.
+- **`Strikethrough` stays a plain `bool` on purpose.** CSS `text-decoration` propagates to descendants and cannot be cancelled by a descendant's `text-decoration: none`, so absent-means-off is the right model. Do not "make it consistent" with the four above.
+- **Percentage widths are supported where OOXML has a percentage form, and nowhere else.** `w:tcW` and `w:tblW` take `w:type="pct"` (fiftieths of a percent, so 35% is 1750). `w:gridCol` has no percentage unit and an inline image's `wp:extent` is an absolute EMU extent, so a percentage on `<col>` or `<img>` is dropped — the tests named `...IgnoredBecause...` say which and why.
+- **An absolute table width is shared across the columns and switched to `tblLayout` fixed; a percentage table width deliberately is not.** Word's autofit treats `tblW` as a preference and resizes columns to content, which is why an absolute width needed the share-and-fix. A percentage has nothing to share out (`gridCol` takes no percentage), and a percentage-width table with auto columns is what a browser renders anyway.
 
 ### Key internal classes
 
