@@ -387,6 +387,11 @@ WordHtmlConverter.AppendHtml(
 ### Block Elements
 
  * `p`, `div` - Paragraphs / divisions (Word: `id` attribute creates bookmark)
+   * An explicitly empty text block (`<p></p>`, `<div></div>`, `<h1></h1>`) is a blank line, and an
+     empty paragraph is its only representation in Word, so one is emitted. Any paragraph properties
+     on it (style, alignment, spacing) are kept. Container blocks are excluded — an empty `<ul>`,
+     `<table>` or `<section>` means "no content", not "a blank line". A *trailing* bare empty
+     paragraph is still trimmed, so a fragment never leaves a dangling blank line behind it.
  * `h1` - `h6` - Headings (Word: Heading1-Heading6 paragraph styles; Spreadsheet: bold)
  * `blockquote` - Block quotation (Word: `cite` attribute creates footnote)
  * `pre` - Preformatted text (whitespace preserved)

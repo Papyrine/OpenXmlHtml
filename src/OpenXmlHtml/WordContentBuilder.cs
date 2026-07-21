@@ -324,6 +324,7 @@ static partial class WordContentBuilder
                 });
         }
 
+        var elementCountBeforeChildren = elements.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);
 
         if (bookmarkId != null)
@@ -337,7 +338,14 @@ static partial class WordContentBuilder
 
         if (isBlock)
         {
-            FlushParagraph(elements, context);
+            // A text block that produced no content at all was written empty in the source. That is a
+            // blank line, and an empty paragraph is its only representation in Word, so emit it rather
+            // than dropping it. Container blocks are excluded: an empty <ul> or <table> means "no
+            // content", not "a blank line".
+            var emitEmpty = IsTextBlock(tag) &&
+                            context.CurrentRuns.Count == 0 &&
+                            elements.Count == elementCountBeforeChildren;
+            FlushParagraph(elements, context, emitEmpty);
 
             if (pageBreakAfter)
             {
@@ -447,10 +455,13 @@ static partial class WordContentBuilder
         return new(chars);
     }
 
-    static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context)
+    static bool IsTextBlock(string tag) =>
+        tag is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+
+    static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
         context.LastWasSpace = false;
-        if (context.CurrentRuns.Count == 0)
+        if (context.CurrentRuns.Count == 0 && !emitEmpty)
         {
             context.HeadingLevel = 0;
             context.ParagraphStyleId = null;
