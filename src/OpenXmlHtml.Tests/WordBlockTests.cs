@@ -30,6 +30,39 @@ public class WordBlockTests
         Verify(WordHtmlConverter.ToParagraphs("above<hr>below"));
 
     [Test]
+    public Task EmptyParagraph() =>
+        Verify(WordHtmlConverter.ToElements("<p>first</p><p></p><p>second</p>"));
+
+    [Test]
+    public Task EmptyDiv() =>
+        Verify(WordHtmlConverter.ToElements("<div>first</div><div></div><div>second</div>"));
+
+    [Test]
+    public Task EmptyHeading() =>
+        Verify(WordHtmlConverter.ToElements("<h1></h1>"));
+
+    [Test]
+    public Task EmptyParagraphKeepsStyle() =>
+        Verify(WordHtmlConverter.ToElements("""<p style="text-align: center"></p>"""));
+
+    // A container that happens to be empty means "no content", not "a blank line", so it emits
+    // nothing. The single bare paragraph here is the existing "never return an empty list" guarantee.
+    [Test]
+    public Task EmptyContainersAreNotParagraphs() =>
+        Verify(WordHtmlConverter.ToElements("<ul></ul><section></section>"));
+
+    // A trailing bare paragraph is still trimmed — an html fragment should not leave a dangling
+    // blank line behind it. One carrying paragraph properties is not bare, so it survives.
+    [Test]
+    public Task TrailingEmptyParagraphIsTrimmed() =>
+        Verify(WordHtmlConverter.ToElements("<p>text</p><p></p>"));
+
+    // The wrapper is not itself empty — only the inner block should produce a paragraph.
+    [Test]
+    public Task DivWrappingParagraph() =>
+        Verify(WordHtmlConverter.ToElements("<div><p>only one paragraph</p></div>"));
+
+    [Test]
     public Task UnorderedList() =>
         Verify(WordHtmlConverter.ToParagraphs("<ul><li>first</li><li>second</li></ul>"));
 
