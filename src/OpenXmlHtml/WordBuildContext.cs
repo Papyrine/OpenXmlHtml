@@ -25,6 +25,17 @@
     // leaves the list state alone so it still reaches the paragraph the child produces.
     internal int ListItemDepth;
 
+    // How many runs the current list item had once its marker was written. While CurrentRuns is
+    // still this length the item has no content of its own yet, so a block child joins the marker's
+    // paragraph instead of leaving it stranded. Saved and restored around nested items.
+    internal int ListItemContentFloor;
+
+    // A page break owed to a paragraph that has not been built yet. Word has no "break after", so
+    // page-break-before and page-break-after both become a pageBreakBefore on a paragraph: its own
+    // for the former, the following one for the latter. An empty flush leaves this pending, so a
+    // block that produces no paragraph passes the break on rather than swallowing it.
+    internal bool PendingPageBreak;
+
     // Whether the text emitted so far ends in a space, so whitespace spanning an inline boundary
     // folds the way a browser folds it. Cleared whenever a paragraph is flushed.
     internal bool LastWasSpace;

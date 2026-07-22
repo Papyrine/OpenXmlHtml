@@ -409,6 +409,10 @@ WordHtmlConverter.AppendHtml(
  * `start` attribute on `<ol>`: starting number (e.g., `<ol start="5">`) (Word)
  * `list-style-type` CSS: `decimal`, `lower-alpha`/`lower-latin`, `upper-alpha`/`upper-latin`, `lower-roman`, `upper-roman` (Word)
  * `reversed` attribute on `<ol>`: countdown numbering (Word, via text prefix fallback)
+ * A block child opening an item continues that item's line rather than starting one after it, so
+   `<li><p>x</p></li>` is a single marked item — html from a source that wraps everything in `<p>`
+   still reads as a list. Later children of the same item do start their own paragraphs, matching a
+   browser putting only the first line alongside the marker
 
 
 ### Tables
@@ -481,8 +485,22 @@ Inline `style` attributes are supported:
  * `text-transform` - Transform text: `uppercase`, `lowercase`, `capitalize` (Word)
  * `writing-mode` - Text direction: `vertical-rl`, `vertical-lr` (Word, on paragraphs and table cells)
  * `direction: rtl` - Right-to-left text direction (Word)
+ * `white-space` - `pre`, `pre-wrap` and `nowrap`; under the default `normal`, runs of whitespace
+   fold to a single space the way a browser folds them
 
 CSS length units supported: `pt`, `px`, `em`, `in`, `cm`, `mm`.
+
+A page break is written as `w:pageBreakBefore` on the paragraph it breaks before — the element's own
+paragraph for `page-break-before`, the following one for `page-break-after`, since Word has no "break
+after". It is not given a paragraph of its own: that would leave a blank line at the top of the new
+page, and renderers collapse an empty paragraph and lose the break with it. The exceptions are an
+empty element, where a paragraph of its own is the whole point, and a break landing on a table, which
+has no `w:pageBreakBefore` of its own and so takes an empty paragraph ahead of it.
+
+`white-space: pre` is also how a Word tab is reached from html. Under the default folding rules a tab
+is whitespace like any other and collapses into the space around it, so a preserved one is the only
+kind that survives. Those become `<w:tab/>` elements rather than tab characters, which Word ignores
+inside `<w:t>`.
 
 `font-weight`, `font-style`, `font-variant` and `text-shadow` all inherit in CSS, so their off values
 — `normal`, `normal`, `normal` and `none` — are emitted as explicit overrides (`<w:b w:val="false"/>`
