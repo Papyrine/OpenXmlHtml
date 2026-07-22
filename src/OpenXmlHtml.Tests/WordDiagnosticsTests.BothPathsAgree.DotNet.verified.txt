@@ -1,0 +1,13 @@
+﻿[
+  {
+    Kind: IgnoredAttribute,
+    Name: src,
+    Value: https://cdn.example.com/logo.png,
+    Reason: blocked by HtmlConvertSettings.WebImages
+  },
+  {
+    Kind: UnsupportedElement,
+    Name: iframe,
+    Reason: no Word equivalent
+  }
+]

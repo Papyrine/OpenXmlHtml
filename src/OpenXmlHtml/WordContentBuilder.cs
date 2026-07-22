@@ -2,6 +2,10 @@ static partial class WordContentBuilder
 {
     static readonly HtmlParser parser = new();
 
+    // An image lives in its own package part, which only a MainDocumentPart can hold. Converting
+    // without one resolves the image and then has nowhere to put it, so it disappears.
+    internal const string NoMainPartForImages = "an image part requires a MainDocumentPart";
+
     internal static List<OpenXmlElement> Build(string html, MainDocumentPart? main, HtmlConvertSettings? settings = null)
     {
         var document = parser.ParseDocument(string.Concat("<body>", html, "</body>"));
@@ -102,7 +106,7 @@ static partial class WordContentBuilder
         var tag = element.LocalName;
         var newFormat = format;
         HtmlSegmentParser.ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
-        if (HtmlSegmentParser.IsHiddenElement(element, tag, styleDeclarations))
+        if (HtmlSegmentParser.IsHiddenElement(element, tag, styleDeclarations, context.Settings))
         {
             return;
         }
@@ -134,26 +138,29 @@ static partial class WordContentBuilder
                         AddTextRun(alt!, format, context);
                     }
                 }
+                else if (context.MainPart == null)
+                {
+                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                }
                 else
                 {
-                    if (context.MainPart != null)
-                    {
-                        context.ImageIndex++;
-                        context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
-                    }
+                    context.ImageIndex++;
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
                 }
 
                 return;
             }
             case "svg":
             {
-                if (context.MainPart != null)
+                if (context.MainPart == null)
                 {
-                    var imageData = HtmlSegmentParser.ParseSvgElement(element);
-                    context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                    return;
                 }
 
+                var svgData = HtmlSegmentParser.ParseSvgElement(element);
+                context.ImageIndex++;
+                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
                 return;
             }
             case "col":

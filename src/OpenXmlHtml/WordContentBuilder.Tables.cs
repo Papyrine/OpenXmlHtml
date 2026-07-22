@@ -118,7 +118,7 @@ static partial class WordContentBuilder
             tblPr.Append(new BiDiVisual());
         }
 
-        var columnWidths = GetColumnWidths(tableElement, columnCount);
+        var columnWidths = GetColumnWidths(tableElement, columnCount, ctx.Settings);
 
         // Word's default table layout is autofit, under which tblW is only a *preferred* width and
         // every column gets resized to fit its content — so an explicit table width renders as a
@@ -519,7 +519,7 @@ static partial class WordContentBuilder
         }
     }
 
-    static List<int?> GetColumnWidths(IElement tableElement, int columnCount)
+    static List<int?> GetColumnWidths(IElement tableElement, int columnCount, HtmlConvertSettings? settings)
     {
         var widths = new List<int?>(columnCount);
 
@@ -535,19 +535,19 @@ static partial class WordContentBuilder
                         if (gc.LocalName == "col")
                         {
                             hasColChild = true;
-                            AddColWidth(gc, widths);
+                            AddColWidth(gc, widths, settings);
                         }
                     }
 
                     if (!hasColChild)
                     {
-                        AddColWidth(child, widths);
+                        AddColWidth(child, widths, settings);
                     }
 
                     break;
                 }
                 case "col":
-                    AddColWidth(child, widths);
+                    AddColWidth(child, widths, settings);
                     break;
             }
         }
@@ -560,17 +560,21 @@ static partial class WordContentBuilder
         return widths;
     }
 
-    static void AddColWidth(IElement col, List<int?> widths)
+    static void AddColWidth(IElement col, List<int?> widths, HtmlConvertSettings? settings)
     {
         var span = ParseIntAttribute(col, "span", 1);
-        var width = ParseColWidth(col);
+        var width = ParseColWidth(col, settings);
         for (var i = 0; i < span; i++)
         {
             widths.Add(width);
         }
     }
 
-    static int? ParseColWidth(IElement col)
+    // Covers a percentage as well as anything that is not a css length. gridCol has no percentage
+    // unit — unlike tcW and tblW, which do, and honour one.
+    const string gridColIsAbsolute = "w:gridCol takes an absolute width, so this column width could not be resolved to one";
+
+    static int? ParseColWidth(IElement col, HtmlConvertSettings? settings)
     {
         var style = col.GetAttribute("style");
         if (style != null)
@@ -583,15 +587,24 @@ static partial class WordContentBuilder
                 {
                     return twips;
                 }
+
+                Diagnostic.DroppedProperty(settings, "width", cssWidth, gridColIsAbsolute);
             }
         }
 
         var widthAttr = col.GetAttribute("width");
-        if (widthAttr != null && !widthAttr.EndsWith('%'))
+        if (widthAttr == null)
         {
-            return StyleParser.ParseLengthToTwips(widthAttr);
+            return null;
         }
 
+        if (!widthAttr.EndsWith('%') &&
+            StyleParser.ParseLengthToTwips(widthAttr) is { } attrTwips)
+        {
+            return attrTwips;
+        }
+
+        Diagnostic.IgnoredAttribute(settings, "width", widthAttr, gridColIsAbsolute);
         return null;
     }
 

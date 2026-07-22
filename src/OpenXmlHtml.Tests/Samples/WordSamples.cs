@@ -324,6 +324,37 @@ public class WordSamples
     }
 
     [Test]
+    public Task Diagnostics()
+    {
+        #region Diagnostics
+
+        var dropped = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = dropped.Add
+        };
+
+        using var diagnosticStream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """
+            <table>
+              <col width="40%">
+              <tr><td>Cell</td></tr>
+            </table>
+            <iframe src="https://example.com"></iframe>
+            """,
+            diagnosticStream,
+            settings);
+
+        // IgnoredAttribute, width, "40%", w:gridCol takes an absolute width, ...
+        // UnsupportedElement, iframe, no Word equivalent
+
+        #endregion
+
+        return Verify(dropped);
+    }
+
+    [Test]
     public async Task ConvertFileToDocx()
     {
         var htmlPath = await TempFile.CreateText("<h1>Hello</h1><p>World</p>");

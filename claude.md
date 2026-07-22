@@ -62,6 +62,8 @@ Two code paths exist for Word output:
 - **`Strikethrough` stays a plain `bool` on purpose.** CSS `text-decoration` propagates to descendants and cannot be cancelled by a descendant's `text-decoration: none`, so absent-means-off is the right model. Do not "make it consistent" with the four above.
 - **Percentage widths are supported where OOXML has a percentage form, and nowhere else.** `w:tcW` and `w:tblW` take `w:type="pct"` (fiftieths of a percent, so 35% is 1750). `w:gridCol` has no percentage unit and an inline image's `wp:extent` is an absolute EMU extent, so a percentage on `<col>` or `<img>` is dropped — the tests named `...IgnoredBecause...` say which and why.
 - **An absolute table width is shared across the columns and switched to `tblLayout` fixed; a percentage table width deliberately is not.** Word's autofit treats `tblW` as a preference and resizes columns to content, which is why an absolute width needed the share-and-fix. A percentage has nothing to share out (`gridCol` takes no percentage), and a percentage-width table with auto columns is what a browser renders anyway.
+- **`OnDiagnostic` reports only the deliberate drop sites, never every unrecognised declaration.** The signal worth having is "understood, and could not be expressed" — a `%` on `w:gridCol`, an `ImagePolicy` refusal, an `<iframe>`. Reporting unknown css too would bury that under the `display`/`cursor`/`float` an ordinary stylesheet carries, and would cost `NoneForFullySupportedMarkup` its meaning: a conversion that reports nothing has to mean nothing was lost. Both `<script>`-style metadata and author-hidden elements (`hidden`, `display: none`) stay silent — a browser draws nothing for them either, so nothing was dropped. Every report goes through `Diagnostic`, which allocates nothing while the sink is null.
+- **Diagnostics live in the shared helpers so both code paths report identically.** `ImageResolver.Resolve`, `ImageResolver.ParseImageDimensions` and `IsHiddenElement` are called by the segment path and the DOM path alike, so reporting there covers both without duplication — the same rule as the whitespace folding above, and `WordDiagnosticsTests.BothPathsAgree` asserts it. `ImageData.SourceTag` exists only for this: the flat segment list erases whether an image came from `<img>` or `<svg>`, and a diagnostic has to name the tag the author actually wrote.
 
 ### Key internal classes
 
@@ -134,6 +136,7 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `WordBdoTests` | `<bdo dir="rtl">` emits `<w:rtl/>`, `<bdi>` falls through |
 | `WordListStyleNoneTests` | `list-style-type: none` suppresses bullet/number, keeps indent |
 | `WordRemoteImageTests` | `ImagePolicy` (Deny/AllowAll/SafeDomains/Filter/SafeDirectories), `FakeImageHandler` |
+| `WordDiagnosticsTests` | `HtmlConvertSettings.OnDiagnostic` — every deliberate drop site, and the markup that must stay silent |
 | `WordConvertToDocxTests` | Full docx output: images, SVG, footnotes, page breaks, CSS styles, lists, tables |
 | `WordHeaderFooterTests` | `SetHeader`/`SetFooter` with plain and formatted HTML, tables in headers |
 | `WordConvertFileTests` | `ConvertFileToDocx` file I/O |

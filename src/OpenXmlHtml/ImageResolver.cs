@@ -11,6 +11,15 @@ static class ImageResolver
     const int maxRedirects = 5;
     const long maxImageBytes = 50L * 1024 * 1024;
 
+    const string webBlocked = "blocked by HtmlConvertSettings.WebImages";
+    const string webFailed = "the image could not be downloaded";
+    const string localBlocked = "blocked by HtmlConvertSettings.LocalImages";
+    const string localFailed = "the local image file could not be read";
+
+    // Covers a percentage, a keyword like auto, and anything that is not a css length: an inline
+    // image is sized by wp:extent, which takes an absolute emu extent and nothing else.
+    internal const string ExtentIsAbsolute = "wp:extent takes an absolute extent, so this size could not be resolved to one";
+
     static readonly Dictionary<string, string> extensionToContentType = new(StringComparer.OrdinalIgnoreCase)
     {
         [".jpg"] = "image/jpeg",
@@ -35,7 +44,7 @@ static class ImageResolver
 
         if (src.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
         {
-            return HtmlSegmentParser.ParseImageSrc(element);
+            return HtmlSegmentParser.ParseImageSrc(element, settings);
         }
 
         if (settings == null)
@@ -51,6 +60,7 @@ static class ImageResolver
         {
             if (!settings.WebImages.IsAllowed(src))
             {
+                Diagnostic.IgnoredAttribute(settings, "src", src, webBlocked);
                 return null;
             }
 
@@ -60,6 +70,7 @@ static class ImageResolver
                 var downloaded = Download(client, src, settings.WebImages);
                 if (downloaded == null)
                 {
+                    Diagnostic.IgnoredAttribute(settings, "src", src, webFailed);
                     return null;
                 }
 
@@ -68,6 +79,7 @@ static class ImageResolver
             }
             catch
             {
+                Diagnostic.IgnoredAttribute(settings, "src", src, webFailed);
                 return null;
             }
         }
@@ -75,6 +87,7 @@ static class ImageResolver
         {
             if (!settings.LocalImages.IsAllowed(src))
             {
+                Diagnostic.IgnoredAttribute(settings, "src", src, localBlocked);
                 return null;
             }
 
@@ -83,6 +96,7 @@ static class ImageResolver
             {
                 if (!Uri.TryCreate(src, UriKind.Absolute, out var uri))
                 {
+                    Diagnostic.IgnoredAttribute(settings, "src", src, localFailed);
                     return null;
                 }
 
@@ -94,6 +108,7 @@ static class ImageResolver
                 path = Path.GetFullPath(path);
                 if (!File.Exists(path))
                 {
+                    Diagnostic.IgnoredAttribute(settings, "src", src, localFailed);
                     return null;
                 }
 
@@ -102,13 +117,14 @@ static class ImageResolver
             }
             catch
             {
+                Diagnostic.IgnoredAttribute(settings, "src", src, localFailed);
                 return null;
             }
         }
 
         contentType ??= "image/png";
 
-        var (width, height) = ParseImageDimensions(element);
+        var (width, height) = ParseImageDimensions(element, settings);
         return new(bytes, contentType, width, height)
         {
             Float = ParseFloat(element)
@@ -142,7 +158,7 @@ static class ImageResolver
         return FloatSide.None;
     }
 
-    internal static (int? Width, int? Height) ParseImageDimensions(IElement element)
+    internal static (int? Width, int? Height) ParseImageDimensions(IElement element, HtmlConvertSettings? settings)
     {
         int? width = null;
         int? height = null;
@@ -154,33 +170,50 @@ static class ImageResolver
             if (declarations.TryGetValue("width", out var cssWidth))
             {
                 width = StyleParser.ParseLengthToPixels(cssWidth);
+                if (width == null)
+                {
+                    Diagnostic.DroppedProperty(settings, "width", cssWidth, ExtentIsAbsolute);
+                }
             }
 
             if (declarations.TryGetValue("height", out var cssHeight))
             {
                 height = StyleParser.ParseLengthToPixels(cssHeight);
+                if (height == null)
+                {
+                    Diagnostic.DroppedProperty(settings, "height", cssHeight, ExtentIsAbsolute);
+                }
             }
         }
 
         if (width == null)
         {
-            var widthAttr = element.GetAttribute("width");
-            if (widthAttr != null && int.TryParse(widthAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var w))
-            {
-                width = w;
-            }
+            width = ParseDimensionAttribute(element, "width", settings);
         }
 
         if (height == null)
         {
-            var heightAttr = element.GetAttribute("height");
-            if (heightAttr != null && int.TryParse(heightAttr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var h))
-            {
-                height = h;
-            }
+            height = ParseDimensionAttribute(element, "height", settings);
         }
 
         return (width, height);
+    }
+
+    static int? ParseDimensionAttribute(IElement element, string name, HtmlConvertSettings? settings)
+    {
+        var value = element.GetAttribute(name);
+        if (value == null)
+        {
+            return null;
+        }
+
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        Diagnostic.IgnoredAttribute(settings, name, value, ExtentIsAbsolute);
+        return null;
     }
 
     // Downloads an image, following redirects manually so each hop is policy-checked, and

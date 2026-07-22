@@ -1,0 +1,12 @@
+﻿[
+  {
+    Kind: UnsupportedElement,
+    Name: img,
+    Reason: an image part requires a MainDocumentPart
+  },
+  {
+    Kind: UnsupportedElement,
+    Name: svg,
+    Reason: an image part requires a MainDocumentPart
+  }
+]
