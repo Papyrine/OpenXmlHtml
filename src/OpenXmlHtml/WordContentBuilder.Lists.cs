@@ -143,9 +143,12 @@ static partial class WordContentBuilder
             }
         }
 
+        var outerFloor = context.ListItemContentFloor;
+        context.ListItemContentFloor = context.CurrentRuns.Count;
         context.ListItemDepth++;
         ProcessChildren(element, newFormat, elements, context, inPre);
         context.ListItemDepth--;
+        context.ListItemContentFloor = outerFloor;
 
         // Decremented first, so an empty <li></li> clears the list state here rather than leaking
         // it onto whatever follows the list.

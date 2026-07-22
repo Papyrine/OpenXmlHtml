@@ -171,6 +171,14 @@ static partial class WordContentBuilder
             }
             case "table":
                 FlushParagraph(elements, context);
+                // A table carries no pageBreakBefore of its own, so a break owed at this point has
+                // to be spent on an empty paragraph ahead of it. That is what Word itself writes.
+                if (context.PendingPageBreak)
+                {
+                    context.PendingPageBreak = false;
+                    elements.Add(new Paragraph(new ParagraphProperties(new PageBreakBefore())));
+                }
+
                 BuildTable(element, format, elements, context);
                 return;
             case "ul" or "ol":
@@ -259,7 +267,14 @@ static partial class WordContentBuilder
                 }
             }
 
-            FlushParagraph(elements, context);
+            // The first block child of a list item continues the item's own paragraph rather than
+            // starting a new one, which is where the bullet sits: <li><p>x</p></li> is one bulleted
+            // line, not a bullet stranded above an unbulleted one. Later children of the same item
+            // do start new paragraphs, matching a browser putting only the first line on the marker.
+            if (!AtListItemStart(context))
+            {
+                FlushParagraph(elements, context);
+            }
 
             if (pendingFormat != null)
             {
@@ -294,9 +309,7 @@ static partial class WordContentBuilder
 
             if (pageBreakBefore)
             {
-                elements.Add(
-                    new Paragraph(
-                        new ParagraphProperties(new PageBreakBefore())));
+                context.PendingPageBreak = true;
             }
         }
         else if (context.StyleMap != null && element.ClassList.Length > 0)
@@ -349,9 +362,7 @@ static partial class WordContentBuilder
 
             if (pageBreakAfter)
             {
-                elements.Add(
-                    new Paragraph(
-                        new ParagraphProperties(new PageBreakBefore())));
+                context.PendingPageBreak = true;
             }
         }
     }
@@ -392,12 +403,53 @@ static partial class WordContentBuilder
             run.Append(WordHtmlConverter.BuildWordRunProperties(format));
         }
 
-        run.Append(
-            new Text(ApplyTextTransform(text, format))
-            {
-                Space = SpaceProcessingModeValues.Preserve
-            });
+        var transformed = ApplyTextTransform(text, format);
+        if (transformed.IndexOf('\t') < 0)
+        {
+            run.Append(NewText(transformed));
+        }
+        else
+        {
+            AppendWithTabs(run, transformed);
+        }
+
         ctx.CurrentRuns.Add(run);
+    }
+
+    static Text NewText(string value) =>
+        new(value)
+        {
+            Space = SpaceProcessingModeValues.Preserve
+        };
+
+    // Only white-space:pre gets a tab this far — the normal folding rules turn one into a space
+    // before it reaches here. Word ignores a tab inside <w:t>, so advancing to the next tab stop
+    // means emitting the <w:tab/> element instead. That makes pre the way to reach a Word tab from
+    // html, which is otherwise unreachable.
+    static void AppendWithTabs(Run run, string value)
+    {
+        var start = 0;
+        while (true)
+        {
+            var tab = value.IndexOf('\t', start);
+            if (tab < 0)
+            {
+                break;
+            }
+
+            if (tab > start)
+            {
+                run.Append(NewText(value.Substring(start, tab - start)));
+            }
+
+            run.Append(new TabChar());
+            start = tab + 1;
+        }
+
+        if (start < value.Length)
+        {
+            run.Append(NewText(value.Substring(start)));
+        }
     }
 
     static void AddBreakRun(FormatState format, WordBuildContext ctx)
@@ -458,6 +510,11 @@ static partial class WordContentBuilder
     static bool IsTextBlock(string tag) =>
         tag is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
 
+    // Inside a list item with nothing emitted for it yet beyond its marker.
+    static bool AtListItemStart(WordBuildContext context) =>
+        context.ListItemDepth > 0 &&
+        context.CurrentRuns.Count == context.ListItemContentFloor;
+
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
         context.LastWasSpace = false;
@@ -479,6 +536,13 @@ static partial class WordContentBuilder
         }
 
         var paragraph = WordHtmlConverter.BuildParagraph(context.CurrentRuns, context.ListNumId != null ? 0 : context.ListDepth);
+
+        if (context.PendingPageBreak)
+        {
+            context.PendingPageBreak = false;
+            paragraph.ParagraphProperties ??= new();
+            paragraph.ParagraphProperties.PageBreakBefore = new();
+        }
 
         // Apply paragraph style: heading > CSS class > default
         if (context.HeadingLevel > 0)

@@ -24,3 +24,4 @@ global using WColor = DocumentFormat.OpenXml.Wordprocessing.Color;
 global using WFontSize = DocumentFormat.OpenXml.Wordprocessing.FontSize;
 global using WRunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
 global using WRun = DocumentFormat.OpenXml.Wordprocessing.Run;
+global using WText = DocumentFormat.OpenXml.Wordprocessing.Text;
