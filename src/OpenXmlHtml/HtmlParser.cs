@@ -57,7 +57,7 @@ static class HtmlSegmentParser
         var tag = element.LocalName;
         var newFormat = format;
         ApplyElementFormatting(element, tag, ref newFormat, out var styleDeclarations);
-        if (IsHiddenElement(element, tag, styleDeclarations))
+        if (IsHiddenElement(element, tag, styleDeclarations, settings))
         {
             return;
         }
@@ -561,14 +561,23 @@ static class HtmlSegmentParser
         }
     }
 
-    internal static bool IsHiddenElement(IElement element, string tag, Dictionary<string, string>? declarations)
+    internal static bool IsHiddenElement(IElement element, string tag, Dictionary<string, string>? declarations, HtmlConvertSettings? settings)
     {
         // Always skip non-rendered metadata/script/form-control tags.
         // (input is intentionally NOT here so checkboxes can be rendered.)
         if (tag is "script" or "style" or "head" or "meta" or "link" or "title" or
-                   "noscript" or "template" or "base" or "track" or "source" or
-                   "param" or "audio" or "video" or "canvas" or "iframe" or "object" or "embed")
+                   "noscript" or "template" or "base" or "track" or "source" or "param")
         {
+            return true;
+        }
+
+        // These do render in a browser, so skipping one loses something the author put there
+        // rather than something that was never going to be drawn. Word has no embedded media or
+        // canvas, so the skip stands — but it is worth saying out loud, which the metadata tags
+        // above are not.
+        if (tag is "audio" or "video" or "canvas" or "iframe" or "object" or "embed")
+        {
+            Diagnostic.UnsupportedElement(settings, tag, "no Word equivalent");
             return true;
         }
 
@@ -724,7 +733,9 @@ static class HtmlSegmentParser
         }
     }
 
-    internal static ImageData? ParseImageSrc(IElement element)
+    const string dataUriUndecodable = "the data uri is not decodable base64";
+
+    internal static ImageData? ParseImageSrc(IElement element, HtmlConvertSettings? settings)
     {
         var src = element.GetAttribute("src");
         if (src == null || !src.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
@@ -735,12 +746,14 @@ static class HtmlSegmentParser
         var commaIndex = src.IndexOf(',');
         if (commaIndex < 0)
         {
+            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
             return null;
         }
 
         var meta = src.AsSpan(5, commaIndex - 5);
         if (!meta.EndsWith(";base64".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
+            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
             return null;
         }
 
@@ -755,19 +768,21 @@ static class HtmlSegmentParser
         }
         catch (FormatException)
         {
+            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
             return null;
         }
 #else
         var bytes = new byte[base64.Length];
         if (!Convert.TryFromBase64Chars(base64, bytes, out var bytesWritten))
         {
+            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
             return null;
         }
 
         Array.Resize(ref bytes, bytesWritten);
 #endif
 
-        var (width, height) = ImageResolver.ParseImageDimensions(element);
+        var (width, height) = ImageResolver.ParseImageDimensions(element, settings);
         return new(bytes, contentType, width, height)
         {
             Float = ImageResolver.ParseFloat(element)
@@ -788,7 +803,8 @@ static class HtmlSegmentParser
         var (width, height) = ResolveSvgDimensions(element);
         return new(svgBytes, "image/svg+xml", width, height)
         {
-            Float = ImageResolver.ParseFloat(element)
+            Float = ImageResolver.ParseFloat(element),
+            SourceTag = "svg"
         };
     }
 

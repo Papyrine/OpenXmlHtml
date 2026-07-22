@@ -1,0 +1,14 @@
+﻿[
+  {
+    Kind: IgnoredAttribute,
+    Name: width,
+    Value: 50%,
+    Reason: w:gridCol takes an absolute width, so this column width could not be resolved to one
+  },
+  {
+    Kind: IgnoredAttribute,
+    Name: width,
+    Value: 50%,
+    Reason: w:gridCol takes an absolute width, so this column width could not be resolved to one
+  }
+]

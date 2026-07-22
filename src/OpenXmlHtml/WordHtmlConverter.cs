@@ -19,15 +19,15 @@ public static class WordHtmlConverter
     /// Converts HTML to a list of Paragraph elements, embedding images into the given MainDocumentPart.
     /// </summary>
     public static List<Paragraph> ToParagraphs(string html, MainDocumentPart? main) =>
-        ToParagraphsCore(HtmlSegmentParser.Parse(html), main);
+        ToParagraphsCore(HtmlSegmentParser.Parse(html), main, null);
 
     /// <summary>
     /// Converts HTML to a list of Paragraph elements, with settings controlling remote image resolution.
     /// </summary>
     public static List<Paragraph> ToParagraphs(string html, MainDocumentPart? main, HtmlConvertSettings settings) =>
-        ToParagraphsCore(HtmlSegmentParser.Parse(html, settings), main);
+        ToParagraphsCore(HtmlSegmentParser.Parse(html, settings), main, settings);
 
-    static List<Paragraph> ToParagraphsCore(List<TextSegment> segments, MainDocumentPart? main)
+    static List<Paragraph> ToParagraphsCore(List<TextSegment> segments, MainDocumentPart? main, HtmlConvertSettings? settings)
     {
         var paragraphs = new List<Paragraph>();
         var currentRuns = new List<OpenXmlElement>();
@@ -50,12 +50,16 @@ public static class WordHtmlConverter
                 continue;
             }
 
-            if (segment.Format.Image != null)
+            if (segment.Format.Image is { } image)
             {
-                if (main != null)
+                if (main == null)
+                {
+                    Diagnostic.UnsupportedElement(settings, image.SourceTag, WordContentBuilder.NoMainPartForImages);
+                }
+                else
                 {
                     imageIndex++;
-                    currentRuns.Add(BuildImageRun(main, segment.Format.Image, imageIndex));
+                    currentRuns.Add(BuildImageRun(main, image, imageIndex));
                 }
 
                 continue;

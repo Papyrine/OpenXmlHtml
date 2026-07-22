@@ -1,0 +1,7 @@
+﻿[
+  {
+    Name: width,
+    Value: 50%,
+    Reason: wp:extent takes an absolute extent, so this size could not be resolved to one
+  }
+]

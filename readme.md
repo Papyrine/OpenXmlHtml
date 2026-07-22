@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L332-L336' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L363-L367' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -366,6 +366,50 @@ WordHtmlConverter.AppendHtml(
  * Character styles (`w:type="character"`) are applied via `RunStyle`
  * Style lookup is case-insensitive
  * Heading styles (`Heading1`–`Heading6`) take precedence over CSS class styles
+
+
+### Diagnostics
+
+Some HTML cannot be carried into a Word document. A percentage column width has no form in `w:gridCol`, an `<iframe>` has no Word equivalent, a blocked image source resolves to nothing. Conversion still succeeds and still produces a valid document — it is just missing something the author wrote, with no signal that anything was lost.
+
+`HtmlConvertSettings.OnDiagnostic` is that signal:
+
+<!-- snippet: Diagnostics -->
+<a id='snippet-Diagnostics'></a>
+```cs
+var dropped = new List<HtmlDiagnostic>();
+var settings = new HtmlConvertSettings
+{
+    OnDiagnostic = dropped.Add
+};
+
+using var diagnosticStream = new MemoryStream();
+WordHtmlConverter.ConvertToDocx(
+    """
+    <table>
+      <col width="40%">
+      <tr><td>Cell</td></tr>
+    </table>
+    <iframe src="https://example.com"></iframe>
+    """,
+    diagnosticStream,
+    settings);
+
+// IgnoredAttribute, width, "40%", w:gridCol takes an absolute width, ...
+// UnsupportedElement, iframe, no Word equivalent
+```
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L329-L352' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Each `HtmlDiagnostic` carries a `Kind`, the `Name` of the property, attribute, or element, the `Value` that was discarded, and a `Reason`:
+
+ * `DroppedProperty` — a CSS declaration that was read but has no form in the output. For example `width: 50%` on a `<col>` or an `<img>`.
+ * `IgnoredAttribute` — an attribute that was read but could not be applied. For example `width="50%"` on a `<col>`, or a `src` the `ImagePolicy` blocked.
+ * `UnsupportedElement` — an element that renders in a browser but contributes nothing here. For example `<iframe>`, `<video>`, `<canvas>`, or an image converted without a `MainDocumentPart` to hold it.
+
+Only deliberate drops are reported — places where the converter read the input, understood it, and could not express it. Unknown CSS is left alone, since reporting every `cursor` and `float` an ordinary stylesheet carries would bury the signal. Markup that is fully supported reports nothing, which makes the useful test-time assertion "this document dropped nothing" possible.
+
+Reporting is opt-in and costs nothing while `OnDiagnostic` is null. The callback runs on the converting thread as each drop happens.
 
 
 ## Supported HTML Elements

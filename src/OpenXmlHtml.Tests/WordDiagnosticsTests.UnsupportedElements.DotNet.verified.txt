@@ -1,0 +1,17 @@
+﻿[
+  {
+    Kind: UnsupportedElement,
+    Name: video,
+    Reason: no Word equivalent
+  },
+  {
+    Kind: UnsupportedElement,
+    Name: iframe,
+    Reason: no Word equivalent
+  },
+  {
+    Kind: UnsupportedElement,
+    Name: canvas,
+    Reason: no Word equivalent
+  }
+]

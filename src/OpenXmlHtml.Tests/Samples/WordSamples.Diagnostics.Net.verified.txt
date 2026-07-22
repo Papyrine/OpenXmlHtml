@@ -1,0 +1,13 @@
+﻿[
+  {
+    Kind: IgnoredAttribute,
+    Name: width,
+    Value: 40%,
+    Reason: w:gridCol takes an absolute width, so this column width could not be resolved to one
+  },
+  {
+    Kind: UnsupportedElement,
+    Name: iframe,
+    Reason: no Word equivalent
+  }
+]

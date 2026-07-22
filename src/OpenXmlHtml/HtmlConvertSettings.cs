@@ -35,4 +35,12 @@ public class HtmlConvertSettings
     /// instead of N.
     /// </summary>
     public HtmlNumberingSession? NumberingSession { get; init; }
+
+    /// <summary>
+    /// Optional sink for html the converter recognised and then discarded — a css property with no
+    /// form in the output, an attribute that could not be applied, an element with no Word
+    /// equivalent. Called as each drop happens, on the converting thread. Default is null, under
+    /// which nothing is reported and nothing is allocated.
+    /// </summary>
+    public Action<HtmlDiagnostic>? OnDiagnostic { get; init; }
 }
