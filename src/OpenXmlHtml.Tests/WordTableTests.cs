@@ -1,3 +1,5 @@
+using WTable = DocumentFormat.OpenXml.Wordprocessing.Table;
+
 [TestFixture]
 public class WordTableTests
 {
@@ -183,4 +185,56 @@ public class WordTableTests
     [Test]
     public Task TableWithoutWidthStaysAutofit() =>
         Verify(WordHtmlConverter.ToElements("<table><tr><td>A</td><td>B</td></tr></table>"));
+
+    static List<string?> Grid(string html) =>
+        WordHtmlConverter
+            .ToElements(html)
+            .OfType<WTable>()
+            .Single()
+            .GetFirstChild<TableGrid>()!
+            .Elements<GridColumn>()
+            .Select(_ => _.Width?.Value)
+            .ToList();
+
+    // Word lays the table out from the grid, so cell widths that never reach it change nothing.
+    [Test]
+    public void CellWidthsFillTheGrid() =>
+        Assert.That(
+            Grid("""<table><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>"""),
+            Is.EqualTo(new[] {"8040", "1200"}));
+
+    // The table width is shared across the columns only when the cells say nothing, so cells that
+    // carry widths keep them rather than being flattened to an even split.
+    [Test]
+    public void CellWidthsBeatAnEvenShareOfTheTableWidth() =>
+        Assert.That(
+            Grid("""<table style="width:696px"><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>"""),
+            Is.EqualTo(new[] {"8040", "1200"}));
+
+    [Test]
+    public void ColgroupOutranksCellWidths() =>
+        Assert.That(
+            Grid("""<table><colgroup><col style="width:100px"><col style="width:200px"></colgroup><tr><td style="width:500px">a</td><td style="width:500px">b</td></tr></table>"""),
+            Is.EqualTo(new[] {"1500", "3000"}));
+
+    // A span makes the cell-to-column mapping ambiguous, so the search moves to the next row.
+    [Test]
+    public void SpannedRowIsNotAWidthSource() =>
+        Assert.That(
+            Grid("""<table><tr><td colspan="2">head</td></tr><tr><td style="width:300px">a</td><td style="width:100px">b</td></tr></table>"""),
+            Is.EqualTo(new[] {"4500", "1500"}));
+
+    // Half a row of widths cannot lay out a table, so a partly sized row is not a source either.
+    [Test]
+    public void PartlySizedRowIsNotAWidthSource() =>
+        Assert.That(
+            Grid("""<table><tr><td style="width:300px">a</td><td>b</td></tr></table>"""),
+            Is.EqualTo(new string?[] {null, null}));
+
+    // w:gridCol has no percentage unit. The cells keep their own pct widths; the grid stays bare.
+    [Test]
+    public void PercentageCellWidthsLeaveTheGridBare() =>
+        Assert.That(
+            Grid("""<table><tr><td style="width:35%">a</td><td style="width:65%">b</td></tr></table>"""),
+            Is.EqualTo(new string?[] {null, null}));
 }

@@ -476,10 +476,18 @@ Reporting is opt-in and costs nothing while `OnDiagnostic` is null. The callback
    `width` accepts the same units as the attribute above
  * Table CSS: `width`, `background-color`, `padding` (default cell padding) (Word). An absolute
    table `width` is shared across the columns and switches the table to fixed layout, since Word's
-   default autofit treats the width as a preference and resizes columns to their content
+   default autofit treats the width as a preference and resizes columns to their content. The share
+   only applies when the cells give no widths of their own
  * Row CSS: `height` or HTML `height` attribute on `<tr>` (Word)
  * `col` / `colgroup` widths must be absolute — Word's `w:gridCol` has no percentage unit, so a
    percentage there is ignored
+
+Word lays a table out from `w:tblGrid`, not from the cells, so column widths have to reach the grid
+to have any effect. They are taken from `col`/`colgroup` where it is present, and otherwise from the
+first row that maps one cell to one column — a row carrying a `colspan` or `rowspan` is skipped as
+ambiguous, and so is one where only some cells give a width, since half a row cannot lay out a
+table. Percentage cell widths still apply to the cells themselves but cannot fill the grid, for the
+same reason `col` percentages are ignored.
 
 
 ### Inline / Other
