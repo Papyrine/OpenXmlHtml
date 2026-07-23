@@ -32,7 +32,9 @@ Tests use [Verify](https://github.com/VerifyTests/Verify) with NUnit. When test 
   - `Foo.DotNet10_0.received.xml` → `Foo.DotNet.verified.xml`
   - `Foo.Net4_8.received.xml` → `Foo.Net.verified.xml`
 
-  Copying the stem verbatim writes a second, parallel snapshot corpus no test ever reads, leaving the real baseline stale and the suite still failing. `dotnet verify accept` derives one name from the other and does the same thing — do not use it here. Map by hand.
+  Copying the stem verbatim writes a second, parallel snapshot corpus no test ever reads, leaving the real baseline stale and the suite still failing. So map the name, do not copy it.
+
+  When accepting by hand, take the destination from the `Verified:` line of the failure message rather than deriving it from the received name. `dotnet verify accept` (Verify.Tool 0.8.0 and later) reads the pairing that Verify records under `obj`, so it maps these names correctly and is safe to use from the repository root. Run it from a directory above `obj`, since that is where the records live.
 - A new snapshot test needs **both** baselines, since the suite multi-targets `net10.0` and `net48`. A missing `.Net.verified.xml` fails only on the net48 run.
 - Tests producing docx binaries or floating-point output use `.UniqueForTargetFrameworkAndVersion()` since output differs between net10.0 and net48
 - Custom Verify converters in `VerifyOpenXmlConverter.cs` serialize OpenXml objects to `.OuterXml`
