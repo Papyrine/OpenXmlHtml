@@ -118,7 +118,7 @@ static partial class WordContentBuilder
             tblPr.Append(new BiDiVisual());
         }
 
-        var columnWidths = GetColumnWidths(tableElement, columnCount, ctx.Settings);
+        var columnWidths = GetColumnWidths(tableElement, rows, columnCount, ctx.Settings);
 
         // Word's default table layout is autofit, under which tblW is only a *preferred* width and
         // every column gets resized to fit its content — so an explicit table width renders as a
@@ -519,7 +519,7 @@ static partial class WordContentBuilder
         }
     }
 
-    static List<int?> GetColumnWidths(IElement tableElement, int columnCount, HtmlConvertSettings? settings)
+    static List<int?> GetColumnWidths(IElement tableElement, List<IElement> rows, int columnCount, HtmlConvertSettings? settings)
     {
         var widths = new List<int?>(columnCount);
 
@@ -557,7 +557,58 @@ static partial class WordContentBuilder
             widths.Add(null);
         }
 
+        FillWidthsFromCells(widths, rows, columnCount);
+
         return widths;
+    }
+
+    // Word lays a table out from the grid, so cell widths on their own change nothing: the columns
+    // stay evenly split however wide the cells say they are. A colgroup keeps precedence where it
+    // is present, and the rest are taken from the first row that maps one cell to one column —
+    // which is the row a reader would take them from.
+    static void FillWidthsFromCells(List<int?> widths, List<IElement> rows, int columnCount)
+    {
+        if (!widths.Contains(null))
+        {
+            return;
+        }
+
+        foreach (var row in rows)
+        {
+            var cells = GetCells(row);
+            if (cells.Count != columnCount)
+            {
+                continue;
+            }
+
+            // A span makes the cell-to-column mapping ambiguous, so such a row is not a source.
+            if (cells.Exists(_ => ParseIntAttribute(_, "colspan", 1) > 1 ||
+                                  ParseIntAttribute(_, "rowspan", 1) > 1))
+            {
+                continue;
+            }
+
+            // Widths are read without settings, so nothing is reported: a percentage is honoured on
+            // the cell itself, and calling that a dropped property here would be wrong. It only
+            // means this row cannot fill the grid, so the search moves on.
+            var resolved = new List<int?>(columnCount);
+            foreach (var cell in cells)
+            {
+                resolved.Add(ParseColWidth(cell, null));
+            }
+
+            if (resolved.Contains(null))
+            {
+                continue;
+            }
+
+            for (var index = 0; index < columnCount; index++)
+            {
+                widths[index] ??= resolved[index];
+            }
+
+            return;
+        }
     }
 
     static void AddColWidth(IElement col, List<int?> widths, HtmlConvertSettings? settings)
