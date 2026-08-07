@@ -411,9 +411,10 @@ public static class WordHtmlConverter
 
         var pageSize = new PageSize
         {
-            Width = (uint)(layout?.WidthTwips ?? 11906),
-            Height = (uint)(layout?.HeightTwips ?? 16838)
+            Width = (uint) (layout?.WidthTwips ?? 11906),
+            Height = (uint) (layout?.HeightTwips ?? 16838)
         };
+
         if (layout?.Landscape == true)
         {
             pageSize.Orient = PageOrientationValues.Landscape;
@@ -422,9 +423,9 @@ public static class WordHtmlConverter
         var pageMargin = new PageMargin
         {
             Top = layout?.MarginTopTwips ?? 1440,
-            Right = (uint)(layout?.MarginRightTwips ?? 1440),
+            Right = (uint) (layout?.MarginRightTwips ?? 1440),
             Bottom = layout?.MarginBottomTwips ?? 1440,
-            Left = (uint)(layout?.MarginLeftTwips ?? 1440),
+            Left = (uint) (layout?.MarginLeftTwips ?? 1440),
             Header = 720,
             Footer = 720,
             Gutter = 0
@@ -437,7 +438,7 @@ public static class WordHtmlConverter
             sectionProps.Append(
                 new Columns
                 {
-                    ColumnCount = (short)cc,
+                    ColumnCount = (short) cc,
                     EqualWidth = true
                 });
         }
@@ -540,10 +541,11 @@ public static class WordHtmlConverter
         }
         else if (format.Shadow == false)
         {
-            props.Append(new Shadow
-            {
-                Val = false
-            });
+            props.Append(
+                new Shadow
+                {
+                    Val = false
+                });
         }
 
         if (format.Color != null)
@@ -575,7 +577,7 @@ public static class WordHtmlConverter
 
         if (format.FontSizePt != null)
         {
-            var halfPoints = (int)(format.FontSizePt.Value * 2);
+            var halfPoints = (int) (format.FontSizePt.Value * 2);
             props.Append(
                 new FontSize
                 {
@@ -604,7 +606,7 @@ public static class WordHtmlConverter
                 new Border
                 {
                     Val = format.Border.Style,
-                    Size = (uint)format.Border.SizeEighths,
+                    Size = (uint) format.Border.SizeEighths,
                     Space = 1,
                     Color = format.Border.Color ?? "auto"
                 });

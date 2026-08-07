@@ -69,10 +69,10 @@ static class AtPageParser
             // "columns" shorthand - look for a bare integer token
             foreach (var part in columns.Split(' ', '\t'))
             {
-                if (int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c) &&
-                    c > 0)
+                if (int.TryParse(part, NumberStyles.Integer, CultureInfo.InvariantCulture, out var count) &&
+                    count > 0)
                 {
-                    layout.ColumnCount = c;
+                    layout.ColumnCount = count;
                     break;
                 }
             }

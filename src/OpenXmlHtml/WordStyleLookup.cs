@@ -1,9 +1,3 @@
-enum StyleType
-{
-    Paragraph,
-    Character
-}
-
 static class WordStyleLookup
 {
     internal static Dictionary<string, StyleType>? BuildStyleMap(MainDocumentPart? main)

@@ -35,7 +35,8 @@ static partial class WordContentBuilder
         var defaultBorder = new BorderInfo(4, BorderValues.Single, "auto");
 
         var borderAttr = tableElement.GetAttribute("border");
-        if (borderAttr != null && int.TryParse(borderAttr, out var borderPx))
+        if (borderAttr != null &&
+            int.TryParse(borderAttr, out var borderPx))
         {
             if (borderPx == 0)
             {
@@ -467,11 +468,7 @@ static partial class WordContentBuilder
 
         if (declarations.TryGetValue("writing-mode", out var cellWritingMode))
         {
-            var cellTextDir = cellWritingMode.Equals("vertical-rl", StringComparison.OrdinalIgnoreCase) || cellWritingMode.Equals("tb-rl", StringComparison.OrdinalIgnoreCase)
-                ? TextDirectionValues.TopToBottomRightToLeft
-                : cellWritingMode.Equals("vertical-lr", StringComparison.OrdinalIgnoreCase) || cellWritingMode.Equals("tb-lr", StringComparison.OrdinalIgnoreCase)
-                    ? TextDirectionValues.BottomToTopLeftToRight
-                    : (TextDirectionValues?)null;
+            var cellTextDir = TextDirection(cellWritingMode);
             if (cellTextDir != null)
             {
                 tcPr.Append(
@@ -509,6 +506,23 @@ static partial class WordContentBuilder
         }
 
         return tcPr;
+    }
+
+    static TextDirectionValues? TextDirection(string mode)
+    {
+        if (mode.Equals("vertical-rl", StringComparison.OrdinalIgnoreCase) ||
+            mode.Equals("tb-rl", StringComparison.OrdinalIgnoreCase))
+        {
+            return TextDirectionValues.TopToBottomRightToLeft;
+        }
+
+        if (mode.Equals("vertical-lr", StringComparison.OrdinalIgnoreCase) ||
+            mode.Equals("tb-lr", StringComparison.OrdinalIgnoreCase))
+        {
+            return TextDirectionValues.BottomToTopLeftToRight;
+        }
+
+        return null;
     }
 
     static void ApplyTableCellPadding(Dictionary<string, string> declarations, TableProperties tblPr)

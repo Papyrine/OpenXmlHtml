@@ -1,5 +1,3 @@
-namespace OpenXmlHtml;
-
 // Strips characters that XML 1.0 forbids (most C0 controls, lone surrogates,
 // 0xFFFE/0xFFFF). HTML entities like &#1; decode to C0 controls that crash
 // OpenXml's XML writer with InvalidXmlChar at save time.

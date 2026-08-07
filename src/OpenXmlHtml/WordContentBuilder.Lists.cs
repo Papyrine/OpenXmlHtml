@@ -5,11 +5,7 @@ static partial class WordContentBuilder
         FlushParagraph(elements, context);
         var isReversed = tag == "ol" && element.HasAttribute("reversed");
 
-        if (context.MainPart != null && !isReversed)
-        {
-            BuildRealNumberedList(element, tag, newFormat, elements, context, inPre);
-        }
-        else
+        if (context.MainPart == null || isReversed)
         {
             if (isReversed)
             {
@@ -28,6 +24,10 @@ static partial class WordContentBuilder
 
             ProcessChildren(element, newFormat, elements, context, inPre);
             context.ReversedStart = null;
+        }
+        else
+        {
+            BuildRealNumberedList(element, tag, newFormat, elements, context, inPre);
         }
 
         FlushParagraph(elements, context);

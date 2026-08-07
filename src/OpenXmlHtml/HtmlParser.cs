@@ -448,9 +448,9 @@ static class HtmlSegmentParser
             }
         }
 
-        if (declarations.TryGetValue("font-size", out var fontSizeStr))
+        if (declarations.TryGetValue("font-size", out var fontSize))
         {
-            var parsed = StyleParser.ParseFontSize(fontSizeStr);
+            var parsed = StyleParser.ParseFontSize(fontSize);
             if (parsed != null)
             {
                 format.FontSizePt = parsed;

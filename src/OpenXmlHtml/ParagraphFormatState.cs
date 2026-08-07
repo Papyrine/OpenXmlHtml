@@ -91,11 +91,7 @@ class ParagraphFormatState
 
         if (declarations.TryGetValue("writing-mode", out var writingMode))
         {
-            pf.WritingMode = writingMode.Equals("vertical-rl", StringComparison.OrdinalIgnoreCase) || writingMode.Equals("tb-rl", StringComparison.OrdinalIgnoreCase)
-                ? TextDirectionValues.TopToBottomRightToLeft
-                : writingMode.Equals("vertical-lr", StringComparison.OrdinalIgnoreCase) || writingMode.Equals("tb-lr", StringComparison.OrdinalIgnoreCase)
-                    ? TextDirectionValues.BottomToTopLeftToRight
-                    : null;
+            pf.WritingMode = TopToBottomRightToLeft(writingMode);
         }
 
         if (declarations.TryGetValue("direction", out var direction) &&
@@ -134,6 +130,23 @@ class ParagraphFormatState
         }
 
         return pf;
+    }
+
+    static TextDirectionValues? TopToBottomRightToLeft(string writingMode)
+    {
+        if (writingMode.Equals("vertical-rl", StringComparison.OrdinalIgnoreCase) ||
+            writingMode.Equals("tb-rl", StringComparison.OrdinalIgnoreCase))
+        {
+            return TextDirectionValues.TopToBottomRightToLeft;
+        }
+
+        if (writingMode.Equals("vertical-lr", StringComparison.OrdinalIgnoreCase) ||
+            writingMode.Equals("tb-lr", StringComparison.OrdinalIgnoreCase))
+        {
+            return TextDirectionValues.BottomToTopLeftToRight;
+        }
+
+        return null;
     }
 
     static void ParseLineHeight(string lh, ParagraphFormatState pf)

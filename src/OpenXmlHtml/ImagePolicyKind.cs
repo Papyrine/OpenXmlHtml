@@ -1,6 +1,4 @@
-﻿namespace OpenXmlHtml;
-
-enum ImagePolicyKind
+﻿enum ImagePolicyKind
 {
     Deny,
     AllowAll,

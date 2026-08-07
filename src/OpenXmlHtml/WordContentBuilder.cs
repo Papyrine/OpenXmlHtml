@@ -319,7 +319,8 @@ static partial class WordContentBuilder
                 context.PendingPageBreak = true;
             }
         }
-        else if (context.StyleMap != null && element.ClassList.Length > 0)
+        else if (context.StyleMap != null &&
+                 element.ClassList.Length > 0)
         {
             // Inline elements: check for character style
             var (_, runStyle) = WordStyleLookup.LookupClasses(element, context.StyleMap);

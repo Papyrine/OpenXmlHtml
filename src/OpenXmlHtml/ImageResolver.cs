@@ -3,7 +3,11 @@ static class ImageResolver
     // The default client does NOT auto-redirect: redirects are followed manually so each hop is
     // re-checked against the image policy. Otherwise a redirect from an allowed host could point
     // at an internal address and bypass SafeDomains (an SSRF vector).
-    static readonly HttpClient sharedClient = new(new HttpClientHandler { AllowAutoRedirect = false })
+    static readonly HttpClient sharedClient = new(
+        new HttpClientHandler
+        {
+            AllowAutoRedirect = false
+        })
     {
         Timeout = TimeSpan.FromSeconds(30)
     };
