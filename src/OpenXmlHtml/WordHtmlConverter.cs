@@ -27,12 +27,50 @@ public static class WordHtmlConverter
     public static List<Paragraph> ToParagraphs(string html, MainDocumentPart? main, HtmlConvertSettings settings) =>
         ToParagraphsCore(HtmlSegmentParser.Parse(html, settings), main, settings);
 
+    /// <summary>
+    /// The hyperlink for an anchor's href, or none when it cannot be expressed.
+    /// </summary>
+    /// <remarks>
+    /// A "#name" href addresses this document, so it is an anchor on the hyperlink rather than a
+    /// relationship to somewhere outside it — and needs no <see cref="MainDocumentPart"/>, which is
+    /// what lets a bookmark link survive a conversion that has no document to register against.
+    /// Anything else needs an absolute url and a part to register it with; a relative one has no
+    /// base to resolve against here, so it stays text and keeps its " (url)".
+    /// </remarks>
+    static bool TryBuildHyperlink(string url, MainDocumentPart? main, out Hyperlink hyperlink)
+    {
+        if (url.Length > 1 &&
+            url[0] == '#')
+        {
+            hyperlink = new()
+            {
+                Anchor = url[1..]
+            };
+            return true;
+        }
+
+        if (main != null &&
+            Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            hyperlink = new()
+            {
+                Id = main.AddHyperlinkRelationship(uri, true).Id
+            };
+            return true;
+        }
+
+        hyperlink = new();
+        return false;
+    }
+
     static List<Paragraph> ToParagraphsCore(List<TextSegment> segments, MainDocumentPart? main, HtmlConvertSettings? settings)
     {
         var paragraphs = new List<Paragraph>();
         var currentRuns = new List<OpenXmlElement>();
         var imageIndex = 0;
         var listDepth = 0;
+        var linkedLastSegment = false;
+        string? openLinkUrl = null;
 
         foreach (var segment in segments)
         {
@@ -47,6 +85,8 @@ public static class WordHtmlConverter
                 paragraphs.Add(BuildParagraph(currentRuns, listDepth));
                 currentRuns = [];
                 listDepth = 0;
+                // A hyperlink cannot span paragraphs, so the next one starts its own.
+                openLinkUrl = null;
                 continue;
             }
 
@@ -72,6 +112,17 @@ public static class WordHtmlConverter
                 text = text.TrimStart();
             }
 
+            // The " (url)" an anchor trails says where the link went, which a paragraph that has
+            // just linked the text says better. Dropped only when the link was actually built, or
+            // the target would be lost with nothing carrying it.
+            if (segment.IsLinkUrl && linkedLastSegment)
+            {
+                linkedLastSegment = false;
+                continue;
+            }
+
+            linkedLastSegment = false;
+
             var run = new Run();
 
             if (segment.Format.HasFormatting)
@@ -84,6 +135,33 @@ public static class WordHtmlConverter
                 {
                     Space = SpaceProcessingModeValues.Preserve
                 });
+
+            // Text inside an anchor becomes a real hyperlink rather than text merely coloured to
+            // look like one. Consecutive runs under the same target join the hyperlink already
+            // open, so formatting within an anchor neither splits it into several links nor
+            // registers a relationship per run.
+            if (segment.Format.LinkUrl is { } url)
+            {
+                if (url == openLinkUrl &&
+                    currentRuns.Count > 0 &&
+                    currentRuns[^1] is Hyperlink open)
+                {
+                    open.Append(run);
+                    linkedLastSegment = true;
+                    continue;
+                }
+
+                if (TryBuildHyperlink(url, main, out var hyperlink))
+                {
+                    hyperlink.Append(run);
+                    currentRuns.Add(hyperlink);
+                    openLinkUrl = url;
+                    linkedLastSegment = true;
+                    continue;
+                }
+            }
+
+            openLinkUrl = null;
             currentRuns.Add(run);
         }
 

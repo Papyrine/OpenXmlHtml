@@ -49,5 +49,5 @@ public class WordDirectionAttributeTests
     }
 
     static string Xml(List<OpenXmlElement> elements) =>
-        string.Join('\n', elements.Select(e => e.OuterXml));
+        string.Join('\n', elements.Select(_ => _.OuterXml));
 }

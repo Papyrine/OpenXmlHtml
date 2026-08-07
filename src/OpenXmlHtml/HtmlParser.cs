@@ -160,7 +160,7 @@ static class HtmlSegmentParser
                 {
                     if (!element.TextContent.AsSpan().Trim().Equals(href.AsSpan(), StringComparison.Ordinal))
                     {
-                        segments.Add(new($" ({href})", format));
+                        segments.Add(new($" ({href})", format, IsLinkUrl: true));
                     }
                 }
 

@@ -60,7 +60,7 @@ public class WordWhiteSpaceTests
         Assert.Multiple(() =>
         {
             Assert.That(run.Descendants<TabChar>().Count(), Is.EqualTo(2));
-            Assert.That(run.Elements<WText>().Select(_ => _.Text), Is.EqualTo(new[] {"a", "b", "c"}));
+            Assert.That(run.Elements<WText>().Select(_ => _.Text), Is.EqualTo(["a", "b", "c"]));
         });
     }
 
