@@ -125,13 +125,13 @@ public class WordImageFallbackTests
 
     static void AssertNoDrawing(List<OpenXmlElement> elements)
     {
-        var hasDrawing = elements.Any(e => e.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
+        var hasDrawing = elements.Any(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
         Assert.That(hasDrawing, Is.False, "Expected no Drawing elements");
     }
 
     static void AssertContainsText(List<OpenXmlElement> elements, string text)
     {
-        var combined = string.Concat(elements.SelectMany(e => e.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(t => t.Text)));
+        var combined = string.Concat(elements.SelectMany(_ => _.Descendants<WText>().Select(_ => _.Text)));
         Assert.That(combined, Does.Contain(text));
     }
 
