@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L438-L442' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L464-L468' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -442,7 +442,7 @@ WordHtmlConverter.ConvertToDocx(
 // IgnoredAttribute, width, "40%", w:gridCol takes an absolute width, ...
 // UnsupportedElement, iframe, no Word equivalent
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L404-L427' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L430-L453' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each `HtmlDiagnostic` carries a `Kind`, the `Name` of the property, attribute, or element, the `Value` that was discarded, and a `Reason`:
