@@ -1,4 +1,4 @@
-[TestFixture]
+﻿[TestFixture]
 public class WordStyleMappingTests
 {
     static (MainDocumentPart MainPart, Body Body) CreateDocumentWithStyles(Stream stream, params (string Id, StyleValues Type)[] styles)
@@ -105,6 +105,86 @@ public class WordStyleMappingTests
 
         WordHtmlConverter.AppendHtml(body,
             """<p class="quote">Case insensitive match</p>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // A wrapper carrying the target style is the natural way to render an editor fragment into a
+    // template's body style, and editor output is always block-level. The class used to be discarded
+    // the moment the inner block was entered, leaving these paragraphs unstyled.
+    [Test]
+    public Task ParagraphStyleFromBlockAncestor()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("Body", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<div class="Body"><p>First</p><p>Second</p></div>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // The ListParagraph fallback is applied only when nothing else set a style, so an ancestor class
+    // reaches list items through the same path once it survives the flush.
+    [Test]
+    public Task ListStyleFromBlockAncestor()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("BodyList", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<ul class="BodyList"><li>First</li><li>Second</li></ul>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // The style is scoped to the block that set it: what follows must not inherit it.
+    [Test]
+    public Task BlockAncestorStyleDoesNotLeakToASibling()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("Body", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<div class="Body"><p>Inside</p></div><p>After</p>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // An inner block overrides for its own content, and the outer style resumes afterwards.
+    [Test]
+    public Task NestedBlockAncestorStylesUnwind()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("Outer", StyleValues.Paragraph),
+            ("Inner", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<div class="Outer"><p>One</p><div class="Inner"><p>Two</p></div><p>Three</p></div>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // An element's own class still wins over the one it sits inside.
+    [Test]
+    public Task OwnClassBeatsBlockAncestor()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("Body", StyleValues.Paragraph),
+            ("Quote", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<div class="Body"><p class="Quote">Quoted</p><p>Plain</p></div>""",
             main);
 
         return Verify(body);

@@ -1,4 +1,4 @@
-[TestFixture]
+﻿[TestFixture]
 public class WordSamples
 {
     [Test]
@@ -110,51 +110,51 @@ public class WordSamples
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
             $"""
-            <p><img src="data:image/png;base64,{logo}" width="64" height="64"></p>
-            <h1>Employee Onboarding Guide</h1>
-            <p><i>Human Resources Department</i></p>
-            <hr>
-            <h2>Welcome to <span style="color: #0563C1">Contoso Ltd</span></h2>
-            <p>We're excited to have you join the team! Below you'll find everything
-            you need to get started on your <b>first day</b>.</p>
+             <p><img src="data:image/png;base64,{logo}" width="64" height="64"></p>
+             <h1>Employee Onboarding Guide</h1>
+             <p><i>Human Resources Department</i></p>
+             <hr>
+             <h2>Welcome to <span style="color: #0563C1">Contoso Ltd</span></h2>
+             <p>We're excited to have you join the team! Below you'll find everything
+             you need to get started on your <b>first day</b>.</p>
 
-            <h3>Checklist</h3>
-            <ol>
-              <li>Sign employment agreement</li>
-              <li>Complete <a href="https://hr.contoso.com/tax">tax forms</a></li>
-              <li>Collect your <mark>badge and laptop</mark> from IT</li>
-              <li>Read the <u>code of conduct</u></li>
-            </ol>
+             <h3>Checklist</h3>
+             <ol>
+               <li>Sign employment agreement</li>
+               <li>Complete <a href="https://hr.contoso.com/tax">tax forms</a></li>
+               <li>Collect your <mark>badge and laptop</mark> from IT</li>
+               <li>Read the <u>code of conduct</u></li>
+             </ol>
 
-            <h3>Key Contacts</h3>
-            <table>
-              <caption>Department Contacts</caption>
-              <thead>
-                <tr><th>Department</th><th>Contact</th><th>Extension</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>IT Support</td><td>helpdesk@contoso.com</td><td><code>x4100</code></td></tr>
-                <tr><td>Facilities</td><td>facilities@contoso.com</td><td><code>x4200</code></td></tr>
-                <tr><td>HR</td><td>hr@contoso.com</td><td><code>x4300</code></td></tr>
-              </tbody>
-            </table>
+             <h3>Key Contacts</h3>
+             <table>
+               <caption>Department Contacts</caption>
+               <thead>
+                 <tr><th>Department</th><th>Contact</th><th>Extension</th></tr>
+               </thead>
+               <tbody>
+                 <tr><td>IT Support</td><td>helpdesk@contoso.com</td><td><code>x4100</code></td></tr>
+                 <tr><td>Facilities</td><td>facilities@contoso.com</td><td><code>x4200</code></td></tr>
+                 <tr><td>HR</td><td>hr@contoso.com</td><td><code>x4300</code></td></tr>
+               </tbody>
+             </table>
 
-            <h3>Important Policies</h3>
-            <dl>
-              <dt>Remote Work</dt>
-              <dd>Up to <b>3 days per week</b> after probation period.</dd>
-              <dt>Time Off</dt>
-              <dd>20 days PTO plus <span style="color: green">10 public holidays</span>.</dd>
-            </dl>
+             <h3>Important Policies</h3>
+             <dl>
+               <dt>Remote Work</dt>
+               <dd>Up to <b>3 days per week</b> after probation period.</dd>
+               <dt>Time Off</dt>
+               <dd>20 days PTO plus <span style="color: green">10 public holidays</span>.</dd>
+             </dl>
 
-            <blockquote>
-              <q>The strength of the team is each individual member.</q>
-              — Phil Jackson
-            </blockquote>
+             <blockquote>
+               <q>The strength of the team is each individual member.</q>
+               — Phil Jackson
+             </blockquote>
 
-            <p><small>Last updated: January 2024. For questions contact
-            <a href="mailto:onboarding@contoso.com">onboarding@contoso.com</a>.</small></p>
-            """,
+             <p><small>Last updated: January 2024. For questions contact
+             <a href="mailto:onboarding@contoso.com">onboarding@contoso.com</a>.</small></p>
+             """,
             stream);
         stream.Position = 0;
         return Verify(stream, "docx");
@@ -322,6 +322,107 @@ public class WordSamples
         styleStream.Position = 0;
         return Verify(styleStream, "docx");
     }
+
+    // The styles here carry visible formatting - shading and a border - so the rendered page shows
+    // whether content landed inside the styled block or outside it. That is the failure this covers:
+    // an unstyled paragraph sits outside the box its neighbours are drawn in, which is obvious on the
+    // page and invisible in a body-xml assertion.
+    [Test]
+    public Task StyleFromEnclosingBlock()
+    {
+        using var styleStream = new MemoryStream();
+        using var styleDoc = WordprocessingDocument.Create(
+            styleStream, WordprocessingDocumentType.Document);
+        var styleMainPart = styleDoc.AddMainDocumentPart();
+
+        var stylesPart = styleMainPart.AddNewPart<StyleDefinitionsPart>();
+        stylesPart.Styles = new(
+            BoxStyle("BoxText", "DCE6F1"),
+            BoxStyle("BoxList", "EAF1DD"),
+            BoxStyle("BoxQuote", "FDE9D9"));
+
+        var styleBody = new Body();
+        styleMainPart.Document = new(styleBody);
+
+        #region StyleFromEnclosingBlock
+
+        // A class on a block element applies to every paragraph inside it, not only to the paragraph
+        // that element produces itself. That is what lets an editor fragment - which is always block
+        // level - be rendered into a template's own body style by wrapping it.
+        //
+        // The style is scoped to the block that set it: a nested block overrides for its own content,
+        // the enclosing style resumes afterwards, and a following sibling is unaffected. An element's
+        // own class still wins over the one it sits inside.
+        WordHtmlConverter.AppendHtml(
+            styleBody,
+            """
+            <div class="BoxText">
+              <p>Both of these paragraphs are styled by the div that encloses them.</p>
+              <p>Neither carries a class of its own.</p>
+              <p class="BoxQuote">This one does, and its own class wins.</p>
+              <ul class="BoxList">
+                <li>List items take the list's class</li>
+                <li>rather than falling back to ListParagraph</li>
+              </ul>
+              <p>The enclosing style resumes after a nested block.</p>
+            </div>
+            <p>This sits outside, and is not styled at all.</p>
+            """,
+            styleMainPart);
+
+        #endregion
+
+        styleDoc.Dispose();
+        styleStream.Position = 0;
+        return Verify(styleStream, "docx");
+    }
+
+    // A paragraph style with shading and a border, so the block it applies to is visible on the page.
+    static Style BoxStyle(string id, string shade) =>
+        new(
+            new StyleName
+            {
+                Val = id
+            },
+            new StyleParagraphProperties(
+                new ParagraphBorders(
+                    new DocumentFormat.OpenXml.Wordprocessing.TopBorder
+                    {
+                        Val = BorderValues.Single,
+                        Color = "7F9DB9",
+                        Size = 6
+                    },
+                    new DocumentFormat.OpenXml.Wordprocessing.LeftBorder
+                    {
+                        Val = BorderValues.Single,
+                        Color = "7F9DB9",
+                        Size = 6
+                    },
+                    new DocumentFormat.OpenXml.Wordprocessing.BottomBorder
+                    {
+                        Val = BorderValues.Single,
+                        Color = "7F9DB9",
+                        Size = 6
+                    },
+                    new DocumentFormat.OpenXml.Wordprocessing.RightBorder
+                    {
+                        Val = BorderValues.Single,
+                        Color = "7F9DB9",
+                        Size = 6
+                    }),
+                new Shading
+                {
+                    Val = ShadingPatternValues.Clear,
+                    Fill = shade
+                },
+                new Indentation
+                {
+                    Left = "284"
+                }))
+        {
+            StyleId = id,
+            Type = StyleValues.Paragraph
+        };
 
     [Test]
     public Task Diagnostics()
