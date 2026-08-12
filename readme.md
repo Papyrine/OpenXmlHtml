@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L363-L367' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L438-L442' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -368,6 +368,50 @@ WordHtmlConverter.AppendHtml(
  * Heading styles (`Heading1`–`Heading6`) take precedence over CSS class styles
 
 
+### Styling A Whole Fragment
+
+A class on a block element applies to every paragraph inside it, not only to the paragraph that element produces itself.
+
+This is what makes a template's own styles usable for content that came from a rich-text editor. Editor output is block level — a series of `<p>`, `<ul>` and the like — so there is no single paragraph to put the class on. Wrapping the fragment in an element carrying the target style is the way to say "render all of this as the body style":
+
+<!-- snippet: StyleFromEnclosingBlock -->
+<a id='snippet-StyleFromEnclosingBlock'></a>
+```cs
+// A class on a block element applies to every paragraph inside it, not only to the paragraph
+// that element produces itself. That is what lets an editor fragment - which is always block
+// level - be rendered into a template's own body style by wrapping it.
+//
+// The style is scoped to the block that set it: a nested block overrides for its own content,
+// the enclosing style resumes afterwards, and a following sibling is unaffected. An element's
+// own class still wins over the one it sits inside.
+WordHtmlConverter.AppendHtml(
+    styleBody,
+    """
+    <div class="BoxText">
+      <p>Both of these paragraphs are styled by the div that encloses them.</p>
+      <p>Neither carries a class of its own.</p>
+      <p class="BoxQuote">This one does, and its own class wins.</p>
+      <ul class="BoxList">
+        <li>List items take the list's class</li>
+        <li>rather than falling back to ListParagraph</li>
+      </ul>
+      <p>The enclosing style resumes after a nested block.</p>
+    </div>
+    <p>This sits outside, and is not styled at all.</p>
+    """,
+    styleMainPart);
+```
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L347-L373' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleFromEnclosingBlock' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The style is scoped to the block that set it:
+
+ * a nested block overrides for its own content, and the enclosing style resumes afterwards
+ * a following sibling is unaffected
+ * an element's own class still wins over the one it sits inside
+ * list items take the class from their `<ul>`/`<ol>` rather than falling back to `ListParagraph`, and keep their numbering
+
+
 ### Diagnostics
 
 Some HTML cannot be carried into a Word document. A percentage column width has no form in `w:gridCol`, an `<iframe>` has no Word equivalent, a blocked image source resolves to nothing. Conversion still succeeds and still produces a valid document — it is just missing something the author wrote, with no signal that anything was lost.
@@ -398,7 +442,7 @@ WordHtmlConverter.ConvertToDocx(
 // IgnoredAttribute, width, "40%", w:gridCol takes an absolute width, ...
 // UnsupportedElement, iframe, no Word equivalent
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L329-L352' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L404-L427' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each `HtmlDiagnostic` carries a `Kind`, the `Name` of the property, attribute, or element, the `Value` that was discarded, and a `Reason`:

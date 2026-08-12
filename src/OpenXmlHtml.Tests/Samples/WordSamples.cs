@@ -1,4 +1,4 @@
-[TestFixture]
+﻿[TestFixture]
 public class WordSamples
 {
     [Test]
@@ -322,6 +322,81 @@ public class WordSamples
         styleStream.Position = 0;
         return Verify(styleStream, "docx");
     }
+
+    // The styles here carry visible formatting - shading and a border - so the rendered page shows
+    // whether content landed inside the styled block or outside it. That is the failure this covers:
+    // an unstyled paragraph sits outside the box its neighbours are drawn in, which is obvious on the
+    // page and invisible in a body-xml assertion.
+    [Test]
+    public Task StyleFromEnclosingBlock()
+    {
+        using var styleStream = new MemoryStream();
+        using var styleDoc = WordprocessingDocument.Create(
+            styleStream, WordprocessingDocumentType.Document);
+        var styleMainPart = styleDoc.AddMainDocumentPart();
+
+        var stylesPart = styleMainPart.AddNewPart<StyleDefinitionsPart>();
+        stylesPart.Styles = new(
+            BoxStyle("BoxText", "DCE6F1"),
+            BoxStyle("BoxList", "EAF1DD"),
+            BoxStyle("BoxQuote", "FDE9D9"));
+
+        var styleBody = new Body();
+        styleMainPart.Document = new(styleBody);
+
+        #region StyleFromEnclosingBlock
+
+        // A class on a block element applies to every paragraph inside it, not only to the paragraph
+        // that element produces itself. That is what lets an editor fragment - which is always block
+        // level - be rendered into a template's own body style by wrapping it.
+        //
+        // The style is scoped to the block that set it: a nested block overrides for its own content,
+        // the enclosing style resumes afterwards, and a following sibling is unaffected. An element's
+        // own class still wins over the one it sits inside.
+        WordHtmlConverter.AppendHtml(
+            styleBody,
+            """
+            <div class="BoxText">
+              <p>Both of these paragraphs are styled by the div that encloses them.</p>
+              <p>Neither carries a class of its own.</p>
+              <p class="BoxQuote">This one does, and its own class wins.</p>
+              <ul class="BoxList">
+                <li>List items take the list's class</li>
+                <li>rather than falling back to ListParagraph</li>
+              </ul>
+              <p>The enclosing style resumes after a nested block.</p>
+            </div>
+            <p>This sits outside, and is not styled at all.</p>
+            """,
+            styleMainPart);
+
+        #endregion
+
+        styleDoc.Dispose();
+        styleStream.Position = 0;
+        return Verify(styleStream, "docx");
+    }
+
+    // A paragraph style with shading and a border, so the block it applies to is visible on the page.
+    static Style BoxStyle(string id, string shade) =>
+        new(
+            new StyleName {Val = id},
+            new StyleParagraphProperties(
+                new DocumentFormat.OpenXml.Wordprocessing.ParagraphBorders(
+                    new DocumentFormat.OpenXml.Wordprocessing.TopBorder {Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "7F9DB9", Size = 6},
+                    new DocumentFormat.OpenXml.Wordprocessing.LeftBorder {Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "7F9DB9", Size = 6},
+                    new DocumentFormat.OpenXml.Wordprocessing.BottomBorder {Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "7F9DB9", Size = 6},
+                    new DocumentFormat.OpenXml.Wordprocessing.RightBorder {Val = DocumentFormat.OpenXml.Wordprocessing.BorderValues.Single, Color = "7F9DB9", Size = 6}),
+                new Shading
+                {
+                    Val = DocumentFormat.OpenXml.Wordprocessing.ShadingPatternValues.Clear,
+                    Fill = shade
+                },
+                new DocumentFormat.OpenXml.Wordprocessing.Indentation {Left = "284"}))
+        {
+            StyleId = id,
+            Type = StyleValues.Paragraph
+        };
 
     [Test]
     public Task Diagnostics()

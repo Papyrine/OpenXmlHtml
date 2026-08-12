@@ -1,0 +1,7 @@
+﻿Both of these paragraphs are styled by the div that encloses them.
+Neither carries a class of its own.
+This one does, and its own class wins.
+List items take the list's class
+rather than falling back to ListParagraph
+The enclosing style resumes after a nested block.
+This sits outside, and is not styled at all.

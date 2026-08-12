@@ -188,12 +188,24 @@ static partial class WordContentBuilder
 
                 BuildTable(element, format, elements, context);
                 return;
+            // Lists dispatch before the block handling below, so their class mapping is applied here
+            // instead. Without this a class on <ul>/<ol>/<li> is never looked up at all and items
+            // fall back to ListParagraph — which the fallback is written to allow, applying itself
+            // only when nothing else set a style.
             case "ul" or "ol":
+            {
+                var ambient = ApplyAmbientParagraphStyle(element, context);
                 BuildList(element, tag, newFormat, elements, context, inPre);
+                RestoreAmbientParagraphStyle(context, ambient);
                 return;
+            }
             case "li":
+            {
+                var ambient = ApplyAmbientParagraphStyle(element, context);
                 BuildListItem(element, newFormat, elements, context, inPre, listIndex);
+                RestoreAmbientParagraphStyle(context, ambient);
                 return;
+            }
             case "a":
                 BuildAnchor(element, format, newFormat, elements, context, inPre);
                 return;
@@ -256,6 +268,9 @@ static partial class WordContentBuilder
         var isBlock = HtmlSegmentParser.IsBlockElement(tag);
         var pageBreakBefore = false;
         var pageBreakAfter = false;
+        // What an enclosing block owed before this one, restored once its children are done so a
+        // sibling does not inherit it — see AmbientParagraphStyleId.
+        var ambientParagraphStyleId = context.AmbientParagraphStyleId;
 
         if (isBlock)
         {
@@ -305,7 +320,10 @@ static partial class WordContentBuilder
                 var (paraStyle, runStyle) = WordStyleLookup.LookupClasses(element, context.StyleMap);
                 if (paraStyle != null)
                 {
+                    // Owed to every paragraph inside this block, not just the one it produces
+                    // itself. Restored on the way out, below.
                     context.ParagraphStyleId = paraStyle;
+                    context.AmbientParagraphStyleId = paraStyle;
                 }
 
                 if (runStyle != null)
@@ -368,11 +386,52 @@ static partial class WordContentBuilder
                             elements.Count == elementCountBeforeChildren;
             FlushParagraph(elements, context, emitEmpty);
 
+            // Out of this block's scope: hand back what the enclosing one owed, so the style does not
+            // leak onto a sibling. The flush above already ran, so ParagraphStyleId is realigned too.
+            if (context.AmbientParagraphStyleId != ambientParagraphStyleId)
+            {
+                context.AmbientParagraphStyleId = ambientParagraphStyleId;
+                context.ParagraphStyleId = ambientParagraphStyleId;
+            }
+
             if (pageBreakAfter)
             {
                 context.PendingPageBreak = true;
             }
         }
+    }
+
+    // Sets the paragraph style an element's class maps to, as owed by everything inside it, and hands
+    // back what was owed before so RestoreAmbientParagraphStyle can put it back. Returns the previous
+    // value unchanged when the element carries no mapped paragraph class.
+    static string? ApplyAmbientParagraphStyle(IElement element, WordBuildContext context)
+    {
+        var previous = context.AmbientParagraphStyleId;
+        if (context.StyleMap == null ||
+            element.ClassList.Length == 0)
+        {
+            return previous;
+        }
+
+        var (paraStyle, _) = WordStyleLookup.LookupClasses(element, context.StyleMap);
+        if (paraStyle != null)
+        {
+            context.ParagraphStyleId = paraStyle;
+            context.AmbientParagraphStyleId = paraStyle;
+        }
+
+        return previous;
+    }
+
+    static void RestoreAmbientParagraphStyle(WordBuildContext context, string? previous)
+    {
+        if (context.AmbientParagraphStyleId == previous)
+        {
+            return;
+        }
+
+        context.AmbientParagraphStyleId = previous;
+        context.ParagraphStyleId = previous;
     }
 
     static void ApplyDirAttribute(IElement element, ref FormatState format)
@@ -529,7 +588,10 @@ static partial class WordContentBuilder
         if (context.CurrentRuns.Count == 0 && !emitEmpty)
         {
             context.HeadingLevel = 0;
-            context.ParagraphStyleId = null;
+            // Back to whatever an enclosing block owes rather than to nothing — see
+            // AmbientParagraphStyleId. This is the flush that used to discard it, since entering a
+            // block child flushes before any of that child's text has arrived.
+            context.ParagraphStyleId = context.AmbientParagraphStyleId;
             context.ParagraphFormat = null;
             context.ParagraphRightToLeft = false;
             if (context.ListItemDepth == 0)
@@ -620,7 +682,9 @@ static partial class WordContentBuilder
         context.CurrentRuns.Clear();
         context.ListDepth = 0;
         context.HeadingLevel = 0;
-        context.ParagraphStyleId = null;
+        // The next paragraph inside the same block is owed the same style, so this returns to the
+        // enclosing block's rather than clearing outright — see AmbientParagraphStyleId.
+        context.ParagraphStyleId = context.AmbientParagraphStyleId;
         context.ParagraphFormat = null;
         context.ParagraphRightToLeft = false;
         context.ListNumId = null;

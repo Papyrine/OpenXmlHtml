@@ -10,6 +10,18 @@
     internal HtmlConvertSettings? Settings;
     internal Dictionary<string, StyleType>? StyleMap;
     internal string? ParagraphStyleId;
+
+    // The paragraph style owed by an enclosing block, so it survives into the paragraphs inside it.
+    //
+    // A class maps to a paragraph style on the element carrying it, but entering a block child
+    // flushes first, and that flush would otherwise clear the pending style before any text arrived:
+    // <div class="Body"><p>x</p></div> lost Body entirely, and the class only worked for inline
+    // content sitting straight inside the element. Editor output is always block-level, so it failed
+    // exactly where it was most wanted. A flush now falls back to this rather than to null, and
+    // BuildElement saves and restores it around each block that sets one, so siblings and nesting
+    // behave. Same shape as ListItemDepth below, and there for the same reason.
+    internal string? AmbientParagraphStyleId;
+
     internal ParagraphFormatState? ParagraphFormat;
     internal bool ParagraphRightToLeft;
     internal Stack<(int NumId, int Ilvl, bool IsOrdered, bool Inside, bool NoMarker)> ListStack = new();
