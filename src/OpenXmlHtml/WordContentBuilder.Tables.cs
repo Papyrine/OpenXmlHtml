@@ -60,15 +60,51 @@ static partial class WordContentBuilder
             }
         }
 
-        var tableBorders = BorderEmitter.BuildTableBorders(defaultBorder);
+        // A class naming a table style hands the table's borders, banding and cell margins to that
+        // style. Direct formatting beats a table style in Word, so the defaults below are not
+        // emitted alongside it — they would silently override the style that was asked for. Without
+        // a style they are the only thing making the table legible, so they stay.
+        var styleId = ctx.StyleMap == null ? null : WordStyleLookup.LookupTableStyle(tableElement, ctx.StyleMap);
 
-        var tblPr = new TableProperties(
+        var tblPr = new TableProperties();
+        if (styleId != null)
+        {
+            // tblStyle leads the tblPr sequence.
+            tblPr.Append(
+                new TableStyle
+                {
+                    Val = styleId
+                });
+        }
+
+        tblPr.Append(
             new TableWidth
             {
                 Width = "0",
                 Type = TableWidthUnitValues.Auto
-            },
-            tableBorders);
+            });
+
+        if (styleId == null)
+        {
+            tblPr.Append(BorderEmitter.BuildTableBorders(defaultBorder));
+        }
+        else
+        {
+            // Which of the style's conditional formats apply. The html says whether the table has a
+            // header, and says nothing about the rest: a first or last column is not a thing html
+            // marks, and column banding has no way to be asked for. Row banding is on, because a
+            // style that defines it defines it to be used.
+            tblPr.Append(
+                new TableLook
+                {
+                    FirstRow = HasHeaderRow(rows),
+                    LastRow = false,
+                    FirstColumn = false,
+                    LastColumn = false,
+                    NoHorizontalBand = false,
+                    NoVerticalBand = true
+                });
+        }
 
         WidthValue? explicitTableWidth = null;
         if (declarations != null)
@@ -671,6 +707,21 @@ static partial class WordContentBuilder
 
         Diagnostic.IgnoredAttribute(settings, "width", widthAttr, gridColIsAbsolute);
         return null;
+    }
+
+    // Read back off the parent, the same way the per-row tblHeader is: rows are flattened out of
+    // thead/tbody/tfoot before rendering.
+    static bool HasHeaderRow(List<IElement> rows)
+    {
+        foreach (var row in rows)
+        {
+            if (row.ParentElement?.LocalName == "thead")
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static List<IElement> GetTableRows(IElement tableElement)

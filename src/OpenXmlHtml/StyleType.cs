@@ -1,5 +1,6 @@
 enum StyleType
 {
     Paragraph,
-    Character
+    Character,
+    Table
 }
