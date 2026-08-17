@@ -364,8 +364,25 @@ WordHtmlConverter.AppendHtml(
 
  * Paragraph styles (`w:type="paragraph"`) are applied via `ParagraphStyleId`
  * Character styles (`w:type="character"`) are applied via `RunStyle`
+ * Table styles (`w:type="table"`) are applied via `TableStyle`, and only on a `<table>`
  * Style lookup is case-insensitive
  * Heading styles (`Heading1`–`Heading6`) take precedence over CSS class styles
+
+
+### Table Styles
+
+A class on a `<table>` naming a table style hands the table over to it:
+
+```html
+<table class="BrandTable">
+  <thead><tr><th>Name</th></tr></thead>
+  <tbody><tr><td>Value</td></tr></tbody>
+</table>
+```
+
+**The default borders stand down for a styled table.** Direct formatting beats a table style in Word, so emitting the usual single-line borders alongside a `tblStyle` would silently override the borders, banding and cell margins the style defines. Without a style they are the only thing making the table legible, so they stay.
+
+The conditional formats a style defines are switched on by a `tblLook`, and the html decides one of them: a `<thead>` turns on `firstRow`, and a table without one leaves it off, so a style's header format is applied to a header and not to an ordinary first row. Row banding is on — a style that defines it defines it to be used. The rest are off: html marks no first or last column, and has no way to ask for column banding.
 
 
 ### Styling A Whole Fragment

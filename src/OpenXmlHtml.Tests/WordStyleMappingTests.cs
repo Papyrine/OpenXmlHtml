@@ -189,4 +189,69 @@ public class WordStyleMappingTests
 
         return Verify(body);
     }
+
+    // A table style is the table's to take: the borders, banding and cell margins are the style's
+    // once it is named, so the defaults that would otherwise be emitted stand down - direct
+    // formatting beats a table style in Word, so leaving them in would override it.
+    [Test]
+    public Task TableStyleFromClass()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("BrandTable", StyleValues.Table));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<table class="BrandTable"><tr><td>Label</td><td>Value</td></tr></table>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // The html says whether the table has a header, and that is what decides the style's firstRow
+    // format. Everything else about the look is fixed: html marks no first or last column, and has
+    // no way to ask for column banding.
+    [Test]
+    public Task TableStyleWithHeaderRow()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("BrandTable", StyleValues.Table));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<table class="BrandTable"><thead><tr><th>Name</th></tr></thead><tbody><tr><td>Value</td></tr></tbody></table>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // Only a table can take a table style, so one named on anything else has nothing to apply to.
+    [Test]
+    public Task TableStyleOnAParagraphIsIgnored()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("BrandTable", StyleValues.Table));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<p class="BrandTable">Not a table</p>""",
+            main);
+
+        return Verify(body);
+    }
+
+    // And a table keeps its default borders when its class names a paragraph style, since nothing
+    // took charge of them.
+    [Test]
+    public Task ParagraphStyleOnATableLeavesTheDefaults()
+    {
+        using var stream = new MemoryStream();
+        var (main, body) = CreateDocumentWithStyles(stream,
+            ("Quote", StyleValues.Paragraph));
+
+        WordHtmlConverter.AppendHtml(body,
+            """<table class="Quote"><tr><td>Cell</td></tr></table>""",
+            main);
+
+        return Verify(body);
+    }
 }
