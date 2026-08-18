@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.Validation;
-
-[TestFixture]
+﻿[TestFixture]
 public class WordValidationTests
 {
     // The generated docx must satisfy the OOXML schema. This primarily guards the run-property
