@@ -1,4 +1,4 @@
-using A = DocumentFormat.OpenXml.Drawing;
+﻿using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
@@ -393,7 +393,20 @@ public static class WordHtmlConverter
         }
 
         var sectionProps = EnsureSectionProperties(body);
-        sectionProps.Append(reference);
+
+        // The references open the sectPr sequence, ahead of the page size and margins
+        // EnsureSectionProperties has already put there. Appending leaves them behind it, which Word
+        // repairs on open and a stricter reader rejects.
+        var last = sectionProps.ChildElements
+            .LastOrDefault(_ => _ is HeaderReference or FooterReference);
+        if (last == null)
+        {
+            sectionProps.InsertAt(reference, 0);
+        }
+        else
+        {
+            last.InsertAfterSelf(reference);
+        }
     }
 
     // A4 in twips; emitted so rendering is not subject to the host system's

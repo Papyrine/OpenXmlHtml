@@ -1,4 +1,4 @@
-static partial class WordContentBuilder
+﻿static partial class WordContentBuilder
 {
     static readonly HtmlParser parser = new();
 
@@ -642,7 +642,8 @@ static partial class WordContentBuilder
             {
                 Val = "ListParagraph"
             };
-            paragraph.ParagraphProperties.Append(
+            AddParagraphProperty(
+                paragraph.ParagraphProperties,
                 new NumberingProperties(
                     new NumberingLevelReference
                     {
@@ -651,12 +652,13 @@ static partial class WordContentBuilder
                     new NumberingId
                     {
                         Val = context.ListNumId.Value
-                    }),
-                new ContextualSpacing());
+                    }));
+            AddParagraphProperty(paragraph.ParagraphProperties, new ContextualSpacing());
 
             if (context.ListInside)
             {
-                paragraph.ParagraphProperties.Append(
+                AddParagraphProperty(
+                    paragraph.ParagraphProperties,
                     new Indentation
                     {
                         Hanging = "0"
@@ -675,7 +677,7 @@ static partial class WordContentBuilder
             context.ParagraphFormat?.WritingMode == null)
         {
             paragraph.ParagraphProperties ??= new();
-            paragraph.ParagraphProperties.Append(new BiDi());
+            AddParagraphProperty(paragraph.ParagraphProperties, new BiDi());
         }
 
         elements.Add(paragraph);
@@ -690,6 +692,44 @@ static partial class WordContentBuilder
         context.ListNumId = null;
         context.ListIlvl = null;
         context.ListInside = false;
+    }
+
+    // CT_PPrBase declares its children in a fixed order, and the order css reaches this builder in
+    // is not that order: a background is read after an alignment, a border after both, and a list
+    // paragraph carries its contextualSpacing before either indentation is worked out. Word repairs
+    // what it is handed, so an appended child sat in the wrong place unnoticed until something
+    // stricter read the document. Anything new emitted into a pPr belongs in this list.
+    static readonly Type[] paragraphPropertyOrder =
+    [
+        typeof(ParagraphStyleId),
+        typeof(PageBreakBefore),
+        typeof(NumberingProperties),
+        typeof(ParagraphBorders),
+        typeof(Shading),
+        typeof(BiDi),
+        typeof(SpacingBetweenLines),
+        typeof(Indentation),
+        typeof(ContextualSpacing),
+        typeof(Justification),
+        typeof(TextDirection)
+    ];
+
+    static void AddParagraphProperty(ParagraphProperties props, OpenXmlElement property)
+    {
+        var position = Array.IndexOf(paragraphPropertyOrder, property.GetType());
+        // An element the list does not name has no declared place to hold it to, so it goes last -
+        // which is where appending would have put it anyway.
+        var follower = position < 0
+            ? null
+            : props.ChildElements.FirstOrDefault(_ => Array.IndexOf(paragraphPropertyOrder, _.GetType()) > position);
+        if (follower == null)
+        {
+            props.Append(property);
+        }
+        else
+        {
+            follower.InsertBeforeSelf(property);
+        }
     }
 
     static void ApplyParagraphFormat(ParagraphProperties props, ParagraphFormatState pf)
@@ -721,7 +761,7 @@ static partial class WordContentBuilder
                 spacing.LineRule = LineSpacingRuleValues.Exact;
             }
 
-            props.Append(spacing);
+            AddParagraphProperty(props, spacing);
         }
 
         if (pf.MarginLeftTwips != null ||
@@ -732,7 +772,7 @@ static partial class WordContentBuilder
             var indent = existingIndent ?? new Indentation();
             if (existingIndent == null)
             {
-                props.Append(indent);
+                AddParagraphProperty(props, indent);
             }
 
             if (pf.MarginLeftTwips != null)
@@ -760,7 +800,8 @@ static partial class WordContentBuilder
 
         if (pf.TextAlign != null)
         {
-            props.Append(
+            AddParagraphProperty(
+                props,
                 new Justification
                 {
                     Val = pf.TextAlign.Value
@@ -769,7 +810,8 @@ static partial class WordContentBuilder
 
         if (pf.BackgroundColor != null)
         {
-            props.Append(
+            AddParagraphProperty(
+                props,
                 new Shading
                 {
                     Val = ShadingPatternValues.Clear,
@@ -779,8 +821,9 @@ static partial class WordContentBuilder
 
         if (pf.WritingMode != null)
         {
-            props.Append(new BiDi());
-            props.Append(
+            AddParagraphProperty(props, new BiDi());
+            AddParagraphProperty(
+                props,
                 new TextDirection
                 {
                     Val = pf.WritingMode.Value
@@ -794,7 +837,7 @@ static partial class WordContentBuilder
         {
             var borders = new ParagraphBorders();
             BorderEmitter.AppendSides(borders, pf.BorderTop, pf.BorderLeft, pf.BorderBottom, pf.BorderRight, 1);
-            props.Append(borders);
+            AddParagraphProperty(props, borders);
         }
     }
 

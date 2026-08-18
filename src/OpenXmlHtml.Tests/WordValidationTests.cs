@@ -1,6 +1,4 @@
-using DocumentFormat.OpenXml.Validation;
-
-[TestFixture]
+﻿[TestFixture]
 public class WordValidationTests
 {
     // The generated docx must satisfy the OOXML schema. This primarily guards the run-property
@@ -35,6 +33,38 @@ public class WordValidationTests
         var validator = new OpenXmlValidator();
         var errors = validator.Validate(document).ToList();
 
+        Assert.That(
+            errors,
+            Is.Empty,
+            () => string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
+    }
+
+    // css reaches the builder in the order it is written, which is not the order CT_PPrBase declares
+    // its children: the background is read after the alignment and the border after both, while the
+    // schema wants the border first. One paragraph carrying the lot pins the sequence - a snapshot
+    // only ever covers the combinations some test happened to write, and none wrote this one.
+    [Test]
+    public void ParagraphPropertiesFollowSchemaOrder()
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """
+            <p style="margin:10pt 20pt;text-indent:5pt;text-align:center;background:#eeeeee;border:1px solid #000000;writing-mode:vertical-rl;line-height:1.5">styled</p>
+            """,
+            stream);
+
+        stream.Position = 0;
+        using var document = WordprocessingDocument.Open(stream, false);
+        var properties = document.MainDocumentPart!.Document!.Body!
+            .Descendants<ParagraphProperties>()
+            .First();
+
+        Assert.That(
+            string.Join(", ", properties.ChildElements.Select(_ => _.LocalName)),
+            Is.EqualTo("pBdr, shd, bidi, spacing, ind, jc, textDirection"));
+
+        var validator = new OpenXmlValidator();
+        var errors = validator.Validate(document).ToList();
         Assert.That(
             errors,
             Is.Empty,
