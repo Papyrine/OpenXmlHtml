@@ -67,6 +67,8 @@ Two code paths exist for Word output:
 - **`OnDiagnostic` reports only the deliberate drop sites, never every unrecognised declaration.** The signal worth having is "understood, and could not be expressed" — a `%` on `w:gridCol`, an `ImagePolicy` refusal, an `<iframe>`. Reporting unknown css too would bury that under the `display`/`cursor`/`float` an ordinary stylesheet carries, and would cost `NoneForFullySupportedMarkup` its meaning: a conversion that reports nothing has to mean nothing was lost. Both `<script>`-style metadata and author-hidden elements (`hidden`, `display: none`) stay silent — a browser draws nothing for them either, so nothing was dropped. Every report goes through `Diagnostic`, which allocates nothing while the sink is null.
 - **Diagnostics live in the shared helpers so both code paths report identically.** `ImageResolver.Resolve`, `ImageResolver.ParseImageDimensions` and `IsHiddenElement` are called by the segment path and the DOM path alike, so reporting there covers both without duplication — the same rule as the whitespace folding above, and `WordDiagnosticsTests.BothPathsAgree` asserts it. `ImageData.SourceTag` exists only for this: the flat segment list erases whether an image came from `<img>` or `<svg>`, and a diagnostic has to name the tag the author actually wrote.
 
+- **A `pPr` child goes in through `AddParagraphProperty`, never `Append`.** `CT_PPrBase` fixes the order of its children and css arrives in a different one: the background is read after the alignment and the border after both, so appending produced `spacing, ind, jc, shd, bidi, textDirection, pBdr` where the schema wants `pBdr, shd, bidi, spacing, ind, jc, textDirection`. Word repairs a document that gets this wrong, which is why it went unseen until `SchemaValidationTests` swept the snapshots — and why a snapshot alone will not catch the next one, since it only covers the css combinations some test happened to write. Anything new emitted into a `pPr` belongs in `paragraphPropertyOrder`, and `WordValidationTests.ParagraphPropertiesFollowSchemaOrder` pins the sequence. `sectPr` has the same shape: the header and footer references open its sequence, ahead of the page setup, so `EnsureHeaderFooterReference` inserts rather than appends.
+
 ### Key internal classes
 
 - `HtmlSegmentParser` — Parses HTML via AngleSharp into flat `TextSegment(string Text, FormatState Format)` list. Used by both `ToParagraphs` (flat path) and `SpreadsheetHtmlConverter`.
@@ -148,6 +150,7 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `StyleParserTests` | CSS parsing, `ParseFontSize`, `ParseLengthToTwips` |
 | `ColorParserTests` | Hex/named (148 CSS colors)/RGB/RGBA color parsing |
 | `Spreadsheet*Tests` | Mirror of Word tests for spreadsheet-supported features |
+| `SchemaValidationTests` | Every checked-in `.verified.docx`/`.verified.xlsx`, swept against the OOXML schema |
 
 ### Test requirements
 
