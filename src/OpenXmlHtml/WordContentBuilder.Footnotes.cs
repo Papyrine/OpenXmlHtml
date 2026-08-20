@@ -39,7 +39,7 @@ static partial class WordContentBuilder
                             }),
                         new FootnoteReferenceMark()),
                     new Run(
-                        new Text(XmlCharFilter.StripInvalidXmlChars(" " + footnoteText))
+                        new Text(WXmlChars.Strip(" " + footnoteText))
                         {
                             Space = SpaceProcessingModeValues.Preserve
                         })))

@@ -1,10 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net48;net10.0</TargetFrameworks>
+    <!-- This project imports DocumentFormat.OpenXml.Wordprocessing globally, which owns the same
+         names OpenXmlKit.Word does. Alias mode keeps OpenXmlKit's bare names out of scope and
+         supplies W-prefixed ones instead, so both are reachable without either shadowing. -->
+    <OpenXmlKitAliases>W</OpenXmlKitAliases>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AngleSharp" />
     <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="OpenXmlKit" />
     <PackageReference Include="Polyfill" PrivateAssets="all" />
     <PackageReference Include="System.Memory" />
     <PackageReference Include="ProjectDefaults" PrivateAssets="all" />

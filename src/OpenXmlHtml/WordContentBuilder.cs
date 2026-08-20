@@ -551,7 +551,7 @@
             transformed = transformed.Replace(' ', '\u00A0');
         }
 
-        return XmlCharFilter.StripInvalidXmlChars(transformed);
+        return WXmlChars.Strip(transformed);
     }
 
     static string CapitalizeWords(string text)
