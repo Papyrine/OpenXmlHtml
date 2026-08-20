@@ -47,8 +47,15 @@ static class PaddingHelper
         where T : OpenXmlCompositeElement, new()
     {
         var margin = new T();
-        // Both CT_TcMar (w:tcMar) and CT_TblCellMar (w:tblCellMar) use w:left/w:right; the w:start/w:end
-        // variants are not schema-valid here and are silently dropped by stricter consumers.
+        // CT_TcMar (w:tcMar) and CT_TblCellMar (w:tblCellMar) each accept two forms: the legacy
+        // w:left/w:right and the Office 2010+ w:start/w:end. Both are schema-valid, Word reads
+        // either and reports the same padding for them, and Morph reads both as well. This writes
+        // the legacy pair because that is what Word itself writes when it saves.
+        // LeftMargin and RightMargin are the CT_TcMar classes; in a w:tblCellMar the SDK's own
+        // types are TableCellLeftMargin and TableCellRightMargin, but both serialise to the same
+        // w:left/w:right, which is what lets one generic method cover both containers. The
+        // difference shows only if the element is later read back through the typed property.
+        // The order below — top, left, bottom, right — is the schema sequence for both types.
         if (top != null)
         {
             margin.Append(
