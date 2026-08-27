@@ -11,7 +11,8 @@ public class SpreadsheetSamples
 
         #endregion
 
-        return Verify(cell);
+        return Verify(cell)
+            .Snapshot("<x:c t=\"inlineStr\" xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:is><x:r><x:rPr><x:b /></x:rPr><x:t xml:space=\"preserve\">Hello</x:t></x:r><x:r><x:t xml:space=\"preserve\"> </x:t></x:r><x:r><x:rPr><x:i /></x:rPr><x:t xml:space=\"preserve\">World</x:t></x:r></x:is></x:c>");
     }
 
     [Test]
@@ -24,7 +25,8 @@ public class SpreadsheetSamples
 
         #endregion
 
-        return Verify(inlineString);
+        return Verify(inlineString)
+            .Snapshot("<x:is xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:r><x:rPr><x:b /></x:rPr><x:t xml:space=\"preserve\">Revenue:</x:t></x:r><x:r><x:t xml:space=\"preserve\"> </x:t></x:r><x:r><x:rPr><x:color rgb=\"FF008000\" /></x:rPr><x:t xml:space=\"preserve\">$1.2M</x:t></x:r></x:is>");
     }
 
     [Test]
@@ -42,7 +44,12 @@ public class SpreadsheetSamples
 
         #endregion
 
-        return Verify(inlineString);
+        return Verify(inlineString)
+            .Snapshot(
+                """
+                <x:is xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:r><x:t xml:space="preserve">● </x:t></x:r><x:r><x:rPr><x:color rgb="FF008000" /></x:rPr><x:t xml:space="preserve">Passed</x:t></x:r><x:r><x:t xml:space="preserve">: 47</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">● </x:t></x:r><x:r><x:rPr><x:color rgb="FFFF0000" /></x:rPr><x:t xml:space="preserve">Failed</x:t></x:r><x:r><x:t xml:space="preserve">: 3</x:t></x:r></x:is>
+                """);
     }
 
     [Test]
@@ -66,7 +73,16 @@ public class SpreadsheetSamples
 
         #endregion
 
-        return Verify(cell);
+        return Verify(cell)
+            .Snapshot(
+                """
+                <x:c t="inlineStr" xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:is><x:r><x:rPr><x:b /></x:rPr><x:t xml:space="preserve">Q1 Report</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">Revenue: </x:t></x:r><x:r><x:rPr><x:b /><x:color rgb="FF008000" /></x:rPr><x:t xml:space="preserve">$1.2M</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">See </x:t></x:r><x:r><x:rPr><x:u /><x:color rgb="FF0563C1" /></x:rPr><x:t xml:space="preserve">full report</x:t></x:r><x:r><x:t xml:space="preserve"> (https://example.com/report)</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:rPr><x:b /></x:rPr><x:t xml:space="preserve">Region</x:t></x:r><x:r><x:t xml:space="preserve">	</x:t></x:r><x:r><x:rPr><x:b /></x:rPr><x:t xml:space="preserve">Sales</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">North</x:t></x:r><x:r><x:t xml:space="preserve">	</x:t></x:r><x:r><x:t xml:space="preserve">$500K</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">South</x:t></x:r><x:r><x:t xml:space="preserve">	</x:t></x:r><x:r><x:t xml:space="preserve">$700K</x:t></x:r></x:is></x:c>
+                """);
     }
 
     [Test]

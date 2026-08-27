@@ -39,6 +39,7 @@ public class WordTextTransformTests
     {
         var paragraphs = WordHtmlConverter.ToParagraphs(
             """<p><span style="text-transform: uppercase">also works in flat path</span></p>""");
-        return Verify(paragraphs);
+        return Verify(paragraphs)
+            .Snapshot("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:r><w:t xml:space=\"preserve\">ALSO WORKS IN FLAT PATH</w:t></w:r></w:p>");
     }
 }

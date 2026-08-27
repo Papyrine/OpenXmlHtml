@@ -10,7 +10,8 @@ public class WordColgroupTests
               <col width="200">
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColWidthPx() =>
@@ -21,7 +22,8 @@ public class WordColgroupTests
               <col style="width: 200px">
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColWidthInches() =>
@@ -32,7 +34,8 @@ public class WordColgroupTests
               <col style="width: 2in">
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1440\" /><w:gridCol w:w=\"2880\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1440\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"2880\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColSpan() =>
@@ -43,7 +46,8 @@ public class WordColgroupTests
               <col width="300">
               <tr><td>A</td><td>B</td><td>C</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"4500\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"4500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task Colgroup() =>
@@ -56,7 +60,8 @@ public class WordColgroupTests
               </colgroup>
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColgroupWithSpan() =>
@@ -66,7 +71,8 @@ public class WordColgroupTests
               <colgroup span="3" width="150"></colgroup>
               <tr><td>A</td><td>B</td><td>C</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"2250\" /><w:gridCol w:w=\"2250\" /><w:gridCol w:w=\"2250\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"2250\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"2250\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"2250\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColgroupMixedWithLooseCol() =>
@@ -79,7 +85,8 @@ public class WordColgroupTests
               <col width="200">
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task ColWidthWithColspan() =>
@@ -92,7 +99,8 @@ public class WordColgroupTests
               <tr><td colspan="2">Merged</td><td>C</td></tr>
               <tr><td>A</td><td>B</td><td>C</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /><w:gridCol w:w=\"4500\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"4500\" w:type=\"dxa\" /><w:gridSpan w:val=\"2\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">Merged</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"4500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"4500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task CellCssWidthOverridesCol() =>
@@ -103,7 +111,8 @@ public class WordColgroupTests
               <col width="200">
               <tr><td style="width: 500px">A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"7500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     [Test]
     public Task PartialColumnWidths() =>
@@ -113,7 +122,8 @@ public class WordColgroupTests
               <col width="100">
               <tr><td>A</td><td>B</td><td>C</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"1500\" /><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1500\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 
     // Narrower than the old name (PercentageWidthIgnored) implied: a percentage on a `td` or on the
     // `table` is honoured and emits w:type="pct". `w:gridCol` has no percentage unit at all, so a
@@ -127,5 +137,6 @@ public class WordColgroupTests
               <col width="50%">
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
 }

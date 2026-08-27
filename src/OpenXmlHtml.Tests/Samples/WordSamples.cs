@@ -14,7 +14,12 @@ public class WordSamples
 
         #endregion
 
-        return Verify(paragraphs);
+        return Verify(paragraphs)
+            .Snapshot(
+                """
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:rPr><w:b /></w:rPr><w:t xml:space="preserve">Report Title</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">This is a </w:t></w:r><w:r><w:rPr><w:b /></w:rPr><w:t xml:space="preserve">bold</w:t></w:r><w:r><w:t xml:space="preserve"> statement with </w:t></w:r><w:r><w:rPr><w:i /></w:rPr><w:t xml:space="preserve">emphasis</w:t></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+                """);
     }
 
     [Test]
@@ -40,7 +45,8 @@ public class WordSamples
 
         #endregion
 
-        return Verify(main.Document.Body!);
+        return Verify(main.Document.Body!)
+            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Heading1\" /></w:pPr><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Meeting Notes</w:t></w:r></w:p><w:p><w:r><w:rPr><w:i /></w:rPr><w:t xml:space=\"preserve\">Date: January 15, 2024</w:t></w:r></w:p><w:p><w:r><w:t xml:space=\"preserve\">1. </w:t></w:r><w:r><w:t xml:space=\"preserve\">Review </w:t></w:r><w:r><w:rPr><w:rFonts w:ascii=\"Courier New\" w:hAnsi=\"Courier New\" /></w:rPr><w:t xml:space=\"preserve\">PR #123</w:t></w:r></w:p><w:p><w:r><w:t xml:space=\"preserve\">2. </w:t></w:r><w:r><w:t xml:space=\"preserve\">Update </w:t></w:r><w:r><w:rPr><w:u w:val=\"single\" /></w:rPr><w:t xml:space=\"preserve\">documentation</w:t></w:r></w:p></w:body>");
     }
 
     [Test]
@@ -61,7 +67,15 @@ public class WordSamples
 
         #endregion
 
-        return Verify(paragraphs);
+        return Verify(paragraphs)
+            .Snapshot(
+                """
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:rPr><w:b /></w:rPr><w:t xml:space="preserve">Status Report</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">All systems </w:t></w:r><w:r><w:rPr><w:b /><w:color w:val="008000" /></w:rPr><w:t xml:space="preserve">operational</w:t></w:r><w:r><w:t xml:space="preserve">.</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">● </w:t></w:r><w:r><w:t xml:space="preserve">Server: </w:t></w:r><w:r><w:rPr><w:color w:val="008000" /></w:rPr><w:t xml:space="preserve">OK</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">● </w:t></w:r><w:r><w:t xml:space="preserve">Cache: </w:t></w:r><w:r><w:rPr><w:color w:val="FF0000" /></w:rPr><w:t xml:space="preserve">Down</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">Contact </w:t></w:r><w:r><w:rPr><w:color w:val="0563C1" /><w:u w:val="single" /></w:rPr><w:t xml:space="preserve">ops team</w:t></w:r><w:r><w:t xml:space="preserve"> (mailto:ops@example.com)</w:t></w:r><w:r><w:t xml:space="preserve"> for details.</w:t></w:r></w:p>
+                """);
     }
 
     [Test]

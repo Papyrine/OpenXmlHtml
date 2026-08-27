@@ -46,6 +46,12 @@ public class WordReversedListTests
               <li>First</li>
             </ol>
             """);
-        return Verify(elements);
+        return Verify(elements)
+            .Snapshot(
+                """
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">3. </w:t></w:r><w:r><w:t xml:space="preserve">Third</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">2. </w:t></w:r><w:r><w:t xml:space="preserve">Second</w:t></w:r></w:p>
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">1. </w:t></w:r><w:r><w:t xml:space="preserve">First</w:t></w:r></w:p>
+                """);
     }
 }

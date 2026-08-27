@@ -1,8 +1,0 @@
-﻿[
-  {
-    Kind: IgnoredAttribute,
-    Name: src,
-    Value: https://cdn.example.com/logo.png,
-    Reason: the image could not be downloaded
-  }
-]

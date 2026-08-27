@@ -4,22 +4,30 @@ public class WordWhiteSpaceTests
     [Test]
     public Task WhiteSpacePre() =>
         Verify(WordHtmlConverter.ToParagraphs(
-            "<div style=\"white-space: pre\">  spaces   preserved\n  and  newlines</div>"));
+            "<div style=\"white-space: pre\">  spaces   preserved\n  and  newlines</div>"))
+            .Snapshot(
+                """
+                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">  spaces   preserved
+                  and  newlines</w:t></w:r></w:p>
+                """);
 
     [Test]
     public Task WhiteSpacePreWrap() =>
         Verify(WordHtmlConverter.ToParagraphs(
-            "<div style=\"white-space: pre-wrap\">  multiple   spaces  </div>"));
+            "<div style=\"white-space: pre-wrap\">  multiple   spaces  </div>"))
+            .Snapshot("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:r><w:t xml:space=\"preserve\">  multiple   spaces  </w:t></w:r></w:p>");
 
     [Test]
     public Task WhiteSpaceNowrap() =>
         Verify(WordHtmlConverter.ToParagraphs(
-            "<p style=\"white-space: nowrap\">no breaks here please</p>"));
+            "<p style=\"white-space: nowrap\">no breaks here please</p>"))
+            .Snapshot("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:r><w:t xml:space=\"preserve\">no breaks here please</w:t></w:r></w:p>");
 
     [Test]
     public Task WhiteSpaceNormal() =>
         Verify(WordHtmlConverter.ToParagraphs(
-            "<div style=\"white-space: normal\">   collapsed   spaces   </div>"));
+            "<div style=\"white-space: normal\">   collapsed   spaces   </div>"))
+            .Snapshot("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:r><w:t xml:space=\"preserve\"> collapsed spaces </w:t></w:r></w:p>");
 
     [Test]
     public Task WhiteSpaceConvertToDocx()

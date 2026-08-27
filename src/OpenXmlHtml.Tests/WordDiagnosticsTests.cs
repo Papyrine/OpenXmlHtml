@@ -48,7 +48,17 @@ public class WordDiagnosticsTests
               <col style="width: 50%">
               <tr><td>A</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot(
+                """
+                [
+                  {
+                    Name: width,
+                    Value: 50%,
+                    Reason: w:gridCol takes an absolute width, so this column width could not be resolved to one
+                  }
+                ]
+                """);
 
     // The same percentage on a cell or on the table reaches Word as w:type="pct", so it is not a
     // drop and says nothing.
@@ -59,21 +69,53 @@ public class WordDiagnosticsTests
             <table style="width: 80%">
               <tr><td width="35%">A</td><td style="width: 65%">B</td></tr>
             </table>
-            """));
+            """))
+            .Snapshot("[]");
 
     [Test]
     public Task ImagePercentageWidthCss() =>
-        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" style="width: 50%"></p>"""));
+        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" style="width: 50%"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Name: width,
+                    Value: 50%,
+                    Reason: wp:extent takes an absolute extent, so this size could not be resolved to one
+                  }
+                ]
+                """);
 
     [Test]
     public Task ImagePercentageWidthAttribute() =>
-        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" width="50%"></p>"""));
+        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" width="50%"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: width,
+                    Value: 50%,
+                    Reason: wp:extent takes an absolute extent, so this size could not be resolved to one
+                  }
+                ]
+                """);
 
     // The attribute supplies a width, so the output is not obviously broken — but it is not the 50%
     // that was asked for either, which is the kind of drop worth hearing about.
     [Test]
     public Task ImagePercentageWidthFallingBackToAttribute() =>
-        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" style="width: 50%" width="150"></p>"""));
+        Verify(Collect($"""<p><img src="data:image/png;base64,{png}" style="width: 50%" width="150"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Name: width,
+                    Value: 50%,
+                    Reason: wp:extent takes an absolute extent, so this size could not be resolved to one
+                  }
+                ]
+                """);
 
     [Test]
     public Task UnsupportedElements() =>
@@ -97,15 +139,38 @@ public class WordDiagnosticsTests
             <p hidden>Hidden</p>
             <p style="display: none">Gone</p>
             <p>Kept</p>
-            """));
+            """))
+            .Snapshot("[]");
 
     [Test]
     public Task WebImageBlockedByPolicy() =>
-        Verify(Collect("""<p><img src="https://cdn.example.com/logo.png" alt="Logo"></p>"""));
+        Verify(Collect("""<p><img src="https://cdn.example.com/logo.png" alt="Logo"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: src,
+                    Value: https://cdn.example.com/logo.png,
+                    Reason: blocked by HtmlConvertSettings.WebImages
+                  }
+                ]
+                """);
 
     [Test]
     public Task LocalImageBlockedByPolicy() =>
-        Verify(Collect("""<p><img src="logo.png" alt="Logo"></p>"""));
+        Verify(Collect("""<p><img src="logo.png" alt="Logo"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: src,
+                    Value: logo.png,
+                    Reason: blocked by HtmlConvertSettings.LocalImages
+                  }
+                ]
+                """);
 
     [Test]
     public Task WebImageAllowedButUnreachable()
@@ -120,16 +185,49 @@ public class WordDiagnosticsTests
                 HttpClient = new(new FailingHandler()),
                 OnDiagnostic = diagnostics.Add
             });
-        return Verify(diagnostics);
+        return Verify(diagnostics)
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: src,
+                    Value: https://cdn.example.com/logo.png,
+                    Reason: the image could not be downloaded
+                  }
+                ]
+                """);
     }
 
     [Test]
     public Task MalformedDataUri() =>
-        Verify(Collect("""<p><img src="data:image/png;base64,not!valid!base64"></p>"""));
+        Verify(Collect("""<p><img src="data:image/png;base64,not!valid!base64"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: src,
+                    Value: data:image/png;base64,not!valid!base64,
+                    Reason: the data uri is not decodable base64
+                  }
+                ]
+                """);
 
     [Test]
     public Task DataUriWithoutBase64Marker() =>
-        Verify(Collect("""<p><img src="data:image/png,raw"></p>"""));
+        Verify(Collect("""<p><img src="data:image/png,raw"></p>"""))
+            .Snapshot(
+                """
+                [
+                  {
+                    Kind: IgnoredAttribute,
+                    Name: src,
+                    Value: data:image/png,raw,
+                    Reason: the data uri is not decodable base64
+                  }
+                ]
+                """);
 
     // Converting without a MainDocumentPart resolves the image and then has nowhere to put it.
     [Test]
@@ -215,7 +313,8 @@ public class WordDiagnosticsTests
               <tr><td style="background-color: #eee">Cell</td></tr>
             </table>
             <p><img src="data:image/png;base64,{png}" width="64" height="64"></p>
-            """));
+            """))
+            .Snapshot("[]");
 
     // Unsubscribed is the default: the drop sites still run, they just have nowhere to report to.
     [Test]

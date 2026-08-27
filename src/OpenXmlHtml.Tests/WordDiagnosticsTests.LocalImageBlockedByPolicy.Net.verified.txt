@@ -1,8 +1,0 @@
-﻿[
-  {
-    Kind: IgnoredAttribute,
-    Name: src,
-    Value: logo.png,
-    Reason: blocked by HtmlConvertSettings.LocalImages
-  }
-]

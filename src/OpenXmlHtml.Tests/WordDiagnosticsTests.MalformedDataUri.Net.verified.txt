@@ -1,8 +1,0 @@
-﻿[
-  {
-    Kind: IgnoredAttribute,
-    Name: src,
-    Value: data:image/png;base64,not!valid!base64,
-    Reason: the data uri is not decodable base64
-  }
-]

@@ -34,7 +34,8 @@ public class SpreadsheetIntegrationTests
 
         SpreadsheetHtmlConverter.SetCellHtml(cell, "<b>Hello</b> <i>World</i>");
 
-        return Verify(cell);
+        return Verify(cell)
+            .Snapshot("<x:c r=\"A1\" t=\"inlineStr\" xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:is><x:r><x:rPr><x:b /></x:rPr><x:t xml:space=\"preserve\">Hello</x:t></x:r><x:r><x:t xml:space=\"preserve\"> </x:t></x:r><x:r><x:rPr><x:i /></x:rPr><x:t xml:space=\"preserve\">World</x:t></x:r></x:is></x:c>");
     }
 
     [Test]
@@ -50,7 +51,13 @@ public class SpreadsheetIntegrationTests
               <li><span style="color: green">Passed</span>: 47</li>
             </ul>
             """);
-        return Verify(cell);
+        return Verify(cell)
+            .Snapshot(
+                """
+                <x:c t="inlineStr" xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:is><x:r><x:t xml:space="preserve">Report </x:t></x:r><x:r><x:rPr><x:b /></x:rPr><x:t xml:space="preserve">Summary</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">● </x:t></x:r><x:r><x:rPr><x:color rgb="FFFF0000" /></x:rPr><x:t xml:space="preserve">Critical</x:t></x:r><x:r><x:t xml:space="preserve">: 3</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">● </x:t></x:r><x:r><x:rPr><x:color rgb="FF008000" /></x:rPr><x:t xml:space="preserve">Passed</x:t></x:r><x:r><x:t xml:space="preserve">: 47</x:t></x:r></x:is></x:c>
+                """);
     }
 
     [Test]
@@ -317,6 +324,13 @@ public class SpreadsheetIntegrationTests
             Expenses: <font color="#FF0000">$800K</font><br>
             <i>Net: <b>$400K</b></i>
             """);
-        return Verify(cell);
+        return Verify(cell)
+            .Snapshot(
+                """
+                <x:c t="inlineStr" xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><x:is><x:r><x:rPr><x:b /></x:rPr><x:t xml:space="preserve">Q1 Results</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">Revenue: </x:t></x:r><x:r><x:rPr><x:color rgb="FF008000" /></x:rPr><x:t xml:space="preserve">$1.2M</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:t xml:space="preserve">Expenses: </x:t></x:r><x:r><x:rPr><x:color rgb="FFFF0000" /></x:rPr><x:t xml:space="preserve">$800K</x:t></x:r><x:r><x:t xml:space="preserve">
+                </x:t></x:r><x:r><x:rPr><x:i /></x:rPr><x:t xml:space="preserve">Net: </x:t></x:r><x:r><x:rPr><x:b /><x:i /></x:rPr><x:t xml:space="preserve">$400K</x:t></x:r></x:is></x:c>
+                """);
     }
 }
