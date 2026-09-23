@@ -7,7 +7,7 @@ on:
 jobs:
   publish:
     # Windows for the same reason build.yml is: the tests rely on the bundled fonts installed below.
-    runs-on: windows-latest
+    runs-on: windows-2022
     permissions:
       contents: read
       # Lets the job mint the OIDC token nuget.org trades for a short-lived publishing key.
