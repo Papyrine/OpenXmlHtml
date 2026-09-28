@@ -41,3 +41,4 @@ nugets/
 *~$*.xlsx
 /src/OpenXmlHtml.Benchmarks/BenchmarkDotNet.Artifacts
 *.lnk
+TestResults/

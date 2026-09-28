@@ -2,7 +2,6 @@
 using System.Net.Http;
 #endif
 
-[TestFixture]
 public class WordDiagnosticsTests
 {
     const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
@@ -266,7 +265,7 @@ public class WordDiagnosticsTests
     // The two paths share the resolver and the element skip list, so markup exercising both reports
     // the same drops through ToElements and ToParagraphs.
     [Test]
-    public Task BothPathsAgree()
+    public async Task BothPathsAgree()
     {
         const string html =
             """
@@ -295,8 +294,8 @@ public class WordDiagnosticsTests
                 OnDiagnostic = segmentPath.Add
             });
 
-        Assert.That(segmentPath, Is.EqualTo(elementPath));
-        return Verify(elementPath);
+        await Assert.That(segmentPath).IsEquivalentTo(elementPath, CollectionOrdering.Matching);
+        await Verify(elementPath);
     }
 
     // The test-time use the sink exists for: markup believed fully supported reports nothing.
@@ -318,7 +317,7 @@ public class WordDiagnosticsTests
 
     // Unsubscribed is the default: the drop sites still run, they just have nowhere to report to.
     [Test]
-    public void SilentWithoutSink()
+    public async Task SilentWithoutSink()
     {
         var elements = WordHtmlConverter.ToElements(
             """
@@ -327,7 +326,7 @@ public class WordDiagnosticsTests
               <tr><td>A</td></tr>
             </table>
             """);
-        Assert.That(elements, Is.Not.Empty);
+        await Assert.That(elements).IsNotEmpty();
     }
 
     class FailingHandler : HttpMessageHandler

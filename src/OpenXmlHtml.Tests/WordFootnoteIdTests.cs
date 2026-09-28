@@ -1,10 +1,9 @@
-[TestFixture]
 public class WordFootnoteIdTests
 {
     // Footnotes raised inside table cells must get document-unique IDs. Regression: each cell
     // built a fresh context whose footnote counter restarted at zero, producing colliding IDs.
     [Test]
-    public void FootnotesInTableCellsAreUnique()
+    public async Task FootnotesInTableCellsAreUnique()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -21,15 +20,15 @@ public class WordFootnoteIdTests
 
         var (footnoteIds, referenceIds) = ReadFootnoteIds(stream);
 
-        Assert.That(footnoteIds, Is.Unique);
-        Assert.That(footnoteIds.Count, Is.EqualTo(3));
-        Assert.That(referenceIds, Is.EquivalentTo(footnoteIds));
+        await Assert.That(footnoteIds).HasDistinctItems();
+        await Assert.That(footnoteIds.Count).IsEqualTo(3);
+        await Assert.That(referenceIds).IsEquivalentTo(footnoteIds);
     }
 
     // A second AppendHtml call against the same document must continue footnote numbering instead
     // of restarting at 1 and colliding with footnotes emitted by the first call.
     [Test]
-    public void FootnotesAcrossAppendCallsAreUnique()
+    public async Task FootnotesAcrossAppendCallsAreUnique()
     {
         using var stream = new MemoryStream();
         using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
@@ -43,8 +42,8 @@ public class WordFootnoteIdTests
 
         var (footnoteIds, _) = ReadFootnoteIds(stream);
 
-        Assert.That(footnoteIds, Is.Unique);
-        Assert.That(footnoteIds.Count, Is.EqualTo(2));
+        await Assert.That(footnoteIds).HasDistinctItems();
+        await Assert.That(footnoteIds.Count).IsEqualTo(2);
     }
 
     static (List<long> FootnoteIds, List<long> ReferenceIds) ReadFootnoteIds(MemoryStream stream)

@@ -1,6 +1,5 @@
 using WTable = DocumentFormat.OpenXml.Wordprocessing.Table;
 
-[TestFixture]
 public class WordPageBreakTests
 {
     [Test]
@@ -51,71 +50,71 @@ public class WordPageBreakTests
     // own leaves a blank line at the top of the new page, and renderers collapse the empty paragraph
     // and drop the break with it.
     [Test]
-    public void BreakBeforeLandsOnTheBlocksOwnParagraph()
+    public async Task BreakBeforeLandsOnTheBlocksOwnParagraph()
     {
         var paragraphs = WordHtmlConverter
             .ToElements("""<p>Page one</p><p style="page-break-before: always">Page two</p>""")
             .OfType<Paragraph>()
             .ToList();
 
-        Assert.That(paragraphs, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
+        await Assert.That(paragraphs).Count().IsEqualTo(2);
+        using (Assert.Multiple())
         {
-            Assert.That(paragraphs[0].ParagraphProperties?.PageBreakBefore, Is.Null);
-            Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore, Is.Not.Null);
-            Assert.That(paragraphs[1].InnerText, Is.EqualTo("Page two"));
-        });
+            await Assert.That(paragraphs[0].ParagraphProperties?.PageBreakBefore).IsNull();
+            await Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore).IsNotNull();
+            await Assert.That(paragraphs[1].InnerText).IsEqualTo("Page two");
+        }
     }
 
     // Word has no "break after", so it has to become a break before whatever follows.
     [Test]
-    public void BreakAfterLandsOnTheFollowingParagraph()
+    public async Task BreakAfterLandsOnTheFollowingParagraph()
     {
         var paragraphs = WordHtmlConverter
             .ToElements("""<p style="page-break-after: always">Page one</p><p>Page two</p>""")
             .OfType<Paragraph>()
             .ToList();
 
-        Assert.That(paragraphs, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
+        await Assert.That(paragraphs).Count().IsEqualTo(2);
+        using (Assert.Multiple())
         {
-            Assert.That(paragraphs[0].ParagraphProperties?.PageBreakBefore, Is.Null);
-            Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore, Is.Not.Null);
-            Assert.That(paragraphs[1].InnerText, Is.EqualTo("Page two"));
-        });
+            await Assert.That(paragraphs[0].ParagraphProperties?.PageBreakBefore).IsNull();
+            await Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore).IsNotNull();
+            await Assert.That(paragraphs[1].InnerText).IsEqualTo("Page two");
+        }
     }
 
     // With no block of its own to break before, an empty one is the whole point: it is how a break
     // gets written between two things that are not otherwise separated.
     [Test]
-    public void BreakOnAnEmptyBlockEmitsASingleBreakParagraph()
+    public async Task BreakOnAnEmptyBlockEmitsASingleBreakParagraph()
     {
         var paragraphs = WordHtmlConverter
             .ToElements("""<p>one</p><div style="page-break-before: always"></div><p>two</p>""")
             .OfType<Paragraph>()
             .ToList();
 
-        Assert.That(paragraphs, Has.Count.EqualTo(3));
-        Assert.Multiple(() =>
+        await Assert.That(paragraphs).Count().IsEqualTo(3);
+        using (Assert.Multiple())
         {
-            Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore, Is.Not.Null);
-            Assert.That(paragraphs[1].InnerText, Is.Empty);
-            Assert.That(paragraphs[2].ParagraphProperties?.PageBreakBefore, Is.Null);
-        });
+            await Assert.That(paragraphs[1].ParagraphProperties?.PageBreakBefore).IsNotNull();
+            await Assert.That(paragraphs[1].InnerText).IsEmpty();
+            await Assert.That(paragraphs[2].ParagraphProperties?.PageBreakBefore).IsNull();
+        }
     }
 
     // A table carries no pageBreakBefore, so the break has to fall back to a paragraph ahead of it.
     [Test]
-    public void BreakBeforeATableUsesAParagraphAheadOfIt()
+    public async Task BreakBeforeATableUsesAParagraphAheadOfIt()
     {
         var elements = WordHtmlConverter.ToElements(
             """<div style="page-break-before: always"><table><tr><td>a</td></tr></table></div>""");
 
-        Assert.Multiple(() =>
+        using (Assert.Multiple())
         {
-            Assert.That(elements[0], Is.InstanceOf<Paragraph>());
-            Assert.That(((Paragraph) elements[0]).ParagraphProperties?.PageBreakBefore, Is.Not.Null);
-            Assert.That(elements[1], Is.InstanceOf<WTable>());
-        });
+            await Assert.That(elements[0]).IsAssignableTo<Paragraph>();
+            await Assert.That(((Paragraph) elements[0]).ParagraphProperties?.PageBreakBefore).IsNotNull();
+            await Assert.That(elements[1]).IsAssignableTo<WTable>();
+        }
     }
 }

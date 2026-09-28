@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordAnchorTests
 {
     [Test]
@@ -50,7 +49,7 @@ public class WordAnchorTests
     // Asserted rather than snapshotted: the relationship id is generated per part, so a snapshot
     // of it would pin a value that changes every run.
     [Test]
-    public void ExternalLinkInParagraphs()
+    public async Task ExternalLinkInParagraphs()
     {
         var main = NewMainPart();
         var paragraphs = WordHtmlConverter.ToParagraphs("""<a href="https://example.com">Example</a>""", main);
@@ -58,12 +57,12 @@ public class WordAnchorTests
         var hyperlink = paragraphs.Single()
             .Descendants<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>()
             .Single();
-        Assert.That(hyperlink.Anchor, Is.Null);
-        Assert.That(hyperlink.InnerText, Is.EqualTo("Example"));
+        await Assert.That(hyperlink.Anchor).IsNull();
+        await Assert.That(hyperlink.InnerText).IsEqualTo("Example");
 
         var relationship = main.HyperlinkRelationships.Single(_ => _.Id == hyperlink.Id!.Value);
-        Assert.That(relationship.Uri.OriginalString, Is.EqualTo("https://example.com"));
-        Assert.That(relationship.IsExternal, Is.True);
+        await Assert.That(relationship.Uri.OriginalString).IsEqualTo("https://example.com");
+        await Assert.That(relationship.IsExternal).IsTrue();
     }
 
     // Formatting inside an anchor must not split it into two links, nor register the relationship

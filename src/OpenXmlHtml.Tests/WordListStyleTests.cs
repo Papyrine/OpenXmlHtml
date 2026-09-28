@@ -1,17 +1,12 @@
-[TestFixture]
 public class WordListStyleTests
 {
     [Test]
-    public void UnknownListStyleType_OrderedFallsBackToDecimal() =>
-        Assert.That(
-            WordNumberingBuilder.ParseListStyleType("nonsense", null, isOrdered: true),
-            Is.EqualTo(NumberFormatValues.Decimal));
+    public async Task UnknownListStyleType_OrderedFallsBackToDecimal() =>
+        await Assert.That(WordNumberingBuilder.ParseListStyleType("nonsense", null, isOrdered: true)).IsEqualTo(NumberFormatValues.Decimal);
 
     [Test]
-    public void UnknownListStyleType_UnorderedFallsBackToBullet() =>
-        Assert.That(
-            WordNumberingBuilder.ParseListStyleType(null, "nonsense", isOrdered: false),
-            Is.EqualTo(NumberFormatValues.Bullet));
+    public async Task UnknownListStyleType_UnorderedFallsBackToBullet() =>
+        await Assert.That(WordNumberingBuilder.ParseListStyleType(null, "nonsense", isOrdered: false)).IsEqualTo(NumberFormatValues.Bullet);
 
     [Test]
     public Task LowerAlphaType()

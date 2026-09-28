@@ -1,109 +1,108 @@
-[TestFixture]
 public class StyleParserTests
 {
     [Test]
-    public void ParseSingleProperty()
+    public async Task ParseSingleProperty()
     {
         var result = StyleParser.Parse("color: red");
-        Assert.That(result["color"], Is.EqualTo("red"));
+        await Assert.That(result["color"]).IsEqualTo("red");
     }
 
     [Test]
-    public void ParseMultipleProperties()
+    public async Task ParseMultipleProperties()
     {
         var result = StyleParser.Parse("font-weight: bold; font-style: italic; color: blue");
-        Assert.That(result["font-weight"], Is.EqualTo("bold"));
-        Assert.That(result["font-style"], Is.EqualTo("italic"));
-        Assert.That(result["color"], Is.EqualTo("blue"));
+        await Assert.That(result["font-weight"]).IsEqualTo("bold");
+        await Assert.That(result["font-style"]).IsEqualTo("italic");
+        await Assert.That(result["color"]).IsEqualTo("blue");
     }
 
     [Test]
-    public void ParseNullStyle()
+    public async Task ParseNullStyle()
     {
         var result = StyleParser.Parse(null);
-        Assert.That(result, Is.Empty);
+        await Assert.That(result).IsEmpty();
     }
 
     [Test]
-    public void ParseEmptyStyle()
+    public async Task ParseEmptyStyle()
     {
         var result = StyleParser.Parse("");
-        Assert.That(result, Is.Empty);
+        await Assert.That(result).IsEmpty();
     }
 
     [Test]
-    public void ParseTrailingSemicolon()
+    public async Task ParseTrailingSemicolon()
     {
         var result = StyleParser.Parse("color: red;");
-        Assert.That(result["color"], Is.EqualTo("red"));
+        await Assert.That(result["color"]).IsEqualTo("red");
     }
 
     [Test]
-    public void CaseInsensitiveKeys()
+    public async Task CaseInsensitiveKeys()
     {
         var result = StyleParser.Parse("Color: red");
-        Assert.That(result["color"], Is.EqualTo("red"));
+        await Assert.That(result["color"]).IsEqualTo("red");
     }
 
     [Test]
-    public void FontSizePt() =>
-        Assert.That(StyleParser.ParseFontSize("12pt"), Is.EqualTo(12));
+    public async Task FontSizePt() =>
+        await Assert.That(StyleParser.ParseFontSize("12pt")).IsEqualTo(12);
 
     [Test]
-    public void FontSizePx() =>
-        Assert.That(StyleParser.ParseFontSize("16px"), Is.EqualTo(12));
+    public async Task FontSizePx() =>
+        await Assert.That(StyleParser.ParseFontSize("16px")).IsEqualTo(12);
 
     [Test]
-    public void FontSizeEm() =>
-        Assert.That(StyleParser.ParseFontSize("2em"), Is.EqualTo(24));
+    public async Task FontSizeEm() =>
+        await Assert.That(StyleParser.ParseFontSize("2em")).IsEqualTo(24);
 
     [Test]
-    public void FontSizeKeywords()
+    public async Task FontSizeKeywords()
     {
-        Assert.That(StyleParser.ParseFontSize("xx-small"), Is.EqualTo(7));
-        Assert.That(StyleParser.ParseFontSize("x-small"), Is.EqualTo(8));
-        Assert.That(StyleParser.ParseFontSize("small"), Is.EqualTo(10));
-        Assert.That(StyleParser.ParseFontSize("medium"), Is.EqualTo(12));
-        Assert.That(StyleParser.ParseFontSize("large"), Is.EqualTo(14));
-        Assert.That(StyleParser.ParseFontSize("x-large"), Is.EqualTo(18));
-        Assert.That(StyleParser.ParseFontSize("xx-large"), Is.EqualTo(24));
+        await Assert.That(StyleParser.ParseFontSize("xx-small")).IsEqualTo(7);
+        await Assert.That(StyleParser.ParseFontSize("x-small")).IsEqualTo(8);
+        await Assert.That(StyleParser.ParseFontSize("small")).IsEqualTo(10);
+        await Assert.That(StyleParser.ParseFontSize("medium")).IsEqualTo(12);
+        await Assert.That(StyleParser.ParseFontSize("large")).IsEqualTo(14);
+        await Assert.That(StyleParser.ParseFontSize("x-large")).IsEqualTo(18);
+        await Assert.That(StyleParser.ParseFontSize("xx-large")).IsEqualTo(24);
     }
 
     [Test]
-    public void FontSizeRawNumber() =>
-        Assert.That(StyleParser.ParseFontSize("14"), Is.EqualTo(14));
+    public async Task FontSizeRawNumber() =>
+        await Assert.That(StyleParser.ParseFontSize("14")).IsEqualTo(14);
 
     [Test]
-    public void FontSizeInvalid() =>
-        Assert.That(StyleParser.ParseFontSize("abc"), Is.Null);
+    public async Task FontSizeInvalid() =>
+        await Assert.That(StyleParser.ParseFontSize("abc")).IsNull();
 
     [Test]
-    public void MarginShorthandTooManyParts()
+    public async Task MarginShorthandTooManyParts()
     {
         var result = StyleParser.ParseMarginShorthand("10px 20px 30px 40px 50px");
-        Assert.That(result.Top, Is.Null);
-        Assert.That(result.Right, Is.Null);
-        Assert.That(result.Bottom, Is.Null);
-        Assert.That(result.Left, Is.Null);
+        await Assert.That(result.Top).IsNull();
+        await Assert.That(result.Right).IsNull();
+        await Assert.That(result.Bottom).IsNull();
+        await Assert.That(result.Left).IsNull();
     }
 
     [Test]
-    public void MarginShorthandTabSeparated()
+    public async Task MarginShorthandTabSeparated()
     {
         var result = StyleParser.ParseMarginShorthand("10px\t20px");
-        Assert.That(result.Top, Is.EqualTo(150));
-        Assert.That(result.Right, Is.EqualTo(300));
-        Assert.That(result.Bottom, Is.EqualTo(150));
-        Assert.That(result.Left, Is.EqualTo(300));
+        await Assert.That(result.Top).IsEqualTo(150);
+        await Assert.That(result.Right).IsEqualTo(300);
+        await Assert.That(result.Bottom).IsEqualTo(150);
+        await Assert.That(result.Left).IsEqualTo(300);
     }
 
     [Test]
-    public void BorderShorthandTabSeparated()
+    public async Task BorderShorthandTabSeparated()
     {
         var result = StyleParser.ParseBorder("1px\tsolid\tred");
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Style, Is.EqualTo(BorderValues.Single));
-        Assert.That(result.Color, Is.EqualTo("FF0000"));
-        Assert.That(result.SizeEighths, Is.EqualTo(6));
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Style).IsEqualTo(BorderValues.Single);
+        await Assert.That(result.Color).IsEqualTo("FF0000");
+        await Assert.That(result.SizeEighths).IsEqualTo(6);
     }
 }

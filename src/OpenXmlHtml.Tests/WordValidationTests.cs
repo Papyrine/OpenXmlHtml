@@ -1,11 +1,10 @@
-﻿[TestFixture]
 public class WordValidationTests
 {
     // The generated docx must satisfy the OOXML schema. This primarily guards the run-property
     // and cell-property ordering: out-of-sequence children are the most common validity failure
     // and are silently repaired by Word but rejected by stricter consumers.
     [Test]
-    public void GeneratedDocumentIsSchemaValid()
+    public async Task GeneratedDocumentIsSchemaValid()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -33,10 +32,7 @@ public class WordValidationTests
         var validator = new OpenXmlValidator();
         var errors = validator.Validate(document).ToList();
 
-        Assert.That(
-            errors,
-            Is.Empty,
-            () => string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
+        await Assert.That(errors).IsEmpty().Because(string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
     }
 
     // css reaches the builder in the order it is written, which is not the order CT_PPrBase declares
@@ -44,7 +40,7 @@ public class WordValidationTests
     // schema wants the border first. One paragraph carrying the lot pins the sequence - a snapshot
     // only ever covers the combinations some test happened to write, and none wrote this one.
     [Test]
-    public void ParagraphPropertiesFollowSchemaOrder()
+    public async Task ParagraphPropertiesFollowSchemaOrder()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -59,15 +55,10 @@ public class WordValidationTests
             .Descendants<ParagraphProperties>()
             .First();
 
-        Assert.That(
-            string.Join(", ", properties.ChildElements.Select(_ => _.LocalName)),
-            Is.EqualTo("pBdr, shd, bidi, spacing, ind, jc, textDirection"));
+        await Assert.That(string.Join(", ", properties.ChildElements.Select(_ => _.LocalName))).IsEqualTo("pBdr, shd, bidi, spacing, ind, jc, textDirection");
 
         var validator = new OpenXmlValidator();
         var errors = validator.Validate(document).ToList();
-        Assert.That(
-            errors,
-            Is.Empty,
-            () => string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
+        await Assert.That(errors).IsEmpty().Because(string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
     }
 }

@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordParagraphSpacingTests
 {
     [Test]
@@ -126,12 +125,10 @@ public class WordParagraphSpacingTests
     }
 
     [Test]
-    public void LineHeightPaddedValue()
+    public async Task LineHeightPaddedValue()
     {
         var padded = WordHtmlConverter.ToElements("""<p style="line-height:   1.5   ">x</p>""");
         var unpadded = WordHtmlConverter.ToElements("""<p style="line-height: 1.5">x</p>""");
-        Assert.That(
-            string.Join('\n', padded.Select(_ => _.OuterXml)),
-            Is.EqualTo(string.Join('\n', unpadded.Select(_ =>_.OuterXml))));
+        await Assert.That(string.Join('\n', padded.Select(_ => _.OuterXml))).IsEqualTo(string.Join('\n', unpadded.Select(_ =>_.OuterXml)));
     }
 }

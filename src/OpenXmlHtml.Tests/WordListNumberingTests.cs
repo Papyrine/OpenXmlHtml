@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordListNumberingTests
 {
     [Test]
@@ -179,7 +178,7 @@ public class WordListNumberingTests
     }
 
     [Test]
-    public void NumberingPartUsesDeterministicRelationshipId()
+    public async Task NumberingPartUsesDeterministicRelationshipId()
     {
         // The numbering part must be added with an explicit, deterministic relationship id — the
         // OpenXML default is random, which makes output non-reproducible.
@@ -190,18 +189,18 @@ public class WordListNumberingTests
         WordHtmlConverter.AppendHtml(main.Document.Body!, "<ul><li>Alpha</li><li>Beta</li></ul>", main);
 
         var numberingPart = main.NumberingDefinitionsPart;
-        Assert.That(numberingPart, Is.Not.Null);
-        Assert.That(main.GetIdOfPart(numberingPart!), Is.EqualTo("rNumbering"));
+        await Assert.That(numberingPart).IsNotNull();
+        await Assert.That(main.GetIdOfPart(numberingPart!)).IsEqualTo("rNumbering");
     }
 
     [Test]
-    public void ListDocxIsByteReproducible()
+    public async Task ListDocxIsByteReproducible()
     {
         // Converting the same list HTML twice (into a document with no pre-existing numbering part)
         // must produce byte-identical packages — guards the numbering relationship id determinism.
         var first = RenderListDocx();
         var second = RenderListDocx();
-        Assert.That(first, Is.EqualTo(second));
+        await Assert.That(first).IsEquivalentTo(second, CollectionOrdering.Matching);
     }
 
     static byte[] RenderListDocx()

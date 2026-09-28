@@ -2,41 +2,40 @@
 using System.Net.Http;
 #endif
 
-[TestFixture]
 public class WordImageFallbackTests
 {
     [Test]
-    public void InvalidBase64DataUri_FallsBackToAlt()
+    public async Task InvalidBase64DataUri_FallsBackToAlt()
     {
         var elements = WordHtmlConverter.ToElements(
             """<p><img src="data:image/png;base64,!!!notbase64!!!" alt="Bad"></p>""");
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "Bad");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "Bad");
     }
 
     [Test]
-    public void NonBase64DataUri_FallsBackToAlt()
+    public async Task NonBase64DataUri_FallsBackToAlt()
     {
         var elements = WordHtmlConverter.ToElements(
             """<p><img src="data:image/png,raw" alt="Bad"></p>""");
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "Bad");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "Bad");
     }
 
     [Test]
-    public void ImageWithoutMainPart_SilentlyDropped()
+    public async Task ImageWithoutMainPart_SilentlyDropped()
     {
         var png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
         var elements = WordHtmlConverter.ToElements(
             $"""<p><img src="data:image/png;base64,{png}"></p>""");
 
-        AssertNoDrawing(elements);
+        await AssertNoDrawing(elements);
     }
 
     [Test]
-    public void HttpThrows_FallsBackToAlt()
+    public async Task HttpThrows_FallsBackToAlt()
     {
         var settings = new HtmlConvertSettings
         {
@@ -49,12 +48,12 @@ public class WordImageFallbackTests
             null,
             settings);
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "NoNet");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "NoNet");
     }
 
     [Test]
-    public void HttpNotSuccess_FallsBackToAlt()
+    public async Task HttpNotSuccess_FallsBackToAlt()
     {
         var settings = new HtmlConvertSettings
         {
@@ -67,12 +66,12 @@ public class WordImageFallbackTests
             null,
             settings);
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "500");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "500");
     }
 
     [Test]
-    public void LocalImageMissing_FallsBackToAlt()
+    public async Task LocalImageMissing_FallsBackToAlt()
     {
         var missingPath = Path.Combine(Path.GetTempPath(), "definitely_missing_" + Guid.NewGuid().ToString("N") + ".png");
         var settings = new HtmlConvertSettings
@@ -85,12 +84,12 @@ public class WordImageFallbackTests
             null,
             settings);
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "Missing");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "Missing");
     }
 
     [Test]
-    public void LocalImageInvalidPath_FallsBackToAlt()
+    public async Task LocalImageInvalidPath_FallsBackToAlt()
     {
         var settings = new HtmlConvertSettings
         {
@@ -102,12 +101,12 @@ public class WordImageFallbackTests
             null,
             settings);
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "Invalid");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "Invalid");
     }
 
     [Test]
-    public void LocalImageMalformedFileUri_FallsBackToAlt()
+    public async Task LocalImageMalformedFileUri_FallsBackToAlt()
     {
         var settings = new HtmlConvertSettings
         {
@@ -119,20 +118,20 @@ public class WordImageFallbackTests
             null,
             settings);
 
-        AssertNoDrawing(elements);
-        AssertContainsText(elements, "Malformed");
+        await AssertNoDrawing(elements);
+        await AssertContainsText(elements, "Malformed");
     }
 
-    static void AssertNoDrawing(List<OpenXmlElement> elements)
+    static async Task AssertNoDrawing(List<OpenXmlElement> elements)
     {
         var hasDrawing = elements.Any(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
-        Assert.That(hasDrawing, Is.False, "Expected no Drawing elements");
+        await Assert.That(hasDrawing).IsFalse().Because("Expected no Drawing elements");
     }
 
-    static void AssertContainsText(List<OpenXmlElement> elements, string text)
+    static async Task AssertContainsText(List<OpenXmlElement> elements, string text)
     {
         var combined = string.Concat(elements.SelectMany(_ => _.Descendants<WText>().Select(_ => _.Text)));
-        Assert.That(combined, Does.Contain(text));
+        await Assert.That(combined).Contains(text);
     }
 
     class ThrowingHandler : HttpMessageHandler

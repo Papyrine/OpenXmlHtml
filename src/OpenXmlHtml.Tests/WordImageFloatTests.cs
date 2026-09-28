@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordImageFloatTests
 {
     const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";

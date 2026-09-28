@@ -1,4 +1,3 @@
-﻿[TestFixture]
 public class WordSamples
 {
     [Test]
@@ -229,7 +228,7 @@ public class WordSamples
     }
 
     [Test]
-    public void EnsureListDefinitions()
+    public async Task EnsureListDefinitions()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -243,11 +242,11 @@ public class WordSamples
 
         #endregion
 
-        Assert.That(mainPart.NumberingDefinitionsPart, Is.Not.Null);
+        await Assert.That(mainPart.NumberingDefinitionsPart).IsNotNull();
     }
 
     [Test]
-    public void EnsureStyleDefinitions()
+    public async Task EnsureStyleDefinitions()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -261,7 +260,7 @@ public class WordSamples
 
         #endregion
 
-        Assert.That(mainPart.StyleDefinitionsPart, Is.Not.Null);
+        await Assert.That(mainPart.StyleDefinitionsPart).IsNotNull();
     }
 
     [Test]

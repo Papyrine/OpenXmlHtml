@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordWritingModeTests
 {
     [Test]
@@ -64,29 +63,29 @@ public class WordWritingModeTests
     }
 
     [Test]
-    public void DirectionRtlPaddedValue()
+    public async Task DirectionRtlPaddedValue()
     {
         var padded = WordHtmlConverter.ToElements("""<p style="direction:   rtl   ">x</p>""");
         var unpadded = WordHtmlConverter.ToElements("""<p style="direction: rtl">x</p>""");
-        Assert.That(Xml(padded), Is.EqualTo(Xml(unpadded)));
+        await Assert.That(Xml(padded)).IsEqualTo(Xml(unpadded));
     }
 
     [Test]
-    public void VerticalRlPaddedValue()
+    public async Task VerticalRlPaddedValue()
     {
         var padded = WordHtmlConverter.ToElements("""<p style="writing-mode:   vertical-rl   ">x</p>""");
         var unpadded = WordHtmlConverter.ToElements("""<p style="writing-mode: vertical-rl">x</p>""");
-        Assert.That(Xml(padded), Is.EqualTo(Xml(unpadded)));
+        await Assert.That(Xml(padded)).IsEqualTo(Xml(unpadded));
     }
 
     [Test]
-    public void CellWritingModePaddedValue()
+    public async Task CellWritingModePaddedValue()
     {
         var padded = WordHtmlConverter.ToElements(
             """<table><tr><td style="writing-mode:   vertical-rl   ">x</td></tr></table>""");
         var unpadded = WordHtmlConverter.ToElements(
             """<table><tr><td style="writing-mode: vertical-rl">x</td></tr></table>""");
-        Assert.That(Xml(padded), Is.EqualTo(Xml(unpadded)));
+        await Assert.That(Xml(padded)).IsEqualTo(Xml(unpadded));
     }
 
     static string Xml(List<OpenXmlElement> elements) =>

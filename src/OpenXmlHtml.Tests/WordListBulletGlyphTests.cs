@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordListBulletGlyphTests
 {
     static AbstractNum GetBulletAbstractNum(MainDocumentPart main) =>
@@ -17,7 +16,7 @@ public class WordListBulletGlyphTests
     }
 
     [Test]
-    public void BulletLevelsUseFontGlyphsNotUnicodeBullets()
+    public async Task BulletLevelsUseFontGlyphsNotUnicodeBullets()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -28,68 +27,66 @@ public class WordListBulletGlyphTests
 
         var abs = GetBulletAbstractNum(main);
 
-        Assert.Multiple(() =>
+        using (Assert.Multiple())
         {
-            Assert.That(ReadLevel(abs, 0), Is.EqualTo(("\uF0B7", "Symbol")));
-            Assert.That(ReadLevel(abs, 1), Is.EqualTo(("o", "Courier New")));
-            Assert.That(ReadLevel(abs, 2), Is.EqualTo(("\uF0A7", "Wingdings")));
-            Assert.That(ReadLevel(abs, 3), Is.EqualTo(("\uF0B7", "Symbol")));
-            Assert.That(ReadLevel(abs, 4), Is.EqualTo(("o", "Courier New")));
-            Assert.That(ReadLevel(abs, 5), Is.EqualTo(("\uF0A7", "Wingdings")));
-        });
+            await Assert.That(ReadLevel(abs, 0)).IsEqualTo(("\uF0B7", "Symbol"));
+            await Assert.That(ReadLevel(abs, 1)).IsEqualTo(("o", "Courier New"));
+            await Assert.That(ReadLevel(abs, 2)).IsEqualTo(("\uF0A7", "Wingdings"));
+            await Assert.That(ReadLevel(abs, 3)).IsEqualTo(("\uF0B7", "Symbol"));
+            await Assert.That(ReadLevel(abs, 4)).IsEqualTo(("o", "Courier New"));
+            await Assert.That(ReadLevel(abs, 5)).IsEqualTo(("\uF0A7", "Wingdings"));
+        }
     }
 
     // Description html arrives <p>-wrapped often enough that <li><p>x</p></li> has to stay a list.
     // The block child continues the item's own paragraph rather than starting one after it, which
     // would leave the marker stranded on a line of its own.
     [Test]
-    public void ListItemWithABlockChildKeepsItsMarker()
+    public async Task ListItemWithABlockChildKeepsItsMarker()
     {
         var wrapped = WordHtmlConverter.ToElements("<ul><li><p>x</p></li></ul>");
         var bare = WordHtmlConverter.ToElements("<ul><li>x</li></ul>");
 
-        Assert.That(wrapped.OfType<Paragraph>().Count(), Is.EqualTo(1));
-        Assert.That(
-            wrapped.OfType<Paragraph>().Single().InnerText,
-            Is.EqualTo(bare.OfType<Paragraph>().Single().InnerText));
+        await Assert.That(wrapped.OfType<Paragraph>().Count()).IsEqualTo(1);
+        await Assert.That(wrapped.OfType<Paragraph>().Single().InnerText).IsEqualTo(bare.OfType<Paragraph>().Single().InnerText);
     }
 
     // Only the first line sits on the marker, so later children still start their own paragraphs.
     [Test]
-    public void ListItemWithSeveralBlockChildrenOnlyMarksTheFirst()
+    public async Task ListItemWithSeveralBlockChildrenOnlyMarksTheFirst()
     {
         var paragraphs = WordHtmlConverter
             .ToElements("<ul><li><p>x</p><p>y</p></li></ul>")
             .OfType<Paragraph>()
             .ToList();
 
-        Assert.That(paragraphs, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
+        await Assert.That(paragraphs).Count().IsEqualTo(2);
+        using (Assert.Multiple())
         {
-            Assert.That(paragraphs[0].InnerText, Does.EndWith("x").And.Not.EqualTo("x"));
-            Assert.That(paragraphs[1].InnerText, Is.EqualTo("y"));
-        });
+            await Assert.That(paragraphs[0].InnerText).EndsWith("x").And.IsNotEqualTo("x");
+            await Assert.That(paragraphs[1].InnerText).IsEqualTo("y");
+        }
     }
 
     // Text before the block already occupies the marker's line, so the block starts a new one.
     [Test]
-    public void ListItemWithTextBeforeABlockChildSplitsAfterTheText()
+    public async Task ListItemWithTextBeforeABlockChildSplitsAfterTheText()
     {
         var paragraphs = WordHtmlConverter
             .ToElements("<ul><li>lead<p>x</p></li></ul>")
             .OfType<Paragraph>()
             .ToList();
 
-        Assert.That(paragraphs, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
+        await Assert.That(paragraphs).Count().IsEqualTo(2);
+        using (Assert.Multiple())
         {
-            Assert.That(paragraphs[0].InnerText, Does.EndWith("lead"));
-            Assert.That(paragraphs[1].InnerText, Is.EqualTo("x"));
-        });
+            await Assert.That(paragraphs[0].InnerText).EndsWith("lead");
+            await Assert.That(paragraphs[1].InnerText).IsEqualTo("x");
+        }
     }
 
     [Test]
-    public void ListParagraphsHaveContextualSpacing()
+    public async Task ListParagraphsHaveContextualSpacing()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -112,16 +109,13 @@ public class WordListBulletGlyphTests
             .Where(p => p.ParagraphProperties?.GetFirstChild<NumberingProperties>() != null)
             .ToList();
 
-        Assert.That(listParagraphs, Has.Count.EqualTo(2));
-        Assert.Multiple(() =>
+        await Assert.That(listParagraphs).Count().IsEqualTo(2);
+        using (Assert.Multiple())
         {
             foreach (var p in listParagraphs)
             {
-                Assert.That(
-                    p.ParagraphProperties!.GetFirstChild<ContextualSpacing>(),
-                    Is.Not.Null,
-                    "list paragraph must set w:contextualSpacing so consecutive list items render tight");
+                await Assert.That(p.ParagraphProperties!.GetFirstChild<ContextualSpacing>()).IsNotNull().Because("list paragraph must set w:contextualSpacing so consecutive list items render tight");
             }
-        });
+        }
     }
 }

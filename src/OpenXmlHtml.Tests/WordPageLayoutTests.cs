@@ -1,8 +1,7 @@
-[TestFixture]
 public class WordPageLayoutTests
 {
     [Test]
-    public void AtPageSizeLetter()
+    public async Task AtPageSizeLetter()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -15,12 +14,12 @@ public class WordPageLayoutTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageSize>()!;
 
-        Assert.That(pageSize.Width!.Value, Is.EqualTo(12240u));
-        Assert.That(pageSize.Height!.Value, Is.EqualTo(15840u));
+        await Assert.That(pageSize.Width!.Value).IsEqualTo(12240u);
+        await Assert.That(pageSize.Height!.Value).IsEqualTo(15840u);
     }
 
     [Test]
-    public void AtPageSizeA4Landscape()
+    public async Task AtPageSizeA4Landscape()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -33,13 +32,13 @@ public class WordPageLayoutTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageSize>()!;
 
-        Assert.That(pageSize.Width!.Value, Is.EqualTo(16838u));
-        Assert.That(pageSize.Height!.Value, Is.EqualTo(11906u));
-        Assert.That(pageSize.Orient!.Value, Is.EqualTo(PageOrientationValues.Landscape));
+        await Assert.That(pageSize.Width!.Value).IsEqualTo(16838u);
+        await Assert.That(pageSize.Height!.Value).IsEqualTo(11906u);
+        await Assert.That(pageSize.Orient!.Value).IsEqualTo(PageOrientationValues.Landscape);
     }
 
     [Test]
-    public void AtPageCustomSize()
+    public async Task AtPageCustomSize()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -52,12 +51,12 @@ public class WordPageLayoutTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageSize>()!;
 
-        Assert.That(pageSize.Width!.Value, Is.EqualTo(12240u));
-        Assert.That(pageSize.Height!.Value, Is.EqualTo(15840u));
+        await Assert.That(pageSize.Width!.Value).IsEqualTo(12240u);
+        await Assert.That(pageSize.Height!.Value).IsEqualTo(15840u);
     }
 
     [Test]
-    public void AtPageMargin()
+    public async Task AtPageMargin()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -70,14 +69,14 @@ public class WordPageLayoutTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageMargin>()!;
 
-        Assert.That(pageMargin.Top!.Value, Is.EqualTo(2880));
-        Assert.That(pageMargin.Right!.Value, Is.EqualTo(2880u));
-        Assert.That(pageMargin.Bottom!.Value, Is.EqualTo(2880));
-        Assert.That(pageMargin.Left!.Value, Is.EqualTo(2880u));
+        await Assert.That(pageMargin.Top!.Value).IsEqualTo(2880);
+        await Assert.That(pageMargin.Right!.Value).IsEqualTo(2880u);
+        await Assert.That(pageMargin.Bottom!.Value).IsEqualTo(2880);
+        await Assert.That(pageMargin.Left!.Value).IsEqualTo(2880u);
     }
 
     [Test]
-    public void AtPageColumnCount()
+    public async Task AtPageColumnCount()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx(
@@ -90,6 +89,6 @@ public class WordPageLayoutTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Columns>()!;
 
-        Assert.That(columns.ColumnCount!.Value, Is.EqualTo(2));
+        await Assert.That(columns.ColumnCount!.Value).IsEqualTo((short) 2);
     }
 }

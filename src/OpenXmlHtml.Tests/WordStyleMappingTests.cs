@@ -1,4 +1,3 @@
-﻿[TestFixture]
 public class WordStyleMappingTests
 {
     static (MainDocumentPart MainPart, Body Body) CreateDocumentWithStyles(Stream stream, params (string Id, StyleValues Type)[] styles)

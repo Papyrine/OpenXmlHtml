@@ -2,7 +2,6 @@
 using System.Net.Http;
 #endif
 
-[TestFixture]
 public class WordRemoteImageTests
 {
     // 2x2 red PNG

@@ -26,7 +26,7 @@ Building the test project triggers MarkdownSnippets, which updates `readme.md` f
 
 ## Verify Snapshot Testing
 
-Tests use [Verify](https://github.com/VerifyTests/Verify) with NUnit. When test output changes:
+Tests use [Verify](https://github.com/VerifyTests/Verify) with TUnit. When test output changes:
 - `.received.*` files appear next to `.verified.*` files
 - **Received and verified are not named the same stem**, so accepting is a rename. Received carries a target-framework tag; verified is named for the runtime:
   - `Foo.DotNet10_0.received.xml` → `Foo.DotNet.verified.xml`

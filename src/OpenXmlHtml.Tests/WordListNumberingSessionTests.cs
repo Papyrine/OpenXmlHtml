@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordListNumberingSessionTests
 {
     static int BulletAbstractCount(MainDocumentPart main) =>
@@ -13,7 +12,7 @@ public class WordListNumberingSessionTests
             .Elements<NumberingInstance>().Count() ?? 0;
 
     [Test]
-    public void WithoutSession_TwoCallsEachCreateOwnBulletAbstract()
+    public async Task WithoutSession_TwoCallsEachCreateOwnBulletAbstract()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -23,12 +22,12 @@ public class WordListNumberingSessionTests
         WordHtmlConverter.ToElements("<ul><li>a</li></ul>", main, new());
         WordHtmlConverter.ToElements("<ul><li>b</li></ul>", main, new());
 
-        Assert.That(BulletAbstractCount(main), Is.EqualTo(2));
-        Assert.That(NumberingInstanceCount(main), Is.EqualTo(2));
+        await Assert.That(BulletAbstractCount(main)).IsEqualTo(2);
+        await Assert.That(NumberingInstanceCount(main)).IsEqualTo(2);
     }
 
     [Test]
-    public void WithSession_TwoCallsShareOneBulletAbstract()
+    public async Task WithSession_TwoCallsShareOneBulletAbstract()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -51,12 +50,12 @@ public class WordListNumberingSessionTests
                 NumberingSession = session
             });
 
-        Assert.That(BulletAbstractCount(main), Is.EqualTo(1));
-        Assert.That(NumberingInstanceCount(main), Is.EqualTo(2));
+        await Assert.That(BulletAbstractCount(main)).IsEqualTo(1);
+        await Assert.That(NumberingInstanceCount(main)).IsEqualTo(2);
     }
 
     [Test]
-    public void WithSession_SessionPopulatedAfterFirstCall()
+    public async Task WithSession_SessionPopulatedAfterFirstCall()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -64,7 +63,7 @@ public class WordListNumberingSessionTests
         main.Document = new(new Body());
 
         var session = new HtmlNumberingSession();
-        Assert.That(session.BulletAbstractNumId, Is.Null);
+        await Assert.That(session.BulletAbstractNumId).IsNull();
 
         WordHtmlConverter.ToElements(
             "<ul><li>a</li></ul>",
@@ -74,11 +73,11 @@ public class WordListNumberingSessionTests
                 NumberingSession = session
             });
 
-        Assert.That(session.BulletAbstractNumId, Is.Not.Null);
+        await Assert.That(session.BulletAbstractNumId).IsNotNull();
     }
 
     [Test]
-    public void WithSession_NoBulletList_SessionRemainsNull()
+    public async Task WithSession_NoBulletList_SessionRemainsNull()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -94,11 +93,11 @@ public class WordListNumberingSessionTests
                 NumberingSession = session
             });
 
-        Assert.That(session.BulletAbstractNumId, Is.Null);
+        await Assert.That(session.BulletAbstractNumId).IsNull();
     }
 
     [Test]
-    public void WithSession_FirstCallNoList_SecondCallBullet_CreatesOneAbstract()
+    public async Task WithSession_FirstCallNoList_SecondCallBullet_CreatesOneAbstract()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -121,12 +120,12 @@ public class WordListNumberingSessionTests
                 NumberingSession = session
             });
 
-        Assert.That(BulletAbstractCount(main), Is.EqualTo(1));
-        Assert.That(NumberingInstanceCount(main), Is.EqualTo(1));
+        await Assert.That(BulletAbstractCount(main)).IsEqualTo(1);
+        await Assert.That(NumberingInstanceCount(main)).IsEqualTo(1);
     }
 
     [Test]
-    public void WithSession_ThreeCallsShareOneBulletAbstract()
+    public async Task WithSession_ThreeCallsShareOneBulletAbstract()
     {
         using var stream = new MemoryStream();
         using var doc = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -156,7 +155,7 @@ public class WordListNumberingSessionTests
                 NumberingSession = session
             });
 
-        Assert.That(BulletAbstractCount(main), Is.EqualTo(1));
-        Assert.That(NumberingInstanceCount(main), Is.EqualTo(3));
+        await Assert.That(BulletAbstractCount(main)).IsEqualTo(1);
+        await Assert.That(NumberingInstanceCount(main)).IsEqualTo(3);
     }
 }

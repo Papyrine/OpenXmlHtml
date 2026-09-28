@@ -1,8 +1,7 @@
-[TestFixture]
 public class WordNumberingTests
 {
     [Test]
-    public void EnsureListDefinitions_SeedsBulletAndDecimal()
+    public async Task EnsureListDefinitions_SeedsBulletAndDecimal()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -12,21 +11,18 @@ public class WordNumberingTests
         WordNumbering.EnsureListDefinitions(main);
 
         var numbering = main.NumberingDefinitionsPart!.Numbering!;
-        Assert.That(Formats(numbering), Is.EquivalentTo([NumberFormatValues.Bullet, NumberFormatValues.Decimal]));
+        await Assert.That(Formats(numbering)).IsEquivalentTo([NumberFormatValues.Bullet, NumberFormatValues.Decimal]);
 
         // Word can only apply a definition that an instance points at.
         foreach (var abstractNum in numbering.Elements<AbstractNum>())
         {
             var abstractNumId = abstractNum.AbstractNumberId!.Value;
-            Assert.That(
-                numbering.Elements<NumberingInstance>().Any(_ => _.GetFirstChild<AbstractNumId>()?.Val?.Value == abstractNumId),
-                Is.True,
-                $"abstractNum {abstractNumId} has no numbering instance");
+            await Assert.That(numbering.Elements<NumberingInstance>().Any(_ => _.GetFirstChild<AbstractNumId>()?.Val?.Value == abstractNumId)).IsTrue().Because($"abstractNum {abstractNumId} has no numbering instance");
         }
     }
 
     [Test]
-    public void EnsureListDefinitions_IsIdempotent()
+    public async Task EnsureListDefinitions_IsIdempotent()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -38,12 +34,12 @@ public class WordNumberingTests
         WordNumbering.EnsureListDefinitions(main);
 
         var numbering = main.NumberingDefinitionsPart!.Numbering!;
-        Assert.That(numbering.Elements<AbstractNum>().Count(), Is.EqualTo(2));
-        Assert.That(numbering.Elements<NumberingInstance>().Count(), Is.EqualTo(2));
+        await Assert.That(numbering.Elements<AbstractNum>().Count()).IsEqualTo(2);
+        await Assert.That(numbering.Elements<NumberingInstance>().Count()).IsEqualTo(2);
     }
 
     [Test]
-    public void EnsureListDefinitions_UsesDeterministicRelationshipId()
+    public async Task EnsureListDefinitions_UsesDeterministicRelationshipId()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -52,7 +48,7 @@ public class WordNumberingTests
 
         WordNumbering.EnsureListDefinitions(main);
 
-        Assert.That(main.GetIdOfPart(main.NumberingDefinitionsPart!), Is.EqualTo("rNumbering"));
+        await Assert.That(main.GetIdOfPart(main.NumberingDefinitionsPart!)).IsEqualTo("rNumbering");
     }
 
     /// <summary>
@@ -60,7 +56,7 @@ public class WordNumberingTests
     /// supplies one — but the document has no ordered list, so a decimal definition is still added.
     /// </summary>
     [Test]
-    public void EnsureListDefinitions_AfterBulletConversion_ReusesTheConvertedDefinition()
+    public async Task EnsureListDefinitions_AfterBulletConversion_ReusesTheConvertedDefinition()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx("<ul><li>Alpha</li></ul>", stream);
@@ -73,15 +69,15 @@ public class WordNumberingTests
         WordNumbering.EnsureListDefinitions(main);
 
         var numbering = main.NumberingDefinitionsPart!.Numbering!;
-        Assert.That(Formats(numbering).Count(_ => _ == NumberFormatValues.Bullet), Is.EqualTo(1));
-        Assert.That(numbering.Elements<AbstractNum>().Count(), Is.EqualTo(before + 1));
+        await Assert.That(Formats(numbering).Count(_ => _ == NumberFormatValues.Bullet)).IsEqualTo(1);
+        await Assert.That(numbering.Elements<AbstractNum>().Count()).IsEqualTo(before + 1);
     }
 
     /// <summary>
     /// A document whose conversion already produced both formats needs nothing seeded.
     /// </summary>
     [Test]
-    public void EnsureListDefinitions_AfterBulletAndOrderedConversion_AddsNothing()
+    public async Task EnsureListDefinitions_AfterBulletAndOrderedConversion_AddsNothing()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx("<ul><li>Alpha</li></ul><ol><li>First</li></ol>", stream);
@@ -95,8 +91,8 @@ public class WordNumberingTests
 
         WordNumbering.EnsureListDefinitions(main);
 
-        Assert.That(numbering.Elements<AbstractNum>().Count(), Is.EqualTo(abstractNums));
-        Assert.That(numbering.Elements<NumberingInstance>().Count(), Is.EqualTo(instances));
+        await Assert.That(numbering.Elements<AbstractNum>().Count()).IsEqualTo(abstractNums);
+        await Assert.That(numbering.Elements<NumberingInstance>().Count()).IsEqualTo(instances);
     }
 
     /// <summary>
@@ -104,7 +100,7 @@ public class WordNumberingTests
     /// numbering instances.
     /// </summary>
     [Test]
-    public void EnsureListDefinitions_AllocatesUniqueIds()
+    public async Task EnsureListDefinitions_AllocatesUniqueIds()
     {
         using var stream = new MemoryStream();
         using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
@@ -116,9 +112,9 @@ public class WordNumberingTests
         var numbering = main.NumberingDefinitionsPart!.Numbering!;
         var abstractNumIds = numbering.Elements<AbstractNum>().Select(_ => _.AbstractNumberId!.Value).ToList();
         var numIds = numbering.Elements<NumberingInstance>().Select(_ => _.NumberID!.Value).ToList();
-        Assert.That(abstractNumIds, Is.Unique);
-        Assert.That(numIds, Is.Unique);
-        Assert.That(abstractNumIds.Intersect(numIds), Is.Empty);
+        await Assert.That(abstractNumIds).HasDistinctItems();
+        await Assert.That(numIds).HasDistinctItems();
+        await Assert.That(abstractNumIds.Intersect(numIds)).IsEmpty();
     }
 
     static IEnumerable<NumberFormatValues> Formats(Numbering numbering) =>

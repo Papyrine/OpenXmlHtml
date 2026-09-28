@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordWhiteSpaceTests
 {
     [Test]
@@ -43,48 +42,48 @@ public class WordWhiteSpaceTests
     // Word ignores a tab inside <w:t>, so keeping one as a character would advance nothing.
     // white-space:pre is what makes a Word tab reachable from html at all.
     [Test]
-    public void PreservedTabBecomesATabElement()
+    public async Task PreservedTabBecomesATabElement()
     {
         var elements = WordHtmlConverter.ToElements(
             "<p>cc<span style=\"white-space: pre\">\t</span>Counsel</p>");
 
         var paragraph = elements.OfType<Paragraph>().Single();
 
-        Assert.Multiple(() =>
+        using (Assert.Multiple())
         {
-            Assert.That(paragraph.Descendants<TabChar>().Count(), Is.EqualTo(1));
-            Assert.That(paragraph.InnerText, Is.EqualTo("ccCounsel"));
-        });
+            await Assert.That(paragraph.Descendants<TabChar>().Count()).IsEqualTo(1);
+            await Assert.That(paragraph.InnerText).IsEqualTo("ccCounsel");
+        }
     }
 
     [Test]
-    public void PreservedTabsSplitTheSurroundingText()
+    public async Task PreservedTabsSplitTheSurroundingText()
     {
         var elements = WordHtmlConverter.ToElements(
             "<div style=\"white-space: pre\">a\tb\tc</div>");
 
         var run = elements.OfType<Paragraph>().Single().Descendants<WRun>().Single();
 
-        Assert.Multiple(() =>
+        using (Assert.Multiple())
         {
-            Assert.That(run.Descendants<TabChar>().Count(), Is.EqualTo(2));
-            Assert.That(run.Elements<WText>().Select(_ => _.Text), Is.EqualTo(["a", "b", "c"]));
-        });
+            await Assert.That(run.Descendants<TabChar>().Count()).IsEqualTo(2);
+            await Assert.That(run.Elements<WText>().Select(_ => _.Text)).IsEquivalentTo(["a", "b", "c"], CollectionOrdering.Matching);
+        }
     }
 
     // A tab is ordinary whitespace under the default rules, so it folds in with the space around it
     // the way a browser folds it rather than reaching Word as a tab stop.
     [Test]
-    public void TabUnderNormalWhiteSpaceFoldsToASpace()
+    public async Task TabUnderNormalWhiteSpaceFoldsToASpace()
     {
         var elements = WordHtmlConverter.ToElements("<p>cc\tCounsel</p>");
 
         var paragraph = elements.OfType<Paragraph>().Single();
 
-        Assert.Multiple(() =>
+        using (Assert.Multiple())
         {
-            Assert.That(paragraph.Descendants<TabChar>(), Is.Empty);
-            Assert.That(paragraph.InnerText, Is.EqualTo("cc Counsel"));
-        });
+            await Assert.That(paragraph.Descendants<TabChar>()).IsEmpty();
+            await Assert.That(paragraph.InnerText).IsEqualTo("cc Counsel");
+        }
     }
 }

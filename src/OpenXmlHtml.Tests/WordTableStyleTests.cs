@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordTableStyleTests
 {
     [Test]
@@ -237,14 +236,12 @@ public class WordTableStyleTests
     }
 
     [Test]
-    public void CellVerticalAlignPaddedValue()
+    public async Task CellVerticalAlignPaddedValue()
     {
         var padded = WordHtmlConverter.ToElements(
             """<table><tr><td style="vertical-align:   top   ">x</td></tr></table>""");
         var unpadded = WordHtmlConverter.ToElements(
             """<table><tr><td style="vertical-align: top">x</td></tr></table>""");
-        Assert.That(
-            string.Join('\n', padded.Select(_ => _.OuterXml)),
-            Is.EqualTo(string.Join('\n', unpadded.Select(_ => _.OuterXml))));
+        await Assert.That(string.Join('\n', padded.Select(_ => _.OuterXml))).IsEqualTo(string.Join('\n', unpadded.Select(_ => _.OuterXml)));
     }
 }

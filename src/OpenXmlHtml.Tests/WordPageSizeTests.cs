@@ -1,8 +1,7 @@
-[TestFixture]
 public class WordPageSizeTests
 {
     [Test]
-    public void ConvertToDocxEmitsA4PageSize()
+    public async Task ConvertToDocxEmitsA4PageSize()
     {
         using var stream = new MemoryStream();
         WordHtmlConverter.ConvertToDocx("<p>Body</p>", stream);
@@ -14,12 +13,12 @@ public class WordPageSizeTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageSize>()!;
 
-        Assert.That(pageSize.Width!.Value, Is.EqualTo(11906u));
-        Assert.That(pageSize.Height!.Value, Is.EqualTo(16838u));
+        await Assert.That(pageSize.Width!.Value).IsEqualTo(11906u);
+        await Assert.That(pageSize.Height!.Value).IsEqualTo(16838u);
     }
 
     [Test]
-    public void SetHeaderEmitsA4PageSize()
+    public async Task SetHeaderEmitsA4PageSize()
     {
         using var stream = new MemoryStream();
         using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
@@ -39,7 +38,7 @@ public class WordPageSizeTests
             .GetFirstChild<SectionProperties>()!
             .GetFirstChild<PageSize>()!;
 
-        Assert.That(pageSize.Width!.Value, Is.EqualTo(11906u));
-        Assert.That(pageSize.Height!.Value, Is.EqualTo(16838u));
+        await Assert.That(pageSize.Width!.Value).IsEqualTo(11906u);
+        await Assert.That(pageSize.Height!.Value).IsEqualTo(16838u);
     }
 }

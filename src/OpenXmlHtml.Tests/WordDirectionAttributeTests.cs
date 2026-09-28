@@ -1,4 +1,3 @@
-[TestFixture]
 public class WordDirectionAttributeTests
 {
     [Test]
@@ -50,10 +49,10 @@ public class WordDirectionAttributeTests
             .Snapshot("<w:p xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:pPr><w:bidi /></w:pPr><w:r><w:rPr><w:rtl /></w:rPr><w:t xml:space=\"preserve\">body inherited</w:t></w:r></w:p>");
 
     [Test]
-    public void DirAttributeEmitsBidi()
+    public async Task DirAttributeEmitsBidi()
     {
         var elements = WordHtmlConverter.ToElements("""<p dir="rtl">x</p>""");
-        Assert.That(Xml(elements), Does.Contain("<w:bidi"));
+        await Assert.That(Xml(elements)).Contains("<w:bidi");
     }
 
     static string Xml(List<OpenXmlElement> elements) =>
