@@ -450,8 +450,15 @@ static partial class WordContentBuilder
         return tc;
     }
 
-    static TableWidthUnitValues ToWidthUnit(WidthUnit unit) =>
-        unit == WidthUnit.Percent ? TableWidthUnitValues.Pct : TableWidthUnitValues.Dxa;
+    static TableWidthUnitValues ToWidthUnit(WidthUnit unit)
+    {
+        if (unit == WidthUnit.Percent)
+        {
+            return TableWidthUnitValues.Pct;
+        }
+
+        return TableWidthUnitValues.Dxa;
+    }
 
     static TableCellProperties ApplyCellStyles(Dictionary<string, string> declarations, TableCellProperties? tcPr)
     {
@@ -843,7 +850,12 @@ static partial class WordContentBuilder
             .OrderBy(_ =>
             {
                 var index = Array.IndexOf(cellPropertyOrder, _.GetType());
-                return index < 0 ? int.MaxValue : index;
+                if (index < 0)
+                {
+                    return int.MaxValue;
+                }
+
+                return index;
             })
             .ToList();
         tcPr.RemoveAllChildren();

@@ -78,7 +78,12 @@ static class AtPageParser
             }
         }
 
-        return layout.IsEmpty ? null : layout;
+        if (layout.IsEmpty)
+        {
+            return null;
+        }
+
+        return layout;
     }
 
     static void ParseSize(string size, AtPageLayout layout)

@@ -31,7 +31,12 @@ static class WordStyleLookup
             }
         }
 
-        return map.Count > 0 ? map : null;
+        if (map.Count > 0)
+        {
+            return map;
+        }
+
+        return null;
     }
 
     /// <summary>

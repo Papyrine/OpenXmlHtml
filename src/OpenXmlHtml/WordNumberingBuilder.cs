@@ -211,7 +211,12 @@ static class WordNumberingBuilder
             return NumberFormatValues.Decimal;
         }
 
-        return isOrdered ? NumberFormatValues.Decimal : NumberFormatValues.Bullet;
+        if (isOrdered)
+        {
+            return NumberFormatValues.Decimal;
+        }
+
+        return NumberFormatValues.Bullet;
     }
 
     static void InsertAbstractNum(Numbering numbering, AbstractNum abstractNum)

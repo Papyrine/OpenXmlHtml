@@ -184,7 +184,12 @@ static class StyleParser
     internal static int? ParseLengthToPixels(string value)
     {
         var twips = ParseLengthToTwips(value);
-        return twips == null ? null : (int)Math.Round(twips.Value / 15d);
+        if (twips == null)
+        {
+            return null;
+        }
+
+        return (int)Math.Round(twips.Value / 15d);
     }
 
     internal static (int? Top, int? Right, int? Bottom, int? Left) ParseMarginShorthand(string value)
@@ -304,8 +309,20 @@ static class StyleParser
 
         return null;
 
-        static int Clamp(int v) =>
-            v < 1 ? 1 : v > 600 ? 600 : v;
+        static int Clamp(int v)
+        {
+            if (v < 1)
+            {
+                return 1;
+            }
+
+            if (v > 600)
+            {
+                return 600;
+            }
+
+            return v;
+        }
     }
 
     internal static JustificationValues? ParseTextAlign(string value)
@@ -499,7 +516,12 @@ static class StyleParser
 
         if (double.TryParse(span, NumberStyles.Float, CultureInfo.InvariantCulture, out var raw))
         {
-            return raw == 0 ? 0 : Math.Max(1, (int)Math.Round(raw * 6));
+            if (raw == 0)
+            {
+                return 0;
+            }
+
+            return Math.Max(1, (int)Math.Round(raw * 6));
         }
 
         return null;
