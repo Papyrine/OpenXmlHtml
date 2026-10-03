@@ -14,6 +14,7 @@
     <PackageReference Include="TUnit" />
     <PackageReference Include="Verify.OpenXML" />
     <PackageReference Include="ProjectDefaults" PrivateAssets="all" />
+    <PackageReference Include="ProjectFiles" PrivateAssets="all" />
     <PackageReference Include="MarkdownSnippets.MsBuild" PrivateAssets="all" />
     <ProjectReference Include="..\OpenXmlHtml\OpenXmlHtml.csproj" />
   </ItemGroup>
