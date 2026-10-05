@@ -24,13 +24,4 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Morph.Skia" />
   </ItemGroup>
-  <!-- Rider leaves its test discovery host (OpenXmlHtml.Tests.exe -server) running, which locks the dlls this build copies into bin -->
-  <Target Name="KillStaleTestHost"
-          BeforeTargets="_CopyFilesMarkedCopyLocal"
-          Condition="'$(OS)' == 'Windows_NT'">
-    <Exec Command="taskkill /F /IM $(TargetName).exe"
-          IgnoreExitCode="true"
-          StandardOutputImportance="low"
-          StandardErrorImportance="low" />
-  </Target>
 </Project>
