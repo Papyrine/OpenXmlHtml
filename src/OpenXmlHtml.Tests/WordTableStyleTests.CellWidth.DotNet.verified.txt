@@ -1,1 +1,9 @@
-﻿Wide cell	Narrow cell
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Wide cell	Narrow cell
+    }
+  ]
+}

@@ -25,13 +25,13 @@ public class WordImageFallbackTests
     }
 
     [Test]
-    public async Task ImageWithoutMainPart_SilentlyDropped()
+    public Task ImageWithoutMainPart_SilentlyDropped()
     {
         var png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
         var elements = WordHtmlConverter.ToElements(
             $"""<p><img src="data:image/png;base64,{png}"></p>""");
 
-        await AssertNoDrawing(elements);
+        return AssertNoDrawing(elements);
     }
 
     [Test]

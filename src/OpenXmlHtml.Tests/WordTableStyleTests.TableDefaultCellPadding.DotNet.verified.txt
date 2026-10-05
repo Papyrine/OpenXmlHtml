@@ -1,1 +1,9 @@
-﻿Default padding from table	Applied to all cells
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Default padding from table	Applied to all cells
+    }
+  ]
+}

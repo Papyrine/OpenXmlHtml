@@ -1,1 +1,9 @@
-﻿Dashed red table border	Inherited by all cells
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Dashed red table border	Inherited by all cells
+    }
+  ]
+}

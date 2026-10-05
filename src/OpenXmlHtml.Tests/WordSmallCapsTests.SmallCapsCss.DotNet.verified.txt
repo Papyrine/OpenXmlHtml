@@ -1,1 +1,9 @@
-﻿Normal text with small caps text inline.
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Normal text with small caps text inline.
+    }
+  ]
+}

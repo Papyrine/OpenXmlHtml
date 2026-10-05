@@ -229,30 +229,36 @@ public class WordTableTests
     // Word lays the table out from the grid, so cell widths that never reach it change nothing.
     [Test]
     public async Task CellWidthsFillTheGrid() =>
-        await Assert.That(Grid("""<table><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>""")).IsEquivalentTo(new string?[] {"8040", "1200"}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>"""))
+            .IsEquivalentTo<IList<string?>, string?>(["8040", "1200"], CollectionOrdering.Matching);
 
     // The table width is shared across the columns only when the cells say nothing, so cells that
     // carry widths keep them rather than being flattened to an even split.
     [Test]
     public async Task CellWidthsBeatAnEvenShareOfTheTableWidth() =>
-        await Assert.That(Grid("""<table style="width:696px"><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>""")).IsEquivalentTo(new string?[] {"8040", "1200"}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table style="width:696px"><tr><td style="width:536px">a</td><td style="width:80px">b</td></tr></table>"""))
+            .IsEquivalentTo<IList<string?>, string?>(["8040", "1200"], CollectionOrdering.Matching);
 
     [Test]
     public async Task ColgroupOutranksCellWidths() =>
-        await Assert.That(Grid("""<table><colgroup><col style="width:100px"><col style="width:200px"></colgroup><tr><td style="width:500px">a</td><td style="width:500px">b</td></tr></table>""")).IsEquivalentTo(new string?[] {"1500", "3000"}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table><colgroup><col style="width:100px"><col style="width:200px"></colgroup><tr><td style="width:500px">a</td><td style="width:500px">b</td></tr></table>"""))
+            .IsEquivalentTo<IList<string?>, string?>(["1500", "3000"], CollectionOrdering.Matching);
 
     // A span makes the cell-to-column mapping ambiguous, so the search moves to the next row.
     [Test]
     public async Task SpannedRowIsNotAWidthSource() =>
-        await Assert.That(Grid("""<table><tr><td colspan="2">head</td></tr><tr><td style="width:300px">a</td><td style="width:100px">b</td></tr></table>""")).IsEquivalentTo(new string?[] {"4500", "1500"}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table><tr><td colspan="2">head</td></tr><tr><td style="width:300px">a</td><td style="width:100px">b</td></tr></table>"""))
+            .IsEquivalentTo<IList<string?>, string?>(["4500", "1500"], CollectionOrdering.Matching);
 
     // Half a row of widths cannot lay out a table, so a partly sized row is not a source either.
     [Test]
     public async Task PartlySizedRowIsNotAWidthSource() =>
-        await Assert.That(Grid("""<table><tr><td style="width:300px">a</td><td>b</td></tr></table>""")).IsEquivalentTo(new string?[] {null, null}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table><tr><td style="width:300px">a</td><td>b</td></tr></table>"""))
+            .IsEquivalentTo(new string?[] {null, null}, CollectionOrdering.Matching);
 
     // w:gridCol has no percentage unit. The cells keep their own pct widths; the grid stays bare.
     [Test]
     public async Task PercentageCellWidthsLeaveTheGridBare() =>
-        await Assert.That(Grid("""<table><tr><td style="width:35%">a</td><td style="width:65%">b</td></tr></table>""")).IsEquivalentTo(new string?[] {null, null}, CollectionOrdering.Matching);
+        await Assert.That(Grid("""<table><tr><td style="width:35%">a</td><td style="width:65%">b</td></tr></table>"""))
+            .IsEquivalentTo(new string?[] {null, null}, CollectionOrdering.Matching);
 }

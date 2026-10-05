@@ -1,6 +1,15 @@
-﻿Chapter One
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Chapter One
 Introduction text.
 Section 1.1
 Details here.
 Section 1.2
 More details.
+    }
+  ]
+}

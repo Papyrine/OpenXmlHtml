@@ -1,7 +1,24 @@
-﻿Chapter 1
+﻿{
+  PageCount: 3,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Chapter 1
 Content of chapter one.
+    },
+    {
+      Number: 2,
+      Text:
 Chapter 2
 Content of chapter two.
 End of chapter two.
+    },
+    {
+      Number: 3,
+      Text:
 Chapter 3
 Content of chapter three.
+    }
+  ]
+}

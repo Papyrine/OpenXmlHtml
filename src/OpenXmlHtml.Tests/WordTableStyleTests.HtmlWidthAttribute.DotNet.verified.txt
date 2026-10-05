@@ -1,1 +1,9 @@
-﻿Wide via attr	Narrow via attr
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Wide via attr	Narrow via attr
+    }
+  ]
+}

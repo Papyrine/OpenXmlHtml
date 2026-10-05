@@ -1,5 +1,14 @@
-﻿Intro paragraph
-Top level 
-Nested item
-Another nested
-Back to top
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Intro paragraph
+• Top level
+o Nested item
+o Another nested
+• Back to top
+    }
+  ]
+}

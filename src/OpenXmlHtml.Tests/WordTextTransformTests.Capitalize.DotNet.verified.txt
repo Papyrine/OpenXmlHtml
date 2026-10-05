@@ -1,1 +1,9 @@
-﻿Each Word Should Be Capitalized
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Each Word Should Be Capitalized
+    }
+  ]
+}

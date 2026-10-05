@@ -1,2 +1,13 @@
-﻿Page one
-Page two
+﻿{
+  PageCount: 2,
+  Pages: [
+    {
+      Number: 1,
+      Text: Page one
+    },
+    {
+      Number: 2,
+      Text: Page two
+    }
+  ]
+}

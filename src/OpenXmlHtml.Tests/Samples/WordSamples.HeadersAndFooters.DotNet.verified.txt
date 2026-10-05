@@ -1,1 +1,9 @@
-﻿Document content
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Document content
+    }
+  ]
+}

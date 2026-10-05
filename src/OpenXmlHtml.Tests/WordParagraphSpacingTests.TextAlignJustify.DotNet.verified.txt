@@ -1,1 +1,9 @@
-﻿Justified text with enough content to show justification effect clearly in the document.
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Justified text with enough content to show justification effect clearly in the document.
+    }
+  ]
+}

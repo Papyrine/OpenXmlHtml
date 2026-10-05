@@ -1,1 +1,9 @@
-﻿Indented paragraph
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Indented paragraph
+    }
+  ]
+}

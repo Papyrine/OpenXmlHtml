@@ -1,1 +1,9 @@
-﻿Shorthand margins
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Shorthand margins
+    }
+  ]
+}

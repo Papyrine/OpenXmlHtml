@@ -1,3 +1,11 @@
-﻿Before SVG
- 
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Before SVG
 After SVG
+    }
+  ]
+}

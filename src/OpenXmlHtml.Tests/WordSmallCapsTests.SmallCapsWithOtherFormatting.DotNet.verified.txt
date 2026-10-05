@@ -1,1 +1,9 @@
-﻿Bold Small Caps and Italic Small Caps
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Bold Small Caps and Italic Small Caps
+    }
+  ]
+}

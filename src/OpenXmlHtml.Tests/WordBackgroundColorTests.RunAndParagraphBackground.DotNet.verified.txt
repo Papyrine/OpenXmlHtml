@@ -1,1 +1,9 @@
-﻿ Light blue paragraph with yellow highlighted text inside.
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Light blue paragraph with yellow highlighted text inside.
+    }
+  ]
+}

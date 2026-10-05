@@ -1,1 +1,9 @@
-﻿Right-to-left direction text
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Right-to-left direction text
+    }
+  ]
+}

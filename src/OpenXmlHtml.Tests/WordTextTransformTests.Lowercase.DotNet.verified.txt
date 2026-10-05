@@ -1,1 +1,9 @@
-﻿this should be lowercase
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: this should be lowercase
+    }
+  ]
+}

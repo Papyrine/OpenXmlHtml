@@ -1,5 +1,14 @@
-﻿First list item 1
-First list item 2
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+1. First list item 1
+2. First list item 2
 Paragraph between lists
-Second list item 1
-Second list item 2
+1. Second list item 1
+2. Second list item 2
+    }
+  ]
+}

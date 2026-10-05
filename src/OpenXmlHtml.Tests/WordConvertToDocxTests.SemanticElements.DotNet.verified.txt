@@ -1,4 +1,13 @@
-﻿Article Title
-Main content with HTML.
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Article Title
+Main content with HTML1.
 Related info
 Copyright 2024
+    }
+  ]
+}

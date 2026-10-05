@@ -1,7 +1,24 @@
-﻿Table of Contents
+﻿{
+  PageCount: 3,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Table of Contents
 Chapter 1: Getting Started
 Chapter 2: Advanced Topics
+    },
+    {
+      Number: 2,
+      Text:
 Chapter 1: Getting Started
 Welcome to the guide.
+    },
+    {
+      Number: 3,
+      Text:
 Chapter 2: Advanced Topics
 Deep dive into the subject.
+    }
+  ]
+}

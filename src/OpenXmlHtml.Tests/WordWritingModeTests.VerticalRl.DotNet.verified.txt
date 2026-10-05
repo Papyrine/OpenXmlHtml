@@ -1,1 +1,9 @@
-﻿Vertical right-to-left text
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Vertical right-to-left text
+    }
+  ]
+}

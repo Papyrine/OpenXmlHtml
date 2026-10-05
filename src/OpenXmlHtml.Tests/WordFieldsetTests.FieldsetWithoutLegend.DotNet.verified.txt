@@ -1,1 +1,9 @@
-﻿Just some content
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Just some content
+    }
+  ]
+}

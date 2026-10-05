@@ -1,1 +1,9 @@
-﻿Text with bordered span inline.
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Text with bordered span inline.
+    }
+  ]
+}

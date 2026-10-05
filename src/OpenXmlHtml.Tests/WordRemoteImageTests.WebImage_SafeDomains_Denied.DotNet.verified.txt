@@ -1,1 +1,9 @@
-﻿Blocked Image
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Blocked Image
+    }
+  ]
+}

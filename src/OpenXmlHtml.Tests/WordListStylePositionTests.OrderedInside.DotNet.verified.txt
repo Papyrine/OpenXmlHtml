@@ -1,2 +1,11 @@
-﻿First
-Second
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+1. First
+2. Second
+    }
+  ]
+}

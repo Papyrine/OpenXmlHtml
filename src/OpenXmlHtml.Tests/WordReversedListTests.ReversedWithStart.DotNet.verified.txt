@@ -1,3 +1,12 @@
-﻿10. Should be 10
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+10. Should be 10
 9. Should be 9
 8. Should be 8
+    }
+  ]
+}

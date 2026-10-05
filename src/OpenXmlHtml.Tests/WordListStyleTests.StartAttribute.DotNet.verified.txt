@@ -1,3 +1,12 @@
-﻿Should be 5
-Should be 6
-Should be 7
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+5. Should be 5
+6. Should be 6
+7. Should be 7
+    }
+  ]
+}

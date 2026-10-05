@@ -1,1 +1,9 @@
-﻿Cell 1	Cell 2
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Cell 1	Cell 2
+    }
+  ]
+}

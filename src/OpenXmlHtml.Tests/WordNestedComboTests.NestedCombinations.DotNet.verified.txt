@@ -1,17 +1,21 @@
-﻿Nested Tables
-Outer cell 1	Inner A	Inner B
-Inner C	Inner D
-
+﻿{
+  PageCount: 4,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Nested Tables
+Outer cell 1	Inner A Inner B Inner C Inner D
 Outer cell 2	Plain text
 List Inside Table
 Feature	Details
-Languages	C#F#VB.NET
-Steps	Install SDKCreate projectBuild and run
+Languages	• C# • F# • VB.NET
+Steps	1. Install SDK 2. Create project 3. Build and run
 Table Inside List
-Item with embedded table: 
+• Item with embedded table:
 Name	Value
 Alpha	100
-Normal item after table
+• Normal item after table
 Links Inside Formatting
 Bold link
 Italic link
@@ -20,6 +24,10 @@ Bold and italic inside link
 Deeply Nested Formatting
 Bold inside italic inside strikethrough
 Superscript underlined
+    },
+    {
+      Number: 2,
+      Text:
 Bold red 16pt span
 Bold italic highlighted
 Bold code
@@ -28,31 +36,33 @@ Bold cell	Italic cell	Link cell
 Styled span	Code cell	Highlighted
 Bold italic underline	Super/sub	Deleted Inserted
 Deeply Nested Lists
-Level 1 bullet 
-Level 2 bullet 
-Level 3 bullet
-Bold level 3
-Level 1 ordered 
-Level 2 ordered 
-Level 3 ordered
+• Level 1 bullet
+o Level 2 bullet
+▪ Level 3 bullet
+▪ Bold level 3
+1. Level 1 ordered
+1. Level 2 ordered
+1. Level 3 ordered
 Mixed List Types
-Ordered item 
-Unordered child 
-Back to ordered
+1. Ordered item
+o Unordered child
+1. Back to ordered
 Formatting Inside Lists
-Bold item with italic and code
-Link item
-Styled span item
-Item with abbr
-Highlighted and small
+• Bold item with italic and code
+• Link item
+• Styled span item
+• Item with abbr1
+• Highlighted and small
 Rich Blockquote
 Important: This blockquote contains formatting, links, and code.
-Bullet inside blockquote
-Another bullet
+• Bullet inside blockquote
+• Another bullet
 Preformatted With Formatting
-Line 1: plain
-Line 2: bold in pre
-Line 3: colored in pre
+    },
+    {
+      Number: 3,
+      Text:
+Line 1: plain Line 2: bold in pre Line 3: colored in pre
 Bold and italic in heading
 Link inside heading
 Code in heading
@@ -62,12 +72,11 @@ A markup language. See docs.
 CSS
 Style sheets for visual presentation.
 Paragraph Styling Combos
- Indented, justified, 1.8 line-height with bold, italic, and navy Georgia span inside a bordered background div. 
+Indented, justified, 1.8 line-height with bold , italic , and navy Georgia span inside a bordered background div.
 Styled Table
-Centered boldWith small text below	List inside styled cellLink in list in cell
+Centered bold With small text below	1. List inside styled cell 2. Link in list in cell
 Nested Table With Formatting
-Bold italic	Red link
-
+Bold italic Red link
 Complex Link Content
 Bold, italic, and code in one link
 Large green link text
@@ -75,10 +84,17 @@ Quotation Combos
 She said “hello world” emphatically.
 Bold with “quoted” text
 Figure With Rich Caption
+    },
+    {
+      Number: 4,
+      Text:
 Figure 1: A chart showing growth over time
 Section A
 ———
 Section B
- Contact John Doe at john@example.com 
+Contact John Doe at john@example.com
 Click to expand
 Hidden content with italic and link.
+    }
+  ]
+}

@@ -1,2 +1,11 @@
-﻿Paragraph with gray background
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text:
+Paragraph with gray background
 Normal paragraph
+    }
+  ]
+}

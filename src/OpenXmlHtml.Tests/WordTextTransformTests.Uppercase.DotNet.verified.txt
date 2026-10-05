@@ -1,1 +1,9 @@
-﻿THIS SHOULD BE UPPERCASE
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: THIS SHOULD BE UPPERCASE
+    }
+  ]
+}

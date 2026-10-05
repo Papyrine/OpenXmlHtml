@@ -1,1 +1,9 @@
-﻿Pink via bgcolor attr	Normal cell
+﻿{
+  PageCount: 1,
+  Pages: [
+    {
+      Number: 1,
+      Text: Pink via bgcolor attr	Normal cell
+    }
+  ]
+}
