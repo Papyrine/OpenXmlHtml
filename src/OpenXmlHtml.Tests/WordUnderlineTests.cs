@@ -92,5 +92,15 @@ public class WordUnderlineTests
     public Task UnderlineOnSpreadsheet() =>
         Verify(SpreadsheetHtmlConverter.ToInlineString(
             """<span style="text-decoration: underline; text-decoration-style: dotted">Underlined in spreadsheet</span>"""))
-            .Snapshot("<x:is xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><x:r><x:rPr><x:u /></x:rPr><x:t xml:space=\"preserve\">Underlined in spreadsheet</x:t></x:r></x:is>");
+            .Snapshot(
+                """
+                <x:is xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+                  <x:r>
+                    <x:rPr>
+                      <x:u />
+                    </x:rPr>
+                    <x:t xml:space="preserve">Underlined in spreadsheet</x:t>
+                  </x:r>
+                </x:is>
+                """);
 }

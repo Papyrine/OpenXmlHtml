@@ -5,8 +5,7 @@ public class WordTableTests
     [Test]
     public Task SimpleTable() =>
         Verify(WordHtmlConverter.ToElements(
-            "<table><tr><td>A1</td><td>B1</td></tr><tr><td>A2</td><td>B2</td></tr></table>"))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A1</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B1</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A2</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B2</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            "<table><tr><td>A1</td><td>B1</td></tr><tr><td>A2</td><td>B2</td></tr></table>"));
 
     [Test]
     public Task TableWithHeaders() =>
@@ -20,24 +19,17 @@ public class WordTableTests
                 <tr><td>foo</td><td>bar</td></tr>
               </tbody>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:trPr><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Name</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Value</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">foo</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">bar</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     [Test]
     public Task TableWithCaption() =>
         Verify(WordHtmlConverter.ToElements(
-            "<table><caption>Table 1</caption><tr><td>data</td></tr></table>"))
-            .Snapshot(
-                """
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:rPr><w:b /></w:rPr><w:t xml:space="preserve">Table 1</w:t></w:r></w:p>
-                <w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tblPr><w:tblW w:w="0" w:type="auto" /><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:left w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:bottom w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:right w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:insideH w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:insideV w:val="single" w:color="auto" w:sz="4" w:space="0" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space="preserve">data</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
-                """);
+            "<table><caption>Table 1</caption><tr><td>data</td></tr></table>"));
 
     [Test]
     public Task FormattedCellContent() =>
         Verify(WordHtmlConverter.ToElements(
-            "<table><tr><td><b>bold</b></td><td><i>italic</i></td></tr></table>"))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">bold</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:i /></w:rPr><w:t xml:space=\"preserve\">italic</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            "<table><tr><td><b>bold</b></td><td><i>italic</i></td></tr></table>"));
 
     [Test]
     public Task TableWithColspan() =>
@@ -47,8 +39,7 @@ public class WordTableTests
               <tr><td colspan="2">Merged</td></tr>
               <tr><td>A</td><td>B</td></tr>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:tcPr><w:gridSpan w:val=\"2\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">Merged</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     [Test]
     public Task TableWithRowspan() =>
@@ -58,8 +49,7 @@ public class WordTableTests
               <tr><td rowspan="2">Span</td><td>B1</td></tr>
               <tr><td>B2</td></tr>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:tcPr><w:vMerge w:val=\"restart\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">Span</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B1</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:tcPr><w:vMerge /></w:tcPr><w:p /></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B2</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     [Test]
     public Task NestedTable() =>
@@ -73,8 +63,7 @@ public class WordTableTests
                 </td>
               </tr>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Outer</w:t></w:r></w:p></w:tc><w:tc><w:tbl><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Inner</w:t></w:r></w:p></w:tc></w:tr></w:tbl><w:p /></w:tc></w:tr></w:tbl>");
+            """));
 
     [Test]
     public Task MixedContentWithTable() =>
@@ -83,13 +72,7 @@ public class WordTableTests
             <p>Before table</p>
             <table><tr><td>Cell</td></tr></table>
             <p>After table</p>
-            """))
-            .Snapshot(
-                """
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">Before table</w:t></w:r></w:p>
-                <w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:tblPr><w:tblW w:w="0" w:type="auto" /><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:left w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:bottom w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:right w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:insideH w:val="single" w:color="auto" w:sz="4" w:space="0" /><w:insideV w:val="single" w:color="auto" w:sz="4" w:space="0" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space="preserve">Cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">After table</w:t></w:r></w:p>
-                """);
+            """));
 
     [Test]
     public Task TableWithTfoot() =>
@@ -100,8 +83,7 @@ public class WordTableTests
               <tbody><tr><td>Body</td></tr></tbody>
               <tfoot><tr><td>Footer</td></tr></tfoot>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:trPr><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Header</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Body</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Footer</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     // Every thead row carries tblHeader, so a multi-row header repeats intact. Body rows must not,
     // or Word repeats the whole table.
@@ -113,15 +95,13 @@ public class WordTableTests
               <thead><tr><th>H1</th></tr><tr><th>H2</th></tr></thead>
               <tbody><tr><td>Body</td></tr></tbody>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:trPr><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">H1</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:trPr><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">H2</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Body</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     // A bare table has no thead, so nothing repeats and no trPr is emitted at all.
     [Test]
     public Task TableWithoutTheadHasNoRepeatingRow() =>
         Verify(WordHtmlConverter.ToElements(
-            "<table><tr><th>H</th></tr><tr><td>Body</td></tr></table>"))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">H</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Body</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            "<table><tr><th>H</th></tr><tr><td>Body</td></tr></table>"));
 
     // trHeight and tblHeader share a trPr, and CT_TrPrBase requires trHeight first.
     [Test]
@@ -132,8 +112,7 @@ public class WordTableTests
               <thead><tr style="height: 40px"><th>H</th></tr></thead>
               <tbody><tr><td>Body</td></tr></tbody>
             </table>
-            """))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:trPr><w:trHeight w:val=\"600\" w:hRule=\"atLeast\" /><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">H</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Body</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """));
 
     [Test]
     public Task EmptyTable() =>
@@ -144,33 +123,28 @@ public class WordTableTests
     [Test]
     public Task CellPercentageWidthAttribute() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table><tr><td width="35%">A</td><td width="65%">B</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1750\" w:type=\"pct\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3250\" w:type=\"pct\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table><tr><td width="35%">A</td><td width="65%">B</td></tr></table>"""));
 
     [Test]
     public Task CellPercentageCssWidth() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table><tr><td style="width: 35%">A</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"1750\" w:type=\"pct\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table><tr><td style="width: 35%">A</td></tr></table>"""));
 
     [Test]
     public Task TablePercentageWidth() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table style="width: 100%"><tr><td>A</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"5000\" w:type=\"pct\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table style="width: 100%"><tr><td>A</td></tr></table>"""));
 
     // A bare number is still px, so this must stay dxa rather than becoming a percentage.
     [Test]
     public Task CellBareNumberWidthStaysDxa() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table><tr><td width="35">A</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"525\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"525\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table><tr><td width="35">A</td></tr></table>"""));
 
     [Test]
     public Task CellPixelWidthStaysDxa() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table><tr><td style="width: 250px">A</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"3750\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"3750\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table><tr><td style="width: 250px">A</td></tr></table>"""));
 
     // An absolute table width is shared across the columns and switched to fixed layout, because
     // Word's autofit would otherwise treat it as a preference and resize to content. A percentage
@@ -180,16 +154,14 @@ public class WordTableTests
     [Test]
     public Task PercentageTableWidthStaysOnAutofit() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table style="width: 35%"><tr><td>A</td><td>B</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"1750\" w:type=\"pct\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table style="width: 35%"><tr><td>A</td><td>B</td></tr></table>"""));
 
     // A tcPr permits one tcW. Both sources emitted unconditionally, so this produced two — and once
     // percentages parsed they could differ in unit too. Css outranks the presentational attribute.
     [Test]
     public Task CellWidthAttributeAndCssEmitsOneWidth() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table><tr><td width="35%" style="width: 200px">A</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table><tr><td width="35%" style="width: 200px">A</td></tr></table>"""));
 
     // Under Word's default autofit layout this rendered as a box hugging "single cell" rather than
     // the 602px asked for, because tblW is only a preferred width there.
@@ -207,14 +179,12 @@ public class WordTableTests
     [Test]
     public Task TableWidthSharedAcrossColumns() =>
         Verify(WordHtmlConverter.ToElements(
-            """<table style="width: 600px"><tr><td>A</td><td>B</td><td>C</td></tr></table>"""))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"9000\" w:type=\"dxa\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders><w:tblLayout w:type=\"fixed\" /></w:tblPr><w:tblGrid><w:gridCol w:w=\"3000\" /><w:gridCol w:w=\"3000\" /><w:gridCol w:w=\"3000\" /></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w=\"3000\" w:type=\"dxa\" /></w:tcPr><w:p><w:r><w:t xml:space=\"preserve\">C</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+            """<table style="width: 600px"><tr><td>A</td><td>B</td><td>C</td></tr></table>"""));
 
     // No explicit width means nothing to honour, so autofit stays and no tblLayout is emitted.
     [Test]
     public Task TableWithoutWidthStaysAutofit() =>
-        Verify(WordHtmlConverter.ToElements("<table><tr><td>A</td><td>B</td></tr></table>"))
-            .Snapshot("<w:tbl xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">B</w:t></w:r></w:p></w:tc></w:tr></w:tbl>");
+        Verify(WordHtmlConverter.ToElements("<table><tr><td>A</td><td>B</td></tr></table>"));
 
     static List<string?> Grid(string html) =>
         WordHtmlConverter

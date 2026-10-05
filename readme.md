@@ -47,7 +47,7 @@ Get an `InlineString` for use in a cell:
 var inlineString = SpreadsheetHtmlConverter.ToInlineString(
     "<b>Revenue:</b> <font color=\"#008000\">$1.2M</font>");
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L20-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-ToInlineString' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L19-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-ToInlineString' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -64,7 +64,7 @@ var inlineString = SpreadsheetHtmlConverter.ToInlineString(
     </ul>
     """);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L34-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetList' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L32-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetList' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -87,7 +87,7 @@ SpreadsheetHtmlConverter.SetCellHtml(
     </table>
     """);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L57-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetRichContent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/SpreadsheetSamples.cs#L50-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-SpreadsheetRichContent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -134,7 +134,7 @@ WordHtmlConverter.AppendHtml(
     </ol>
     """);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L27-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-AppendHtml' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L22-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-AppendHtml' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -154,7 +154,7 @@ var paragraphs = WordHtmlConverter.ToParagraphs(
     <p>Contact <a href="mailto:ops@example.com">ops team</a> for details.</p>
     """);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L54-L67' title='Snippet source file'>snippet source</a> | <a href='#snippet-WordRichDocument' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L48-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-WordRichDocument' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -177,7 +177,7 @@ WordHtmlConverter.ConvertToDocx(
     """,
     stream);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L83-L97' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L69-L83' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -193,7 +193,7 @@ using var htmlStream = new MemoryStream(
 using var docxStream = new MemoryStream();
 WordHtmlConverter.ConvertToDocx(htmlStream, docxStream);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L106-L113' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertStreamToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L92-L99' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertStreamToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -206,7 +206,7 @@ Convert an HTML file to a docx file:
 ```cs
 WordHtmlConverter.ConvertFileToDocx(htmlPath, docxPath);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L477-L481' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L463-L467' title='Snippet source file'>snippet source</a> | <a href='#snippet-ConvertFileToDocx' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 
@@ -234,7 +234,7 @@ WordHtmlConverter.SetHeader(headerMainPart,
 WordHtmlConverter.SetFooter(headerMainPart,
     """<p style="text-align: center; font-size: 9pt; color: gray">Confidential</p>""");
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L269-L288' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L255-L274' title='Snippet source file'>snippet source</a> | <a href='#snippet-HeadersAndFooters' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Headers and footers support all the same HTML elements and CSS properties as the document body (tables, formatting, images, etc.). Overloads accepting `HtmlConvertSettings` are also available.
@@ -264,7 +264,7 @@ WordHtmlConverter.ConvertToDocx(
     settingsStream,
     settings);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L179-L198' title='Snippet source file'>snippet source</a> | <a href='#snippet-RemoteImageSettings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L165-L184' title='Snippet source file'>snippet source</a> | <a href='#snippet-RemoteImageSettings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Available policies:
@@ -295,7 +295,7 @@ var settings = new HtmlConvertSettings
 var first = WordHtmlConverter.ToElements("<ul><li>a</li><li>b</li></ul>", mainPart, settings);
 var second = WordHtmlConverter.ToElements("<ul><li>c</li><li>d</li></ul>", mainPart, settings);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L212-L224' title='Snippet source file'>snippet source</a> | <a href='#snippet-SharedNumberingSession' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L198-L210' title='Snippet source file'>snippet source</a> | <a href='#snippet-SharedNumberingSession' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Without a session each `ToElements` call allocates its own abstract, which is harmless but produces redundant definitions. A session is only needed when you call `ToElements` several times against the same `MainDocumentPart` within one render.
@@ -313,7 +313,7 @@ A numbering part is created only when the converted HTML actually contains a lis
 // A bullet and a decimal definition for Word to reference, so it never has to create one.
 WordNumbering.EnsureListDefinitions(mainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L238-L243' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureListDefinitions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L224-L229' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureListDefinitions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 It adds one bullet and one decimal definition, each with a numbering instance (Word cannot apply an abstract definition that no instance points at). It is idempotent and safe to call either side of a conversion: a format already present is left alone, and new ids continue past the highest in use. The part is created with a deterministic relationship id, so output stays byte-reproducible.
@@ -333,7 +333,7 @@ The same problem applies to named paragraph styles. Applying **Heading 1** (or a
 // Normal + Heading1-6 + ListParagraph, so Word's style gallery is available.
 WordStyles.EnsureStyleDefinitions(mainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L256-L261' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureStyleDefinitions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L242-L247' title='Snippet source file'>snippet source</a> | <a href='#snippet-EnsureStyleDefinitions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 It adds `Normal`, `Heading1`–`Heading6`, and `ListParagraph` with their built-in `w:styleId`s (Word links its Heading buttons to those ids, so they must be exact). It is idempotent — a style already present by id is left untouched, so a template's own definitions win — and the part is created with a deterministic relationship id, so output stays byte-reproducible.
@@ -359,7 +359,7 @@ WordHtmlConverter.AppendHtml(
     """,
     styleMainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L319-L332' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L305-L318' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleMapping' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
  * Paragraph styles (`w:type="paragraph"`) are applied via `ParagraphStyleId`
@@ -418,7 +418,7 @@ WordHtmlConverter.AppendHtml(
     """,
     styleMainPart);
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L360-L386' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleFromEnclosingBlock' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L346-L372' title='Snippet source file'>snippet source</a> | <a href='#snippet-StyleFromEnclosingBlock' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The style is scoped to the block that set it:
@@ -459,7 +459,7 @@ WordHtmlConverter.ConvertToDocx(
 // IgnoredAttribute, width, "40%", w:gridCol takes an absolute width, ...
 // UnsupportedElement, iframe, no Word equivalent
 ```
-<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L443-L466' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
+<sup><a href='/src/OpenXmlHtml.Tests/Samples/WordSamples.cs#L429-L452' title='Snippet source file'>snippet source</a> | <a href='#snippet-Diagnostics' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each `HtmlDiagnostic` carries a `Kind`, the `Name` of the property, attribute, or element, the `Value` that was discarded, and a `Reason`:

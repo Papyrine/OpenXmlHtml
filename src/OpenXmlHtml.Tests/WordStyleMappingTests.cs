@@ -36,7 +36,19 @@ public class WordStyleMappingTests
             main);
 
         return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Quote\" /></w:pPr><w:r><w:t xml:space=\"preserve\">This should use the Quote style</w:t></w:r></w:p></w:body>");
+            .Snapshot(
+                """
+                <w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:p>
+                    <w:pPr>
+                      <w:pStyle w:val="Quote" />
+                    </w:pPr>
+                    <w:r>
+                      <w:t xml:space="preserve">This should use the Quote style</w:t>
+                    </w:r>
+                  </w:p>
+                </w:body>
+                """);
     }
 
     [Test]
@@ -50,8 +62,7 @@ public class WordStyleMappingTests
             """<p>Normal text with <span class="Emphasis">emphasized</span> word</p>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:t xml:space=\"preserve\">Normal text with </w:t></w:r><w:r><w:rPr><w:rStyle w:val=\"Emphasis\" /></w:rPr><w:t xml:space=\"preserve\">emphasized</w:t></w:r><w:r><w:t xml:space=\"preserve\"> word</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     [Test]
@@ -66,8 +77,7 @@ public class WordStyleMappingTests
             """<blockquote class="IntenseQuote">Quote with <span class="Strong">strong</span> text</blockquote>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"IntenseQuote\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Quote with </w:t></w:r><w:r><w:rPr><w:rStyle w:val=\"Strong\" /></w:rPr><w:t xml:space=\"preserve\">strong</w:t></w:r><w:r><w:t xml:space=\"preserve\"> text</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     [Test]
@@ -82,7 +92,16 @@ public class WordStyleMappingTests
             main);
 
         return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:t xml:space=\"preserve\">Should render as default</w:t></w:r></w:p></w:body>");
+            .Snapshot(
+                """
+                <w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:p>
+                    <w:r>
+                      <w:t xml:space="preserve">Should render as default</w:t>
+                    </w:r>
+                  </w:p>
+                </w:body>
+                """);
     }
 
     [Test]
@@ -96,8 +115,7 @@ public class WordStyleMappingTests
             """<h1 class="CustomStyle">Heading should use Heading1 not CustomStyle</h1>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Heading1\" /></w:pPr><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Heading should use Heading1 not CustomStyle</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     [Test]
@@ -112,7 +130,19 @@ public class WordStyleMappingTests
             main);
 
         return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"quote\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Case insensitive match</w:t></w:r></w:p></w:body>");
+            .Snapshot(
+                """
+                <w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:p>
+                    <w:pPr>
+                      <w:pStyle w:val="quote" />
+                    </w:pPr>
+                    <w:r>
+                      <w:t xml:space="preserve">Case insensitive match</w:t>
+                    </w:r>
+                  </w:p>
+                </w:body>
+                """);
     }
 
     // A wrapper carrying the target style is the natural way to render an editor fragment into a
@@ -129,8 +159,7 @@ public class WordStyleMappingTests
             """<div class="Body"><p>First</p><p>Second</p></div>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Body\" /></w:pPr><w:r><w:t xml:space=\"preserve\">First</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val=\"Body\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Second</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     // The ListParagraph fallback is applied only when nothing else set a style, so an ancestor class
@@ -146,8 +175,7 @@ public class WordStyleMappingTests
             """<ul class="BodyList"><li>First</li><li>Second</li></ul>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"BodyList\" /><w:numPr><w:ilvl w:val=\"0\" /><w:numId w:val=\"2\" /></w:numPr><w:contextualSpacing /></w:pPr><w:r><w:t xml:space=\"preserve\">First</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val=\"BodyList\" /><w:numPr><w:ilvl w:val=\"0\" /><w:numId w:val=\"2\" /></w:numPr><w:contextualSpacing /></w:pPr><w:r><w:t xml:space=\"preserve\">Second</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     // The style is scoped to the block that set it: what follows must not inherit it.
@@ -162,8 +190,7 @@ public class WordStyleMappingTests
             """<div class="Body"><p>Inside</p></div><p>After</p>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Body\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Inside</w:t></w:r></w:p><w:p><w:r><w:t xml:space=\"preserve\">After</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     // An inner block overrides for its own content, and the outer style resumes afterwards.
@@ -179,8 +206,7 @@ public class WordStyleMappingTests
             """<div class="Outer"><p>One</p><div class="Inner"><p>Two</p></div><p>Three</p></div>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Outer\" /></w:pPr><w:r><w:t xml:space=\"preserve\">One</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val=\"Inner\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Two</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val=\"Outer\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Three</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     // An element's own class still wins over the one it sits inside.
@@ -196,8 +222,7 @@ public class WordStyleMappingTests
             """<div class="Body"><p class="Quote">Quoted</p><p>Plain</p></div>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:pPr><w:pStyle w:val=\"Quote\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Quoted</w:t></w:r></w:p><w:p><w:pPr><w:pStyle w:val=\"Body\" /></w:pPr><w:r><w:t xml:space=\"preserve\">Plain</w:t></w:r></w:p></w:body>");
+        return Verify(body);
     }
 
     // A table style is the table's to take: the borders, banding and cell margins are the style's
@@ -214,8 +239,7 @@ public class WordStyleMappingTests
             """<table class="BrandTable"><tr><td>Label</td><td>Value</td></tr></table>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tbl><w:tblPr><w:tblStyle w:val=\"BrandTable\" /><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblLook w:firstRow=\"false\" w:lastRow=\"false\" w:firstColumn=\"false\" w:lastColumn=\"false\" w:noHBand=\"false\" w:noVBand=\"true\" /></w:tblPr><w:tblGrid><w:gridCol /><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Label</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Value</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>");
+        return Verify(body);
     }
 
     // The html says whether the table has a header, and that is what decides the style's firstRow
@@ -232,8 +256,7 @@ public class WordStyleMappingTests
             """<table class="BrandTable"><thead><tr><th>Name</th></tr></thead><tbody><tr><td>Value</td></tr></tbody></table>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tbl><w:tblPr><w:tblStyle w:val=\"BrandTable\" /><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblLook w:firstRow=\"true\" w:lastRow=\"false\" w:firstColumn=\"false\" w:lastColumn=\"false\" w:noHBand=\"false\" w:noVBand=\"true\" /></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:trPr><w:tblHeader /></w:trPr><w:tc><w:p><w:r><w:rPr><w:b /></w:rPr><w:t xml:space=\"preserve\">Name</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Value</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>");
+        return Verify(body);
     }
 
     // Only a table can take a table style, so one named on anything else has nothing to apply to.
@@ -249,7 +272,16 @@ public class WordStyleMappingTests
             main);
 
         return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:p><w:r><w:t xml:space=\"preserve\">Not a table</w:t></w:r></w:p></w:body>");
+            .Snapshot(
+                """
+                <w:body xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:p>
+                    <w:r>
+                      <w:t xml:space="preserve">Not a table</w:t>
+                    </w:r>
+                  </w:p>
+                </w:body>
+                """);
     }
 
     // And a table keeps its default borders when its class names a paragraph style, since nothing
@@ -265,7 +297,6 @@ public class WordStyleMappingTests
             """<table class="Quote"><tr><td>Cell</td></tr></table>""",
             main);
 
-        return Verify(body)
-            .Snapshot("<w:body xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:tbl><w:tblPr><w:tblW w:w=\"0\" w:type=\"auto\" /><w:tblBorders><w:top w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:left w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:bottom w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:right w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideH w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /><w:insideV w:val=\"single\" w:color=\"auto\" w:sz=\"4\" w:space=\"0\" /></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol /></w:tblGrid><w:tr><w:tc><w:p><w:r><w:t xml:space=\"preserve\">Cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>");
+        return Verify(body);
     }
 }

@@ -140,12 +140,7 @@ public class WordListNumberingTests
               <li>Another item</li>
             </ul>
             """);
-        return Verify(elements)
-            .Snapshot(
-                """
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">● </w:t></w:r><w:r><w:t xml:space="preserve">Bullet with text prefix</w:t></w:r></w:p>
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">● </w:t></w:r><w:r><w:t xml:space="preserve">Another item</w:t></w:r></w:p>
-                """);
+        return Verify(elements);
     }
 
     // A block-level child makes BuildElement flush before its own children are processed. That
