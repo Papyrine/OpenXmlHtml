@@ -1,2 +1,5 @@
-﻿This uses the Quote paragraph style
+﻿{
+  Text:
+This uses the Quote paragraph style
 Normal text with emphasized word
+}

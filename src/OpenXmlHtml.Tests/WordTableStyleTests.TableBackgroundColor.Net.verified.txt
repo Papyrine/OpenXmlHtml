@@ -1,1 +1,3 @@
-﻿Shaded table	Background from table
+﻿{
+  Text: Shaded table	Background from table
+}

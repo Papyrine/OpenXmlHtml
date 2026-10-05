@@ -1,2 +1,5 @@
-﻿Cell A	Cell B
+﻿{
+  Text:
+Cell A	Cell B
 Cell C	Cell D
+}

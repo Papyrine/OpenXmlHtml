@@ -1,4 +1,6 @@
-﻿Annual Report 2024
+﻿{
+  Text:
+Annual Report 2024
 Executive Summary
  This report covers the fiscal year 2024 performance across all divisions. Revenue grew by 15% year-over-year, driven primarily by our cloud services division. 
 Source: Q4 2024 Financial Statements
@@ -37,3 +39,4 @@ Q4: 16200000
  1 All figures are in USD. See appendix for methodology. 
 Appendix: Methodology
 Revenue figures are calculated using “accrual basis accounting” as defined by GAAP.
+}

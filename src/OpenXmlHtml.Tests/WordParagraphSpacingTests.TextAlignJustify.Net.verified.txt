@@ -1,1 +1,3 @@
-﻿Justified text with enough content to show justification effect clearly in the document.
+﻿{
+  Text: Justified text with enough content to show justification effect clearly in the document.
+}

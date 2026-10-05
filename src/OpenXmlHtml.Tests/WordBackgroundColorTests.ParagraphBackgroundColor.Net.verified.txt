@@ -1,2 +1,5 @@
-﻿Paragraph with gray background
+﻿{
+  Text:
+Paragraph with gray background
 Normal paragraph
+}

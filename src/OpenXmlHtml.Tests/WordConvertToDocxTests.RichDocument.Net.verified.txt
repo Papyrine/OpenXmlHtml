@@ -1,4 +1,6 @@
-﻿Report
+﻿{
+  Text:
+Report
 Generated on 2024-01-15
 Summary
 All systems operational.
@@ -6,3 +8,4 @@ Server: OK
 Database: OK
 Details
 See report for more.
+}

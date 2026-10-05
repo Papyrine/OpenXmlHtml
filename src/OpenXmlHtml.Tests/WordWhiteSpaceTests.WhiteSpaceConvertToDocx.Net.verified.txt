@@ -1,1 +1,3 @@
-﻿indented  text  preserved
+﻿{
+  Text: indented  text  preserved
+}

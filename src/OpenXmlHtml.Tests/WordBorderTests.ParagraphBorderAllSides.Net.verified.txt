@@ -1,1 +1,3 @@
-﻿Bordered paragraph
+﻿{
+  Text: Bordered paragraph
+}

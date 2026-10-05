@@ -1,4 +1,7 @@
-﻿Groove border
+﻿{
+  Text:
+Groove border
 Ridge border
 Inset border
 Outset border
+}

@@ -1,1 +1,3 @@
-﻿Photo
+﻿{
+  Text: Photo
+}

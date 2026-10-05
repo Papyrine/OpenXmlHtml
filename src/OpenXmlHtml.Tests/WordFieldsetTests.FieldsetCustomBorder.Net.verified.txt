@@ -1,2 +1,5 @@
-﻿Custom border
+﻿{
+  Text:
+Custom border
 Content
+}

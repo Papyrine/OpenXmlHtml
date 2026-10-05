@@ -1,1 +1,3 @@
-﻿Text with dotted border inline.
+﻿{
+  Text: Text with dotted border inline.
+}

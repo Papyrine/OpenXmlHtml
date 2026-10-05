@@ -1,2 +1,5 @@
-﻿Outer 
+﻿{
+  Text:
+Outer 
 Inner
+}

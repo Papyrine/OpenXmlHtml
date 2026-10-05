@@ -1,2 +1,5 @@
-﻿Tall row via attribute
+﻿{
+  Text:
+Tall row via attribute
 Normal row
+}

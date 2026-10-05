@@ -1,1 +1,3 @@
-﻿Spaced paragraph
+﻿{
+  Text: Spaced paragraph
+}

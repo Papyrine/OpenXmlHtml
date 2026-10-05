@@ -1,3 +1,6 @@
-﻿Product	Price	Status
+﻿{
+  Text:
+Product	Price	Status
 Widget A	$29.99	 In Stock 
 Widget B	$49.99	 Out of Stock
+}

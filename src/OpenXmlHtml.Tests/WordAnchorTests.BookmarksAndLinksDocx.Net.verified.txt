@@ -1,7 +1,10 @@
-﻿Table of Contents
+﻿{
+  Text:
+Table of Contents
 Chapter 1: Getting Started
 Chapter 2: Advanced Topics
 Chapter 1: Getting Started
 Welcome to the guide.
 Chapter 2: Advanced Topics
 Deep dive into the subject.
+}

@@ -1,1 +1,3 @@
-﻿this should be lowercase
+﻿{
+  Text: this should be lowercase
+}

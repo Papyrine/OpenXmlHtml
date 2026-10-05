@@ -1,1 +1,3 @@
-﻿Normal text with small caps text inline.
+﻿{
+  Text: Normal text with small caps text inline.
+}

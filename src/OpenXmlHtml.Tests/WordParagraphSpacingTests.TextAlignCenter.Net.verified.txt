@@ -1,1 +1,3 @@
-﻿Centered text
+﻿{
+  Text: Centered text
+}

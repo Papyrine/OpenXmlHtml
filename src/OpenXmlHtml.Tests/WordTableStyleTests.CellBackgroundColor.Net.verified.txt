@@ -1,2 +1,5 @@
-﻿Header	Value
+﻿{
+  Text:
+Header	Value
 Row 1	$100
+}

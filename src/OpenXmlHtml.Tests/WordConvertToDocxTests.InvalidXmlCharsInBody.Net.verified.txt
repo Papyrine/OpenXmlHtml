@@ -1,1 +1,3 @@
-﻿before�after
+﻿{
+  Text: before�after
+}

@@ -1,2 +1,5 @@
-﻿Before image
+﻿{
+  Text:
+Before image
 After image
+}

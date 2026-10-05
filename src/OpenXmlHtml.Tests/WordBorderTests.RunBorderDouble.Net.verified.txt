@@ -1,1 +1,3 @@
-﻿Text with double border inline.
+﻿{
+  Text: Text with double border inline.
+}

@@ -1,1 +1,3 @@
-﻿Default horizontal text
+﻿{
+  Text: Default horizontal text
+}

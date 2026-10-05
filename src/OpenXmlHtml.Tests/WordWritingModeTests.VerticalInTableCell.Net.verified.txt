@@ -1,1 +1,3 @@
-﻿Vertical cell text	Normal cell text
+﻿{
+  Text: Vertical cell text	Normal cell text
+}

@@ -1,1 +1,3 @@
-﻿Red bordered cell	Normal cell
+﻿{
+  Text: Red bordered cell	Normal cell
+}

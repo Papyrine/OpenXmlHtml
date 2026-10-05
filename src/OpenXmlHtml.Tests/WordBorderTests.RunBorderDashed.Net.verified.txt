@@ -1,1 +1,3 @@
-﻿Text with dashed blue border inline.
+﻿{
+  Text: Text with dashed blue border inline.
+}

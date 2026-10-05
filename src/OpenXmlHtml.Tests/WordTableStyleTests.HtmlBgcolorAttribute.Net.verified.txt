@@ -1,1 +1,3 @@
-﻿Pink via bgcolor attr	Normal cell
+﻿{
+  Text: Pink via bgcolor attr	Normal cell
+}

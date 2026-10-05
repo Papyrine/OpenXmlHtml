@@ -1,1 +1,3 @@
-﻿Default padding from table	Applied to all cells
+﻿{
+  Text: Default padding from table	Applied to all cells
+}

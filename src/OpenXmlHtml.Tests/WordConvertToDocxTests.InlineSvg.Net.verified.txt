@@ -1,3 +1,6 @@
-﻿Before SVG
+﻿{
+  Text:
+Before SVG
  
 After SVG
+}

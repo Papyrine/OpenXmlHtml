@@ -1,1 +1,3 @@
-﻿Thick	Borders
+﻿{
+  Text: Thick	Borders
+}

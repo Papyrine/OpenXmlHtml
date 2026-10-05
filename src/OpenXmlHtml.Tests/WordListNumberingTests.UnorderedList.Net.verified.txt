@@ -1,3 +1,6 @@
-﻿Alpha
+﻿{
+  Text:
+Alpha
 Beta
 Gamma
+}

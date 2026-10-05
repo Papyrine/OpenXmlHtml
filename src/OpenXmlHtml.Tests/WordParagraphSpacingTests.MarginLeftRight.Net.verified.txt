@@ -1,1 +1,3 @@
-﻿Indented paragraph
+﻿{
+  Text: Indented paragraph
+}

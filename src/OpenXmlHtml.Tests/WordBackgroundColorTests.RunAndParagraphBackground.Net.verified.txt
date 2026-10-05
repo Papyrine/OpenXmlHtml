@@ -1,1 +1,3 @@
-﻿ Light blue paragraph with yellow highlighted text inside.
+﻿{
+  Text:  Light blue paragraph with yellow highlighted text inside.
+}

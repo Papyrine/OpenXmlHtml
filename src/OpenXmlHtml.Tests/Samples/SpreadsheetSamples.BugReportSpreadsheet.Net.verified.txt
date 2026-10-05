@@ -1,30 +1,32 @@
 ﻿{
-  Sheets: [
-    {
-      Name: Bug Report,
-      Columns: [
-        {
-          Name: ID,
-          ContainsRichText: false,
-          RequiredHighlight: false
-        },
-        {
-          Name: Priority,
-          ContainsRichText: false,
-          RequiredHighlight: false
-        },
-        {
-          Name: Summary,
-          ContainsRichText: false,
-          RequiredHighlight: false
-        },
-        {
-          Name: Details,
-          ContainsRichText: false,
-          RequiredHighlight: false
-        }
-      ]
-    }
-  ],
-  WorksheetCount: 1
+  Document: {
+    Sheets: [
+      {
+        Name: Bug Report,
+        Columns: [
+          {
+            Name: ID,
+            ContainsRichText: false,
+            RequiredHighlight: false
+          },
+          {
+            Name: Priority,
+            ContainsRichText: false,
+            RequiredHighlight: false
+          },
+          {
+            Name: Summary,
+            ContainsRichText: false,
+            RequiredHighlight: false
+          },
+          {
+            Name: Details,
+            ContainsRichText: false,
+            RequiredHighlight: false
+          }
+        ]
+      }
+    ],
+    WorksheetCount: 1
+  }
 }

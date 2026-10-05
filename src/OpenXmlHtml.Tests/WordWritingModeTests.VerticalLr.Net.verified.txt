@@ -1,1 +1,3 @@
-﻿Vertical left-to-right text
+﻿{
+  Text: Vertical left-to-right text
+}

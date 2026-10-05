@@ -1,1 +1,3 @@
-﻿spread chars
+﻿{
+  Text: spread chars
+}

@@ -1,1 +1,3 @@
-﻿Using background shorthand property.
+﻿{
+  Text: Using background shorthand property.
+}
