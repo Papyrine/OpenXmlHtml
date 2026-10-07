@@ -6,4 +6,7 @@
 // cell, which holds one hyperlink at most and leaves rich text as the only way to say where the
 // rest point. A Word paragraph can hold a hyperlink per anchor, so that path links the text and
 // drops the suffix — but only when it managed to build the link, or the target would be lost.
-record TextSegment(string Text, FormatState Format, bool IsLineBreak = false, bool IsLinkUrl = false);
+//
+// IsListMarker marks the bullet or number an <li> opens with. A block that is the first thing in
+// the item (<li><p>x</p></li>) reads it to stay on the marker's line instead of breaking after it.
+record TextSegment(string Text, FormatState Format, bool IsLineBreak = false, bool IsLinkUrl = false, bool IsListMarker = false);

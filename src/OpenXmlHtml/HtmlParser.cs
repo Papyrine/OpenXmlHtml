@@ -119,7 +119,8 @@ static class HtmlSegmentParser
         }
 
         var isBlock = IsBlockElement(tag);
-        if (isBlock)
+        if (isBlock &&
+            !IsFirstBlockInListItem(tag, segments))
         {
             EnsureNewline(segments, format);
         }
@@ -135,7 +136,7 @@ static class HtmlSegmentParser
                 bulletFormat.ListDepth = depth;
                 if (parent == "ol")
                 {
-                    segments.Add(new($"{indent}{listIndex}. ", bulletFormat));
+                    segments.Add(new($"{indent}{listIndex}. ", bulletFormat, IsListMarker: true));
                 }
                 else
                 {
@@ -145,7 +146,7 @@ static class HtmlSegmentParser
                         1 => "○",
                         _ => "■"
                     };
-                    segments.Add(new($"{indent}{bullet} ", bulletFormat));
+                    segments.Add(new($"{indent}{bullet} ", bulletFormat, IsListMarker: true));
                 }
 
                 ProcessNode(element, newFormat, segments, inPre, settings);
@@ -692,6 +693,14 @@ static class HtmlSegmentParser
 
         return builder.ToString();
     }
+
+    // A block that opens a list item shares the marker's line, as it does in a browser: html is
+    // <p>-wrapped often enough that <li><p>x</p></li> has to read "● x" rather than strand the
+    // bullet on a line of its own. A nested list is left to start below its parent's marker.
+    static bool IsFirstBlockInListItem(string tag, List<TextSegment> segments) =>
+        tag is not ("ul" or "ol") &&
+        segments.Count > 0 &&
+        segments[^1].IsListMarker;
 
     static void EnsureNewline(List<TextSegment> segments, FormatState format)
     {
