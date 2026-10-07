@@ -24,6 +24,14 @@ public class SpreadsheetListTests
                 """);
 
     [Test]
+    public Task ParagraphWrappedListItems() =>
+        Verify(SpreadsheetHtmlConverter.ToInlineString("<ul><li><p>one</p></li><li><p>two</p></li></ul><p>after</p>"));
+
+    [Test]
+    public Task MultipleParagraphsInListItem() =>
+        Verify(SpreadsheetHtmlConverter.ToInlineString("<ol><li><p>one</p><p>more</p></li><li><p>two</p></li></ol>"));
+
+    [Test]
     public Task FormattedListItems() =>
         Verify(SpreadsheetHtmlConverter.ToInlineString("<ul><li><b>bold item</b></li><li><i>italic item</i></li></ul>"));
 
