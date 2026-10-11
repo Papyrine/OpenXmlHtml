@@ -731,32 +731,56 @@ static partial class WordContentBuilder
         return false;
     }
 
+    // The rows in the order a table is drawn: head, then body, then foot, whatever order the
+    // sections were written in. html 4 required <tfoot> to come before <tbody>, so markup written
+    // to it has the footer second in the source, and read in source order it landed between the
+    // header and the body.
     static List<IElement> GetTableRows(IElement tableElement)
     {
         var rows = new List<IElement>();
+        List<IElement>? body = null;
+        List<IElement>? foot = null;
         foreach (var child in tableElement.Children)
         {
             switch (child.LocalName)
             {
                 case "tr":
-                    rows.Add(child);
+                    (body ??= []).Add(child);
                     break;
-                case "thead" or "tbody" or "tfoot":
-                {
-                    foreach (var grandchild in child.Children)
-                    {
-                        if (grandchild.LocalName == "tr")
-                        {
-                            rows.Add(grandchild);
-                        }
-                    }
-
+                case "thead":
+                    AddSectionRows(child, rows);
                     break;
-                }
+                case "tbody":
+                    AddSectionRows(child, body ??= []);
+                    break;
+                case "tfoot":
+                    AddSectionRows(child, foot ??= []);
+                    break;
             }
         }
 
+        if (body != null)
+        {
+            rows.AddRange(body);
+        }
+
+        if (foot != null)
+        {
+            rows.AddRange(foot);
+        }
+
         return rows;
+    }
+
+    static void AddSectionRows(IElement section, List<IElement> rows)
+    {
+        foreach (var child in section.Children)
+        {
+            if (child.LocalName == "tr")
+            {
+                rows.Add(child);
+            }
+        }
     }
 
     static List<IElement> GetCells(IElement row)
