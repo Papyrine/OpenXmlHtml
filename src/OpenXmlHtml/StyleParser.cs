@@ -28,7 +28,7 @@ static class StyleParser
             }
 
             var property = declaration[..colonIndex].Trim();
-            var value = declaration[(colonIndex + 1)..].Trim();
+            var value = StripImportant(declaration[(colonIndex + 1)..].Trim());
             if (!property.IsEmpty && !value.IsEmpty)
             {
                 result[property.ToString()] = value.ToString();
@@ -36,6 +36,22 @@ static class StyleParser
         }
 
         return result;
+    }
+
+    // !important says how a declaration ranks against others, and nothing about its value. Left on,
+    // it made every value unreadable to the parsers downstream — "red !important" is not a colour —
+    // so the declaration was dropped whole. Inline styles written for email clients carry it on
+    // nearly everything.
+    static ReadOnlySpan<char> StripImportant(ReadOnlySpan<char> value)
+    {
+        var bang = value.LastIndexOf('!');
+        if (bang < 0 ||
+            !value[(bang + 1)..].Trim().Equals("important", StringComparison.OrdinalIgnoreCase))
+        {
+            return value;
+        }
+
+        return value[..bang].TrimEnd();
     }
 
     internal static double? ParseFontSize(string value)

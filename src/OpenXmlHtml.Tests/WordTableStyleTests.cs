@@ -244,4 +244,37 @@ public class WordTableStyleTests
             """<table><tr><td style="vertical-align: top">x</td></tr></table>""");
         await Assert.That(string.Join('\n', padded.Select(_ => _.OuterXml))).IsEqualTo(string.Join('\n', unpadded.Select(_ => _.OuterXml)));
     }
+
+    // Word aligns paragraphs, not cells, so a cell's text-align goes onto every paragraph in it.
+    // It was dropped entirely, which left every right-aligned number column left-aligned.
+    [Test]
+    public async Task CellTextAlignReachesItsParagraphs()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """
+            <table><tr>
+              <td style="text-align: right">1</td>
+              <td style="text-align: center"><p>a</p><p style="text-align: left">b</p></td>
+              <td>plain</td>
+            </tr></table>
+            """).Single();
+
+        var alignments = table.Descendants<Paragraph>()
+            .Select(_ => _.ParagraphProperties?.Justification?.Val?.InnerText ?? "none");
+
+        await Assert.That(alignments).IsEquivalentTo(["right", "center", "left", "none"], CollectionOrdering.Matching);
+    }
+
+    // The cell's border and background are its own, not its paragraphs'.
+    [Test]
+    public async Task CellBorderAndBackgroundStayOnTheCell()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """<table><tr><td style="text-align: right; border: 1px solid red; background-color: #eee; margin: 4px">1</td></tr></table>""").Single();
+
+        var paragraphProperties = table.Descendants<Paragraph>().Single().ParagraphProperties!;
+
+        await Assert.That(paragraphProperties.ChildElements.Count).IsEqualTo(1);
+        await Assert.That(paragraphProperties.Justification).IsNotNull();
+    }
 }
