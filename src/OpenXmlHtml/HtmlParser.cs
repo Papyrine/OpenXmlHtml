@@ -938,14 +938,26 @@ static class HtmlSegmentParser
             return null;
         }
 #else
-        var bytes = new byte[base64.Length];
-        if (!Convert.TryFromBase64Chars(base64, bytes, out var bytesWritten))
+        // Decoded into a rented buffer and copied out at its exact length, so the only array
+        // allocated is the one the image keeps. The buffer used to be allocated at the length of
+        // the base64 text, a third larger than the image, and then resized, which allocated the
+        // image a second time. Three bytes for every four characters is the most it can decode to.
+        byte[] bytes;
+        var rented = System.Buffers.ArrayPool<byte>.Shared.Rent(base64.Length / 4 * 3 + 3);
+        try
         {
-            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
-            return null;
-        }
+            if (!Convert.TryFromBase64Chars(base64, rented, out var bytesWritten))
+            {
+                Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
+                return null;
+            }
 
-        Array.Resize(ref bytes, bytesWritten);
+            bytes = rented.AsSpan(0, bytesWritten).ToArray();
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(rented);
+        }
 #endif
 
         var (width, height) = ImageResolver.ParseImageDimensions(element, settings);
