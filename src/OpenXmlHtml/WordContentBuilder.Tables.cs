@@ -30,6 +30,12 @@ static partial class WordContentBuilder
         }
 
         var columnCount = GetColumnCount(rows);
+        if (columnCount > maxColumns)
+        {
+            Diagnostic.UnsupportedElement(ctx.Settings, "table", tooManyColumns);
+            columnCount = maxColumns;
+        }
+
         var table = new Table();
 
         var defaultBorder = new BorderInfo(4, BorderValues.Single, "auto");
@@ -287,8 +293,10 @@ static partial class WordContentBuilder
                 var cellElement = cells[cellIndex];
                 cellIndex++;
 
-                var colspan = ParseIntAttribute(cellElement, "colspan", 1);
-                var rowspan = ParseIntAttribute(cellElement, "rowspan", 1);
+                // A span cannot reach past the grid. colspan="100" is a common way to say "all of
+                // them", and the columns it names beyond the last one a cell starts in do not exist.
+                var colspan = Math.Min(ParseSpan(cellElement, "colspan", maxColspan), columnCount - colIndex);
+                var rowspan = ParseSpan(cellElement, "rowspan", maxRowspan);
 
                 int? cellColWidth = null;
                 for (var i = 0; i < colspan && colIndex + i < columnWidths.Count; i++)
@@ -661,8 +669,8 @@ static partial class WordContentBuilder
             }
 
             // A span makes the cell-to-column mapping ambiguous, so such a row is not a source.
-            if (cells.Exists(_ => ParseIntAttribute(_, "colspan", 1) > 1 ||
-                                  ParseIntAttribute(_, "rowspan", 1) > 1))
+            if (cells.Exists(_ => ParseSpan(_, "colspan", maxColspan) > 1 ||
+                                  ParseSpan(_, "rowspan", maxRowspan) > 1))
             {
                 continue;
             }
@@ -692,7 +700,7 @@ static partial class WordContentBuilder
 
     static void AddColWidth(IElement col, List<int?> widths, HtmlConvertSettings? settings)
     {
-        var span = ParseIntAttribute(col, "span", 1);
+        var span = ParseSpan(col, "span", maxColspan);
         var width = ParseColWidth(col, settings);
         for (var i = 0; i < span; i++)
         {
@@ -843,37 +851,48 @@ static partial class WordContentBuilder
                         rowspanTracker[colIndex] = (spanInfo.Remaining - 1, spanInfo.Colspan);
                     }
 
+                    maxCols = Math.Max(maxCols, colIndex + 1);
                     colIndex += spanInfo.Colspan;
                     continue;
                 }
 
                 var cell = cells[cellIndex];
                 cellIndex++;
-                var colspan = ParseIntAttribute(cell, "colspan", 1);
-                var rowspan = ParseIntAttribute(cell, "rowspan", 1);
+                var colspan = ParseSpan(cell, "colspan", maxColspan);
+                var rowspan = ParseSpan(cell, "rowspan", maxRowspan);
                 if (rowspan > 1)
                 {
                     rowspanTracker[colIndex] = (rowspan - 1, colspan);
                 }
 
+                // A column exists where a cell starts, not everywhere a span reaches: a browser
+                // gives the columns only a span covers no width, so they are not columns here.
+                maxCols = Math.Max(maxCols, colIndex + 1);
                 colIndex += colspan;
             }
-
-            maxCols = Math.Max(maxCols, colIndex);
         }
 
         return Math.Max(1, maxCols);
     }
 
-    static int ParseIntAttribute(IElement element, string attribute, int defaultValue)
+    // The limits html itself puts on colspan, col span and rowspan. Without them a single attribute
+    // sized the grid: colspan="1000000" allocated hundreds of megabytes from ninety characters.
+    const int maxColspan = 1000;
+    const int maxRowspan = 65534;
+
+    // The most columns a Word table can hold.
+    const int maxColumns = 63;
+    const string tooManyColumns = "a Word table holds at most 63 columns, so the cells past that were dropped";
+
+    static int ParseSpan(IElement element, string attribute, int max)
     {
         var value = element.GetAttribute(attribute);
         if (value != null && int.TryParse(value, out var result) && result > 1)
         {
-            return result;
+            return Math.Min(result, max);
         }
 
-        return defaultValue;
+        return 1;
     }
 
     static readonly Type[] cellPropertyOrder =

@@ -74,82 +74,76 @@ static class AtPageParser
         return layout;
     }
 
+    // size is a page size, an orientation, or both in either order: "A4", "landscape",
+    // "A4 landscape", "landscape A4", "8.5in 11in". Only an orientation trailing a named size used
+    // to be read, so the commonest way to ask for a landscape page — "size: landscape" by itself —
+    // was ignored.
     static void ParseSize(string size, AtPageLayout layout)
     {
-        var span = size.AsSpan().Trim();
         var landscape = false;
-        var portrait = false;
+        int? namedWidth = null;
+        int? namedHeight = null;
+        int? firstLength = null;
+        int? secondLength = null;
 
-        // Strip orientation tokens
-        if (TryStripTrailingToken(ref span, "landscape"))
+        foreach (var token in size.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            landscape = true;
-        }
-        else if (TryStripTrailingToken(ref span, "portrait"))
-        {
-            portrait = true;
-        }
-
-        var trimmed = span.Trim();
-
-        // Try a named page size
-        if (TryParseNamedSize(trimmed, out var width, out var height))
-        {
-            // Named sizes are portrait by default
-            if (landscape)
+            if (token.Equals("landscape", StringComparison.OrdinalIgnoreCase))
             {
-                (width, height) = (height, width);
-                layout.Landscape = true;
+                landscape = true;
             }
-            else if (portrait)
+            else if (token.Equals("portrait", StringComparison.OrdinalIgnoreCase))
             {
-                layout.Landscape = false;
+                landscape = false;
             }
-
-            layout.WidthTwips = width;
-            layout.HeightTwips = height;
-            return;
-        }
-
-        // Try "<width> <height>"
-        var spaceIdx = -1;
-        for (var i = 0; i < trimmed.Length; i++)
-        {
-            if (trimmed[i] == ' ')
+            else if (TryParseNamedSize(token.AsSpan(), out var width, out var height))
             {
-                spaceIdx = i;
-                break;
+                namedWidth = width;
+                namedHeight = height;
             }
-        }
-
-        if (spaceIdx > 0)
-        {
-            var w = StyleParser.ParseLengthToTwips(trimmed[..spaceIdx]);
-            var h = StyleParser.ParseLengthToTwips(trimmed[(spaceIdx + 1)..]);
-            if (w != null && h != null)
+            else if (StyleParser.ParseLengthToTwips(token) is { } length)
             {
-                layout.WidthTwips = w;
-                layout.HeightTwips = h;
-                if (landscape)
+                if (firstLength == null)
                 {
-                    layout.Landscape = true;
+                    firstLength = length;
+                }
+                else
+                {
+                    secondLength ??= length;
                 }
             }
         }
-    }
 
-    static bool TryStripTrailingToken(ref ReadOnlySpan<char> span, string token)
-    {
-        var trimmed = span.TrimEnd();
-        if (trimmed.EndsWith(token.AsSpan(), StringComparison.OrdinalIgnoreCase) &&
-            (trimmed.Length == token.Length ||
-             trimmed[trimmed.Length - token.Length - 1] == ' '))
+        // An explicit width and height say which way round the page is by themselves.
+        if (firstLength != null &&
+            secondLength != null)
         {
-            span = trimmed[..^token.Length].TrimEnd();
-            return true;
+            layout.WidthTwips = firstLength;
+            layout.HeightTwips = secondLength;
+            layout.Landscape = landscape;
+            return;
         }
 
-        return false;
+        // A named size is portrait. An orientation with no size turns the default page, A4.
+        if (namedWidth == null)
+        {
+            if (!landscape)
+            {
+                return;
+            }
+
+            namedWidth = 11906;
+            namedHeight = 16838;
+        }
+
+        if (landscape)
+        {
+            (namedWidth, namedHeight) = (namedHeight, namedWidth);
+            layout.Landscape = true;
+        }
+
+        layout.WidthTwips = namedWidth;
+        layout.HeightTwips = namedHeight;
     }
 
     // The declarations of the @page rule that applies to every page, or null when there is none.
