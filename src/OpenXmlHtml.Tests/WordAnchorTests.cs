@@ -35,10 +35,6 @@ public class WordAnchorTests
                 """
                 <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:r>
-                    <w:rPr>
-                      <w:color w:val="0563C1" />
-                      <w:u w:val="single" />
-                    </w:rPr>
                     <w:t xml:space="preserve">anchor text</w:t>
                   </w:r>
                 </w:p>
@@ -125,5 +121,34 @@ public class WordAnchorTests
             stream);
         stream.Position = 0;
         return Verify(stream, "docx");
+    }
+
+    // An <a> with no href is a named anchor or a placeholder, not a link, and a browser draws it
+    // as ordinary text. It was coloured and underlined all the same.
+    [Test]
+    public Task AnchorWithoutHrefIsNotStyledAsALink() =>
+        Verify(WordHtmlConverter.ToElements("""<h2><a name="_Toc1">Introduction</a></h2>"""));
+
+    // text-decoration:none on the element whose tag draws the line removes it. Both paths.
+    [Test]
+    [Arguments("""<a href="#x" style="text-decoration: none">x</a>""")]
+    [Arguments("""<u style="text-decoration: none">x</u>""")]
+    [Arguments("""<s style="text-decoration: none">x</s>""")]
+    public async Task TextDecorationNoneRemovesTheTagsOwnLine(string html)
+    {
+        var elements = WordHtmlConverter.ToElements(html).Single();
+        var paragraphs = WordHtmlConverter.ToParagraphs(html).Single();
+
+        await Assert.That(elements.Descendants<WUnderline>().Count() + elements.Descendants<WStrike>().Count()).IsEqualTo(0);
+        await Assert.That(paragraphs.Descendants<WUnderline>().Count() + paragraphs.Descendants<WStrike>().Count()).IsEqualTo(0);
+    }
+
+    // It cannot cancel a line an ancestor drew: css decorations propagate to descendants.
+    [Test]
+    public async Task TextDecorationNoneDoesNotCancelAnAncestorsLine()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<u>a <span style="text-decoration: none">b</span></u>""").Single();
+
+        await Assert.That(paragraph.Descendants<WUnderline>().Count()).IsEqualTo(2);
     }
 }
