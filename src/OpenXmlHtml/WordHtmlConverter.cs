@@ -694,7 +694,8 @@ public static class WordHtmlConverter
             },
             widthEmu,
             heightEmu,
-            image.Float);
+            image.Float,
+            imageIndex);
 
         var run = new Run();
         run.Append(drawing);
@@ -736,14 +737,16 @@ public static class WordHtmlConverter
         extList.Append(ext);
         blip.Append(extList);
 
-        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float);
+        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float, imageIndex);
 
         var run = new Run();
         run.Append(drawing);
         return run;
     }
 
-    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide)
+    // imageIndex doubles as the drawing's wp:docPr id, which has to be unique in the document.
+    // Every image used to carry id 1, which the validator reports as soon as there are two.
+    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide, int imageIndex)
     {
         var graphic = new A.Graphic(
             new A.GraphicData(
@@ -789,7 +792,7 @@ public static class WordHtmlConverter
                     },
                     new DW.DocProperties
                     {
-                        Id = 1U,
+                        Id = (uint) imageIndex,
                         Name = "Image"
                     },
                     graphic)
@@ -837,7 +840,7 @@ public static class WordHtmlConverter
                 },
                 new DW.DocProperties
                 {
-                    Id = 1U,
+                    Id = (uint) imageIndex,
                     Name = "Image"
                 },
                 new DW.NonVisualGraphicFrameDrawingProperties(),
