@@ -180,7 +180,7 @@
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex, context.StoredImages));
                     // An image is content, so a space after it does not fold into one before it.
                     context.LastWasSpace = false;
                 }
@@ -197,7 +197,7 @@
 
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
-                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex));
+                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex, context.StoredImages));
                 context.LastWasSpace = false;
                 return;
             }
