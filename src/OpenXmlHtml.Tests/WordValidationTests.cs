@@ -61,4 +61,33 @@ public class WordValidationTests
         var errors = validator.Validate(document).ToList();
         await Assert.That(errors).IsEmpty().Because(string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
     }
+
+    // A drawing's docPr id has to be unique in the document. Every image carried id 1, which no
+    // snapshot could show: none of them holds two images.
+    [Test]
+    public async Task EachImageHasItsOwnDrawingId()
+    {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            $"""
+             <p><img src="data:image/png;base64,{png}" width="2" height="2"></p>
+             <p><img src="data:image/png;base64,{png}" width="2" height="2" style="float: left">text</p>
+             <svg width="10" height="10" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="4"/></svg>
+             """,
+            stream);
+
+        stream.Position = 0;
+        using var document = WordprocessingDocument.Open(stream, false);
+        var ids = document.MainDocumentPart!.Document!
+            .Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()
+            .Select(_ => _.Id!.Value)
+            .ToList();
+        var errors = new OpenXmlValidator().Validate(document)
+            .Select(_ => $"{_.Description} ({_.Path?.XPath})")
+            .ToList();
+
+        await Assert.That(ids).IsEquivalentTo([1u, 2u, 3u], CollectionOrdering.Matching);
+        await Assert.That(errors).IsEmpty().Because(string.Join('\n', errors));
+    }
 }
