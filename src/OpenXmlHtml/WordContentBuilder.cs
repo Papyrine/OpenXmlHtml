@@ -156,20 +156,20 @@
                 return;
             case "img":
             {
-                var imageData = ImageResolver.Resolve(element, context.Settings);
+                // With nowhere to put an image there is no point fetching or decoding one: its alt
+                // text stands in for it either way, so that is all that is read.
+                ImageData? imageData = null;
+                if (context.RelationshipPart == null)
+                {
+                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                }
+                else
+                {
+                    imageData = ImageResolver.Resolve(element, context.Settings);
+                }
+
                 if (imageData == null)
                 {
-                    var alt = element.GetAttribute("alt");
-                    if (!string.IsNullOrEmpty(alt))
-                    {
-                        // ReSharper disable once RedundantSuppressNullableWarningExpression
-                        AddTextRun(alt!, format, context);
-                    }
-                }
-                else if (context.RelationshipPart == null)
-                {
-                    // Nowhere to put the image, so its alt text stands in for it.
-                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
                     var alt = element.GetAttribute("alt");
                     if (!string.IsNullOrEmpty(alt))
                     {
@@ -180,7 +180,7 @@
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart!, imageData, context.ImageIndex));
                     // An image is content, so a space after it does not fold into one before it.
                     context.LastWasSpace = false;
                 }
