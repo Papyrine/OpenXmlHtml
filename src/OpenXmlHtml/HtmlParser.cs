@@ -326,6 +326,11 @@ static class HtmlSegmentParser
         var inheritedUnderline = format.UnderlineStyle;
         var inheritedStrikethrough = format.Strikethrough;
 
+        // What a tag means by default is set outright, not only where nothing was inherited. These
+        // are the browser's own rules for the element, and a rule on an element outranks a value
+        // it would otherwise inherit: <code> inside a paragraph with a font-family is still
+        // monospace, a link inside coloured text is still link blue, <mark> inside a background is
+        // still yellow. The element's own style attribute is applied after this and still wins.
         switch (tag)
         {
             case "b" or "strong" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "th" or "caption" or "dt" or "legend":
@@ -346,7 +351,7 @@ static class HtmlSegmentParser
                 if (element.HasAttribute("href"))
                 {
                     format.UnderlineStyle ??= UnderlineValues.Single;
-                    format.Color ??= "0563C1";
+                    format.Color = "0563C1";
                 }
 
                 format.LinkUrl = element.GetAttribute("href");
@@ -361,11 +366,11 @@ static class HtmlSegmentParser
                 format.Superscript = false;
                 break;
             case "mark":
-                format.Color ??= "000000";
-                format.BackgroundColor ??= "FFFF00";
+                format.Color = "000000";
+                format.BackgroundColor = "FFFF00";
                 break;
             case "code" or "kbd" or "samp":
-                format.FontFamily ??= "Courier New";
+                format.FontFamily = "Courier New";
                 break;
             case "small":
                 format.FontSizePt = Math.Round((format.FontSizePt ?? 12) * 0.8, 2);
