@@ -303,7 +303,7 @@ public static class WordHtmlConverter
     {
         var headerPart = main.AddNewPart<HeaderPart>();
         var header = new Header();
-        foreach (var element in WordContentBuilder.Build(html, main))
+        foreach (var element in WordContentBuilder.Build(html, main, null, headerPart))
         {
             header.Append(element);
         }
@@ -325,7 +325,7 @@ public static class WordHtmlConverter
     {
         var headerPart = main.AddNewPart<HeaderPart>();
         var header = new Header();
-        foreach (var element in WordContentBuilder.Build(html, main, settings))
+        foreach (var element in WordContentBuilder.Build(html, main, settings, headerPart))
         {
             header.Append(element);
         }
@@ -347,7 +347,7 @@ public static class WordHtmlConverter
     {
         var footerPart = main.AddNewPart<FooterPart>();
         var footer = new Footer();
-        foreach (var element in WordContentBuilder.Build(html, main))
+        foreach (var element in WordContentBuilder.Build(html, main, null, footerPart))
         {
             footer.Append(element);
         }
@@ -369,7 +369,7 @@ public static class WordHtmlConverter
     {
         var footerPart = main.AddNewPart<FooterPart>();
         var footer = new Footer();
-        foreach (var element in WordContentBuilder.Build(html, main, settings))
+        foreach (var element in WordContentBuilder.Build(html, main, settings, footerPart))
         {
             footer.Append(element);
         }
@@ -664,16 +664,16 @@ public static class WordHtmlConverter
     static readonly byte[] fallbackPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==");
 
-    internal static Run BuildImageRun(MainDocumentPart main, ImageData image, int imageIndex)
+    internal static Run BuildImageRun(OpenXmlPart part, ImageData image, int imageIndex)
     {
         if (image.ContentType == "image/svg+xml")
         {
-            return BuildSvgImageRun(main, image, imageIndex);
+            return BuildSvgImageRun(part, image, imageIndex);
         }
 
         var imagePartType = GetImagePartType(image.ContentType);
         var relationshipId = $"rImage{imageIndex}";
-        var imagePart = main.AddImagePart(imagePartType, relationshipId);
+        var imagePart = part.AddNewPart<ImagePart>(imagePartType, relationshipId);
         using (var memoryStream = new MemoryStream(image.Bytes))
         {
             imagePart.FeedData(memoryStream);
@@ -696,11 +696,11 @@ public static class WordHtmlConverter
         return run;
     }
 
-    static Run BuildSvgImageRun(MainDocumentPart main, ImageData image, int imageIndex)
+    static Run BuildSvgImageRun(OpenXmlPart part, ImageData image, int imageIndex)
     {
         // Add PNG fallback for older Word versions
         var pngRelId = $"rImage{imageIndex}";
-        var pngPart = main.AddImagePart("image/png", pngRelId);
+        var pngPart = part.AddNewPart<ImagePart>("image/png", pngRelId);
         using (var ms = new MemoryStream(fallbackPng))
         {
             pngPart.FeedData(ms);
@@ -708,7 +708,7 @@ public static class WordHtmlConverter
 
         // Add SVG image part
         var svgRelId = $"rImage{imageIndex}s";
-        var svgPart = main.AddImagePart("image/svg+xml", svgRelId);
+        var svgPart = part.AddNewPart<ImagePart>("image/svg+xml", svgRelId);
         using (var ms = new MemoryStream(image.Bytes))
         {
             svgPart.FeedData(ms);

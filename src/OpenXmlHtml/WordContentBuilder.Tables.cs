@@ -412,6 +412,7 @@ static partial class WordContentBuilder
         var cellCtx = new WordBuildContext
         {
             MainPart = parentCtx.MainPart,
+            RelationshipPart = parentCtx.RelationshipPart,
             ImageIndex = parentCtx.ImageIndex,
             Settings = parentCtx.Settings,
             StyleMap = parentCtx.StyleMap,

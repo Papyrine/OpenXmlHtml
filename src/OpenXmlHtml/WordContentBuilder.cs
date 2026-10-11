@@ -6,7 +6,7 @@
     // without one resolves the image and then has nowhere to put it, so it disappears.
     internal const string NoMainPartForImages = "an image part requires a MainDocumentPart";
 
-    internal static List<OpenXmlElement> Build(string html, MainDocumentPart? main, HtmlConvertSettings? settings = null)
+    internal static List<OpenXmlElement> Build(string html, MainDocumentPart? main, HtmlConvertSettings? settings = null, OpenXmlPart? relationshipPart = null)
     {
         var document = parser.ParseDocument(string.Concat("<body>", html, "</body>"));
         var body = document.Body!;
@@ -14,6 +14,7 @@
         var context = new WordBuildContext
         {
             MainPart = main,
+            RelationshipPart = relationshipPart ?? main,
             Settings = settings,
             StyleMap = WordStyleLookup.BuildStyleMap(main)
         };
@@ -138,21 +139,21 @@
                         AddTextRun(alt!, format, context);
                     }
                 }
-                else if (context.MainPart == null)
+                else if (context.RelationshipPart == null)
                 {
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
                 }
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex));
                 }
 
                 return;
             }
             case "svg":
             {
-                if (context.MainPart == null)
+                if (context.RelationshipPart == null)
                 {
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
                     return;
@@ -160,7 +161,7 @@
 
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
-                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
+                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex));
                 return;
             }
             case "col":
@@ -239,7 +240,7 @@
                 ProcessChildren(element, newFormat, elements, context, inPre);
                 var title = element.GetAttribute("title");
                 if (!string.IsNullOrEmpty(title) &&
-                    context.MainPart != null)
+                    CanHoldFootnotes(context))
                 {
                     // ReSharper disable once RedundantSuppressNullableWarningExpression
                     context.CurrentRuns.Add(BuildFootnoteRun(context, title!));
@@ -254,7 +255,7 @@
         {
             var cite = element.GetAttribute("cite");
             if (!string.IsNullOrEmpty(cite) &&
-                context.MainPart != null)
+                CanHoldFootnotes(context))
             {
                 FlushParagraph(elements, context);
                 ProcessChildren(element, newFormat, elements, context, inPre);
@@ -451,6 +452,12 @@
             format.RightToLeft = false;
         }
     }
+
+    // A footnote reference is only valid in the document body. A header or footer cannot hold one,
+    // so there the title or cite is left out rather than written as a reference Word rejects.
+    static bool CanHoldFootnotes(WordBuildContext context) =>
+        context.MainPart != null &&
+        context.RelationshipPart == context.MainPart;
 
     static bool IsPageBreak(Dictionary<string, string> declarations, string key) =>
         declarations.TryGetValue(key, out var value) &&
@@ -871,10 +878,10 @@
             return;
         }
 
-        if (!string.IsNullOrEmpty(href) && context.MainPart != null &&
+        if (!string.IsNullOrEmpty(href) && context.RelationshipPart != null &&
             Uri.TryCreate(href, UriKind.Absolute, out var uri))
         {
-            var rel = context.MainPart.AddHyperlinkRelationship(uri, true);
+            var rel = context.RelationshipPart.AddHyperlinkRelationship(uri, true);
             WrapChildrenInHyperlink(
                 element,
                 newFormat,

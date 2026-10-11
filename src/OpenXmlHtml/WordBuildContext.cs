@@ -7,6 +7,12 @@
     internal int FootnoteIndex;
     internal int BookmarkId;
     internal MainDocumentPart? MainPart;
+
+    // The part the built content will live in, which is where its image parts and hyperlink
+    // relationships have to be registered: an r:embed or r:id is resolved against the part holding
+    // the xml, not against the document. The main part for a body, the header or footer part for
+    // those. Styles, numbering and footnotes stay document-level and keep using MainPart.
+    internal OpenXmlPart? RelationshipPart;
     internal HtmlConvertSettings? Settings;
     internal Dictionary<string, StyleType>? StyleMap;
     internal string? ParagraphStyleId;
