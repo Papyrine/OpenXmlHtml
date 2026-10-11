@@ -111,6 +111,7 @@
             return;
         }
 
+        var wasPre = inPre;
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
         switch (tag)
@@ -220,6 +221,11 @@
             {
                 FlushParagraph(elements, context);
                 ProcessChildren(element, newFormat, elements, context, true);
+                if (!wasPre)
+                {
+                    TrimClosingLineBreak(context);
+                }
+
                 FlushParagraph(elements, context);
                 return;
             }
@@ -365,6 +371,10 @@
 
         var elementCountBeforeChildren = elements.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);
+        if (inPre && !wasPre)
+        {
+            TrimClosingLineBreak(context);
+        }
 
         if (bookmarkId != null)
         {
@@ -470,16 +480,7 @@
             run.Append(WordHtmlConverter.BuildWordRunProperties(format));
         }
 
-        var transformed = ApplyTextTransform(text, format);
-        if (transformed.IndexOf('\t') < 0)
-        {
-            run.Append(NewText(transformed));
-        }
-        else
-        {
-            AppendWithTabs(run, transformed);
-        }
-
+        AppendText(run, ApplyTextTransform(text, format));
         ctx.CurrentRuns.Add(run);
     }
 
@@ -489,33 +490,66 @@
             Space = SpaceProcessingModeValues.Preserve
         };
 
-    // Only white-space:pre gets a tab this far — the normal folding rules turn one into a space
-    // before it reaches here. Word ignores a tab inside <w:t>, so advancing to the next tab stop
-    // means emitting the <w:tab/> element instead. That makes pre the way to reach a Word tab from
-    // html, which is otherwise unreachable.
-    static void AppendWithTabs(Run run, string value)
+    static readonly char[] tabOrNewline = ['\t', '\n'];
+
+    // Only white-space:pre gets a tab or a newline this far — the normal folding rules turn either
+    // into a space before it reaches here. Word treats both as a plain space inside <w:t>, so a tab
+    // has to be the <w:tab/> element to reach the next tab stop, and a newline the <w:br/> element
+    // to break the line. Without the second a multi-line <pre> ran together on one line.
+    internal static void AppendText(Run run, string value)
     {
+        if (value.IndexOfAny(tabOrNewline) < 0)
+        {
+            run.Append(NewText(value));
+            return;
+        }
+
         var start = 0;
         while (true)
         {
-            var tab = value.IndexOf('\t', start);
-            if (tab < 0)
+            var index = value.IndexOfAny(tabOrNewline, start);
+            if (index < 0)
             {
                 break;
             }
 
-            if (tab > start)
+            if (index > start)
             {
-                run.Append(NewText(value.Substring(start, tab - start)));
+                run.Append(NewText(value.Substring(start, index - start)));
             }
 
-            run.Append(new TabChar());
-            start = tab + 1;
+            if (value[index] == '\t')
+            {
+                run.Append(new TabChar());
+            }
+            else
+            {
+                run.Append(new Break());
+            }
+
+            start = index + 1;
         }
 
         if (start < value.Length)
         {
             run.Append(NewText(value.Substring(start)));
+        }
+    }
+
+    // The newline that ends preformatted text closes its last line rather than opening another, and
+    // a browser draws nothing for it. As a <w:br/> it would be a blank line at the foot of the block.
+    static void TrimClosingLineBreak(WordBuildContext context)
+    {
+        if (context.CurrentRuns.Count == 0 ||
+            context.CurrentRuns[^1] is not Run { LastChild: Break lineBreak } run)
+        {
+            return;
+        }
+
+        lineBreak.Remove();
+        if (run.ChildElements.All(_ => _ is RunProperties))
+        {
+            context.CurrentRuns.RemoveAt(context.CurrentRuns.Count - 1);
         }
     }
 

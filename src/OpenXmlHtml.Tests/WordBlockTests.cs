@@ -61,8 +61,9 @@ public class WordBlockTests
                 """
                 <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:r>
-                    <w:t xml:space="preserve">  preserved
-                  whitespace</w:t>
+                    <w:t xml:space="preserve">  preserved</w:t>
+                    <w:br />
+                    <w:t xml:space="preserve">  whitespace</w:t>
                   </w:r>
                 </w:p>
                 """);
