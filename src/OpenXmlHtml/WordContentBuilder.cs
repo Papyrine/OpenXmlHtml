@@ -14,6 +14,7 @@
         var context = new WordBuildContext
         {
             MainPart = main,
+            ImageIndex = WordHtmlConverter.LastImageIndex(main),
             Settings = settings,
             StyleMap = WordStyleLookup.BuildStyleMap(main)
         };

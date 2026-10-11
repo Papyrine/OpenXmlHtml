@@ -67,7 +67,7 @@ public static class WordHtmlConverter
     {
         var paragraphs = new List<Paragraph>();
         var currentRuns = new List<OpenXmlElement>();
-        var imageIndex = 0;
+        var imageIndex = LastImageIndex(main);
         var listDepth = 0;
         var linkedLastSegment = false;
         string? openLinkUrl = null;
@@ -670,6 +670,38 @@ public static class WordHtmlConverter
     // Small PNG used as fallback for SVG images in older Word versions
     static readonly byte[] fallbackPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==");
+
+    // Image relationship ids are rImage{n}, so a second conversion against the same document has
+    // to carry on from the highest one already there. Restarting at 1 reused rImage1: the package
+    // kept the first call's picture for both drawings and wrote the second as an orphan part.
+    internal static int LastImageIndex(MainDocumentPart? main)
+    {
+        if (main == null)
+        {
+            return 0;
+        }
+
+        const string prefix = "rImage";
+        var last = 0;
+        foreach (var pair in main.Parts)
+        {
+            var id = pair.RelationshipId;
+            if (!id.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // The svg half of an svg image is rImage{n}s.
+            var digits = id.AsSpan(prefix.Length).TrimEnd('s');
+            if (int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var index) &&
+                index > last)
+            {
+                last = index;
+            }
+        }
+
+        return last;
+    }
 
     internal static Run BuildImageRun(MainDocumentPart main, ImageData image, int imageIndex)
     {
