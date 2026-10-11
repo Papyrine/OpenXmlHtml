@@ -23,6 +23,11 @@
     internal string? AmbientParagraphStyleId;
 
     internal ParagraphFormatState? ParagraphFormat;
+
+    // The paragraph formatting owed by an enclosing block, for the same reason and with the same
+    // shape as AmbientParagraphStyleId: <div style="text-align:center"><p>x</p></div> lost the
+    // alignment to the flush on entering the <p>.
+    internal ParagraphFormatState? AmbientParagraphFormat;
     internal bool ParagraphRightToLeft;
     internal Stack<(int NumId, int Ilvl, bool IsOrdered, bool Inside, bool NoMarker)> ListStack = new();
     internal int? BulletAbstractNumId;

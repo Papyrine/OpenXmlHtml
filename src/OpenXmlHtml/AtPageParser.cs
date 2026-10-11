@@ -2,19 +2,7 @@ static class AtPageParser
 {
     internal static AtPageLayout? Parse(string html)
     {
-        var atIndex = html.IndexOf("@page", StringComparison.OrdinalIgnoreCase);
-        if (atIndex < 0)
-        {
-            return null;
-        }
-
-        var braceStart = html.IndexOf('{', atIndex);
-        if (braceStart < 0)
-        {
-            return null;
-        }
-
-        var body = ExtractBlockBody(html, braceStart);
+        var body = FindPageRule(html);
         if (body == null)
         {
             return null;
@@ -86,82 +74,147 @@ static class AtPageParser
         return layout;
     }
 
+    // size is a page size, an orientation, or both in either order: "A4", "landscape",
+    // "A4 landscape", "landscape A4", "8.5in 11in". Only an orientation trailing a named size used
+    // to be read, so the commonest way to ask for a landscape page — "size: landscape" by itself —
+    // was ignored.
     static void ParseSize(string size, AtPageLayout layout)
     {
-        var span = size.AsSpan().Trim();
         var landscape = false;
-        var portrait = false;
+        int? namedWidth = null;
+        int? namedHeight = null;
+        int? firstLength = null;
+        int? secondLength = null;
 
-        // Strip orientation tokens
-        if (TryStripTrailingToken(ref span, "landscape"))
+        foreach (var token in size.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
-            landscape = true;
-        }
-        else if (TryStripTrailingToken(ref span, "portrait"))
-        {
-            portrait = true;
-        }
-
-        var trimmed = span.Trim();
-
-        // Try a named page size
-        if (TryParseNamedSize(trimmed, out var width, out var height))
-        {
-            // Named sizes are portrait by default
-            if (landscape)
+            if (token.Equals("landscape", StringComparison.OrdinalIgnoreCase))
             {
-                (width, height) = (height, width);
-                layout.Landscape = true;
+                landscape = true;
             }
-            else if (portrait)
+            else if (token.Equals("portrait", StringComparison.OrdinalIgnoreCase))
             {
-                layout.Landscape = false;
+                landscape = false;
             }
-
-            layout.WidthTwips = width;
-            layout.HeightTwips = height;
-            return;
-        }
-
-        // Try "<width> <height>"
-        var spaceIdx = -1;
-        for (var i = 0; i < trimmed.Length; i++)
-        {
-            if (trimmed[i] == ' ')
+            else if (TryParseNamedSize(token.AsSpan(), out var width, out var height))
             {
-                spaceIdx = i;
-                break;
+                namedWidth = width;
+                namedHeight = height;
             }
-        }
-
-        if (spaceIdx > 0)
-        {
-            var w = StyleParser.ParseLengthToTwips(trimmed[..spaceIdx]);
-            var h = StyleParser.ParseLengthToTwips(trimmed[(spaceIdx + 1)..]);
-            if (w != null && h != null)
+            else if (StyleParser.ParseLengthToTwips(token) is { } length)
             {
-                layout.WidthTwips = w;
-                layout.HeightTwips = h;
-                if (landscape)
+                if (firstLength == null)
                 {
-                    layout.Landscape = true;
+                    firstLength = length;
+                }
+                else
+                {
+                    secondLength ??= length;
                 }
             }
         }
-    }
 
-    static bool TryStripTrailingToken(ref ReadOnlySpan<char> span, string token)
-    {
-        var trimmed = span.TrimEnd();
-        if (trimmed.EndsWith(token.AsSpan(), StringComparison.OrdinalIgnoreCase) &&
-            (trimmed.Length == token.Length ||
-             trimmed[trimmed.Length - token.Length - 1] == ' '))
+        // An explicit width and height say which way round the page is by themselves.
+        if (firstLength != null &&
+            secondLength != null)
         {
-            span = trimmed[..^token.Length].TrimEnd();
-            return true;
+            layout.WidthTwips = firstLength;
+            layout.HeightTwips = secondLength;
+            layout.Landscape = landscape;
+            return;
         }
 
-        return false;
+        // A named size is portrait. An orientation with no size turns the default page, A4.
+        if (namedWidth == null)
+        {
+            if (!landscape)
+            {
+                return;
+            }
+
+            namedWidth = 11906;
+            namedHeight = 16838;
+        }
+
+        if (landscape)
+        {
+            (namedWidth, namedHeight) = (namedHeight, namedWidth);
+            layout.Landscape = true;
+        }
+
+        layout.WidthTwips = namedWidth;
+        layout.HeightTwips = namedHeight;
+    }
+
+    // The declarations of the @page rule that applies to every page, or null when there is none.
+    //
+    // Only stylesheets are searched. The text "@page" anywhere in the html used to count, and the
+    // next brace after it, however far on, was taken for its block: a paragraph mentioning
+    // "@pagerduty" ahead of an unrelated "p { margin: 0 }" set the page margins to zero.
+    static string? FindPageRule(string html)
+    {
+        var position = 0;
+        while (true)
+        {
+            var open = html.IndexOf("<style", position, StringComparison.OrdinalIgnoreCase);
+            if (open < 0)
+            {
+                return null;
+            }
+
+            var start = html.IndexOf('>', open);
+            if (start < 0)
+            {
+                return null;
+            }
+
+            start++;
+            var end = html.IndexOf("</style", start, StringComparison.OrdinalIgnoreCase);
+            if (end < 0)
+            {
+                end = html.Length;
+            }
+
+            if (FindPageRule(html, start, end) is { } body)
+            {
+                return body;
+            }
+
+            position = end;
+        }
+    }
+
+    static string? FindPageRule(string html, int start, int end)
+    {
+        var position = start;
+        while (position < end)
+        {
+            var at = html.IndexOf("@page", position, end - position, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                return null;
+            }
+
+            var selectorStart = at + "@page".Length;
+            var brace = html.IndexOf('{', selectorStart, end - selectorStart);
+            if (brace < 0)
+            {
+                return null;
+            }
+
+            // A rule with a selector is for some pages only: "@page :first" for the first, a named
+            // page for those that ask for it. A document here has one page setup, so the rule that
+            // counts is the one with nothing between @page and its block. Taking whichever came
+            // first gave every page the first page's margins.
+            if (html.AsSpan(selectorStart, brace - selectorStart).Trim().IsEmpty)
+            {
+                return ExtractBlockBody(html, brace);
+            }
+
+            position = selectorStart;
+        }
+
+        return null;
     }
 
     static bool TryParseNamedSize(ReadOnlySpan<char> name, out int width, out int height)

@@ -8,7 +8,7 @@ static partial class WordContentBuilder
         var footnotesPart = context.MainPart!.FootnotesPart;
         if (footnotesPart == null)
         {
-            footnotesPart = context.MainPart.AddNewPart<FootnotesPart>();
+            footnotesPart = context.MainPart.AddNewPart<FootnotesPart>(PartRelationshipId.Next(context.MainPart, "rFootnotes"));
             footnotesPart.Footnotes = new(
                 new Footnote(
                     new Paragraph(
