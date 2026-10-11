@@ -494,7 +494,7 @@ public static class WordHtmlConverter
         return paragraph;
     }
 
-    internal static RunProperties BuildWordRunProperties(FormatState format)
+    internal static RunProperties BuildWordRunProperties(in FormatState format)
     {
         var props = new RunProperties();
 

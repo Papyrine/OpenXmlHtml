@@ -16,7 +16,7 @@ static class HtmlSegmentParser
         return segments;
     }
 
-    static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
+    static void ProcessNode(INode node, in FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
     {
         if (!HasStackToRecurse())
         {
@@ -69,7 +69,7 @@ static class HtmlSegmentParser
         }
     }
 
-    static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, int listIndex = 0)
+    static void ProcessElement(IElement element, in FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, int listIndex = 0)
     {
         var tag = element.LocalName;
         var newFormat = format;
@@ -819,7 +819,7 @@ static class HtmlSegmentParser
         segments.Count > 0 &&
         segments[^1].IsListMarker;
 
-    static void EnsureNewline(List<TextSegment> segments, FormatState format)
+    static void EnsureNewline(List<TextSegment> segments, in FormatState format)
     {
         if (segments.Count == 0)
         {

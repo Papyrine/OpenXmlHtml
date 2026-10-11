@@ -1,6 +1,6 @@
 static partial class WordContentBuilder
 {
-    static void BuildTable(IElement tableElement, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx)
+    static void BuildTable(IElement tableElement, in FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx)
     {
         var tableFormat = format;
         ApplyDirAttribute(tableElement, ref tableFormat);
@@ -334,7 +334,7 @@ static partial class WordContentBuilder
         elements.Add(table);
     }
 
-    static TableCell BuildTableCell(IElement cellElement, FormatState format, WordBuildContext parentCtx, int colspan, bool isRowspanStart, int? colWidth)
+    static TableCell BuildTableCell(IElement cellElement, in FormatState format, WordBuildContext parentCtx, int colspan, bool isRowspanStart, int? colWidth)
     {
         var tc = new TableCell();
         TableCellProperties? cellProperties = null;

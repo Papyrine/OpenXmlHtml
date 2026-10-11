@@ -1,6 +1,6 @@
 static partial class WordContentBuilder
 {
-    static void BuildList(IElement element, string tag, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
+    static void BuildList(IElement element, string tag, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
     {
         FlushParagraph(elements, context);
         var isReversed = tag == "ol" && element.HasAttribute("reversed");
@@ -33,7 +33,7 @@ static partial class WordContentBuilder
         FlushParagraph(elements, context);
     }
 
-    static void BuildRealNumberedList(IElement element, string tag, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
+    static void BuildRealNumberedList(IElement element, string tag, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
     {
         var isOrdered = tag == "ol";
         var part = WordNumberingBuilder.EnsureNumberingPart(context.MainPart!);
@@ -96,7 +96,7 @@ static partial class WordContentBuilder
         context.ListStack.Pop();
     }
 
-    static void BuildListItem(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex, Dictionary<string, string>? declarations)
+    static void BuildListItem(IElement element, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex, Dictionary<string, string>? declarations)
     {
         FlushParagraph(elements, context);
 

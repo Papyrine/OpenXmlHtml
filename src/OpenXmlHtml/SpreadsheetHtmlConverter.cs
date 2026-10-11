@@ -309,7 +309,7 @@ public static class SpreadsheetHtmlConverter
         return (uint)formats.Count;
     }
 
-    static SpreadsheetRunProperties BuildSpreadsheetRunProperties(FormatState format)
+    static SpreadsheetRunProperties BuildSpreadsheetRunProperties(in FormatState format)
     {
         var props = new SpreadsheetRunProperties();
 
