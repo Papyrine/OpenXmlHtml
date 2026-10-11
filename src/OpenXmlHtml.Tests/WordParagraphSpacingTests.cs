@@ -131,4 +131,38 @@ public class WordParagraphSpacingTests
         var unpadded = WordHtmlConverter.ToElements("""<p style="line-height: 1.5">x</p>""");
         await Assert.That(string.Join('\n', padded.Select(_ => _.OuterXml))).IsEqualTo(string.Join('\n', unpadded.Select(_ =>_.OuterXml)));
     }
+
+    // Entering a child block flushes first, which used to clear what the enclosing block declared
+    // before any text arrived. Same hole AmbientParagraphStyleId closed for class mapping.
+    [Test]
+    public async Task ContainerAlignmentReachesParagraphsInside()
+    {
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<div style="text-align:center; line-height:1.5"><p>a</p><p style="text-align:right">b</p></div><p>c</p>""");
+
+        await Assert.That(paragraphs.Select(Alignment)).IsEquivalentTo(["center", "right", null], CollectionOrdering.Matching);
+        await Assert.That(paragraphs.Select(_ => _.Descendants<SpacingBetweenLines>().SingleOrDefault()?.Line?.Value)).IsEquivalentTo(["360", "360", null], CollectionOrdering.Matching);
+    }
+
+    // The side margins nest, the top and bottom ones stay with the block that declared them.
+    [Test]
+    public async Task ContainerSideMarginsNestAndVerticalOnesDoNot()
+    {
+        var paragraph = WordHtmlConverter.ToElements(
+            """<div style="margin: 10pt 0 10pt 20pt"><p style="margin-left: 5pt">a</p></div>""").Single();
+
+        await Assert.That(paragraph.Descendants<Indentation>().Single().Left!.Value).IsEqualTo("500");
+        await Assert.That(paragraph.Descendants<SpacingBetweenLines>().Count()).IsEqualTo(0);
+    }
+
+    static string? Alignment(OpenXmlElement paragraph)
+    {
+        var justification = paragraph.Descendants<Justification>().SingleOrDefault();
+        if (justification == null)
+        {
+            return null;
+        }
+
+        return justification.Val!.InnerText;
+    }
 }

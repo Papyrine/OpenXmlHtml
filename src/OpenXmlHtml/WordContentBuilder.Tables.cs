@@ -342,11 +342,28 @@ static partial class WordContentBuilder
             }
         }
 
+        // What the cell owes the paragraphs inside it. Word aligns paragraphs, not cells, so a
+        // cell's text-align has nowhere to go but onto them. Its margins, border and background
+        // are the cell's own and are already in its tcPr.
+        ParagraphFormatState? cellParagraphFormat = null;
         var cellStyle = cellElement.GetAttribute("style");
         if (cellStyle != null)
         {
             var declarations = StyleParser.Parse(cellStyle);
             cellProperties = ApplyCellStyles(declarations, cellProperties);
+
+            var parsed = ParagraphFormatState.ParseFrom(declarations);
+            if (parsed.TextAlign != null ||
+                parsed.LineHeightMultiple != null ||
+                parsed.LineHeightTwips != null)
+            {
+                cellParagraphFormat = new()
+                {
+                    TextAlign = parsed.TextAlign,
+                    LineHeightMultiple = parsed.LineHeightMultiple,
+                    LineHeightTwips = parsed.LineHeightTwips
+                };
+            }
         }
 
         var bgColorAttr = cellElement.GetAttribute("bgcolor");
@@ -407,6 +424,9 @@ static partial class WordContentBuilder
 
         var cellFormat = format;
         HtmlSegmentParser.ApplyElementFormatting(cellElement, cellElement.LocalName, ref cellFormat);
+        // The cell's own border is its tcBorders, already written above. It is not a border around
+        // the text inside the cell.
+        cellFormat.Border = format.Border;
 
         var cellElements = new List<OpenXmlElement>();
         var cellCtx = new WordBuildContext
@@ -419,7 +439,9 @@ static partial class WordContentBuilder
             NextNumId = parentCtx.NextNumId,
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
-            ParagraphRightToLeft = cellFormat.RightToLeft
+            ParagraphRightToLeft = cellFormat.RightToLeft,
+            ParagraphFormat = cellParagraphFormat,
+            AmbientParagraphFormat = cellParagraphFormat
         };
         ProcessChildren(cellElement, cellFormat, cellElements, cellCtx, false);
         FlushParagraph(cellElements, cellCtx);
@@ -731,32 +753,56 @@ static partial class WordContentBuilder
         return false;
     }
 
+    // The rows in the order a table is drawn: head, then body, then foot, whatever order the
+    // sections were written in. html 4 required <tfoot> to come before <tbody>, so markup written
+    // to it has the footer second in the source, and read in source order it landed between the
+    // header and the body.
     static List<IElement> GetTableRows(IElement tableElement)
     {
         var rows = new List<IElement>();
+        List<IElement>? body = null;
+        List<IElement>? foot = null;
         foreach (var child in tableElement.Children)
         {
             switch (child.LocalName)
             {
                 case "tr":
-                    rows.Add(child);
+                    (body ??= []).Add(child);
                     break;
-                case "thead" or "tbody" or "tfoot":
-                {
-                    foreach (var grandchild in child.Children)
-                    {
-                        if (grandchild.LocalName == "tr")
-                        {
-                            rows.Add(grandchild);
-                        }
-                    }
-
+                case "thead":
+                    AddSectionRows(child, rows);
                     break;
-                }
+                case "tbody":
+                    AddSectionRows(child, body ??= []);
+                    break;
+                case "tfoot":
+                    AddSectionRows(child, foot ??= []);
+                    break;
             }
         }
 
+        if (body != null)
+        {
+            rows.AddRange(body);
+        }
+
+        if (foot != null)
+        {
+            rows.AddRange(foot);
+        }
+
         return rows;
+    }
+
+    static void AddSectionRows(IElement section, List<IElement> rows)
+    {
+        foreach (var child in section.Children)
+        {
+            if (child.LocalName == "tr")
+            {
+                rows.Add(child);
+            }
+        }
     }
 
     static List<IElement> GetCells(IElement row)

@@ -146,4 +146,33 @@ public class WordListStyleTests
         stream.Position = 0;
         return Verify(stream, "docx");
     }
+
+    // The start override has to name the level the list's paragraphs are at. It was always written
+    // for level 0, so the start of a nested list changed a level nothing in that list used.
+    [Test]
+    public async Task NestedListStartOverridesItsOwnLevel()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<ol start="3"><li>outer<ol start="5"><li>inner</li></ol></li></ol>""",
+            main);
+
+        var numbering = main.NumberingDefinitionsPart!.Numbering!;
+        foreach (var paragraph in paragraphs)
+        {
+            var properties = paragraph.Descendants<NumberingProperties>().Single();
+            var level = properties.NumberingLevelReference!.Val!.Value;
+            var instance = numbering.Elements<NumberingInstance>()
+                .Single(_ => _.NumberID!.Value == properties.NumberingId!.Val!.Value);
+            var levelOverride = instance.Elements<LevelOverride>().Single();
+
+            await Assert.That(levelOverride.LevelIndex!.Value).IsEqualTo(level);
+        }
+
+        var starts = numbering.Descendants<StartOverrideNumberingValue>().Select(_ => _.Val!.Value);
+        await Assert.That(starts).IsEquivalentTo([3, 5], CollectionOrdering.Matching);
+    }
 }
