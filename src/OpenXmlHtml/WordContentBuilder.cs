@@ -178,6 +178,8 @@
                 {
                     context.ImageIndex++;
                     context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    // An image is content, so a space after it does not fold into one before it.
+                    context.LastWasSpace = false;
                 }
 
                 return;
@@ -193,6 +195,7 @@
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
                 context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
+                context.LastWasSpace = false;
                 return;
             }
             case "col":
@@ -514,6 +517,14 @@
         {
             run.Append(WordHtmlConverter.BuildWordRunProperties(format));
         }
+
+        // Every run that reaches the paragraph moves the fold state, not only the ones that came
+        // from a text node. Alt text, a checkbox glyph and a list marker are written here too, and
+        // while they left the state alone the next text node folded against whatever came before
+        // them: "see <img alt="x"> below" lost the space after the alt text, and "☑ " kept a
+        // second space ahead of its label. The segment path reads the last segment, so it never
+        // had this.
+        ctx.LastWasSpace = text.Length > 0 && text[^1] == ' ';
 
         var transformed = ApplyTextTransform(text, format);
         if (transformed.IndexOf('\t') < 0)

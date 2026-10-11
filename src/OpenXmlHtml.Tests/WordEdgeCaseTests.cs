@@ -262,4 +262,35 @@ public class WordEdgeCaseTests
 
         return builder.ToString();
     }
+
+    // The element path only moved its fold state for text nodes, so a run written any other way
+    // left it stale and the next text node folded against the wrong neighbour. The segment path
+    // reads the last segment and always had these right; the two are compared so they stay agreed.
+    [Test]
+    [Arguments("""see <img src="https://example.com/chart.png" alt="the chart"> below""", "see the chart below")]
+    [Arguments("""<p><input type="checkbox" checked> Done</p>""", "☑ Done")]
+    [Arguments("<ul>\n<li>\n item</li>\n</ul>", "● item")]
+    [Arguments("""a <q> b</q> c""", "a “ b” c")]
+    public async Task FoldStateFollowsEveryRun(string html, string expected)
+    {
+        var elements = string.Concat(WordHtmlConverter.ToElements(html).Select(_ => _.InnerText));
+        var segments = string.Concat(WordHtmlConverter.ToParagraphs(html).Select(_ => _.InnerText));
+
+        await Assert.That(elements).IsEqualTo(expected);
+        await Assert.That(segments).IsEqualTo(expected);
+    }
+
+    // An image is content: the space after it is not a second space to fold into the one before.
+    [Test]
+    public async Task SpaceAfterImageIsKept()
+    {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        var paragraph = WordHtmlConverter.ToElements($"""<p>a <img src="data:image/png;base64,{png}" width="2" height="2"> b</p>""", main).Single();
+
+        await Assert.That(paragraph.InnerText).IsEqualTo("a  b");
+    }
 }
