@@ -113,6 +113,14 @@
 
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
+        // <pre> is an ordinary block whose text happens to be preformatted. It used to return from
+        // the switch below, ahead of everything a block is given further down: its class was never
+        // looked up in the style map, and its margins, page breaks and id were dropped.
+        if (tag == "pre")
+        {
+            inPre = true;
+        }
+
         switch (tag)
         {
             case "br":
@@ -209,7 +217,7 @@
             case "li":
             {
                 var ambient = ApplyAmbientParagraphStyle(element, context);
-                BuildListItem(element, newFormat, elements, context, inPre, listIndex);
+                BuildListItem(element, newFormat, elements, context, inPre, listIndex, styleDeclarations);
                 RestoreAmbientParagraphStyle(context, ambient);
                 return;
             }
@@ -221,13 +229,6 @@
                 AddTextRun("\u201C", format, context);
                 ProcessChildren(element, newFormat, elements, context, inPre);
                 AddTextRun("\u201D", format, context);
-                return;
-            }
-            case "pre":
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, true);
-                FlushParagraph(elements, context);
                 return;
             }
             case "rt":
@@ -252,22 +253,6 @@
                     context.CurrentRuns.Add(BuildFootnoteRun(context, title!));
                 }
 
-                return;
-            }
-        }
-
-        // Handle blockquote with cite attribute as footnote
-        if (tag == "blockquote")
-        {
-            var cite = element.GetAttribute("cite");
-            if (!string.IsNullOrEmpty(cite) &&
-                context.MainPart != null)
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, inPre);
-                // ReSharper disable once RedundantSuppressNullableWarningExpression
-                context.CurrentRuns.Add(BuildFootnoteRun(context, cite!));
-                FlushParagraph(elements, context);
                 return;
             }
         }
@@ -372,6 +357,16 @@
 
         var elementCountBeforeChildren = elements.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);
+
+        // A blockquote's cite becomes a footnote at its end. It is still a block like any other, so
+        // this sits inside the ordinary handling rather than returning ahead of it, which is what
+        // cost a cited blockquote its class, its margins and its id.
+        if (tag == "blockquote" &&
+            context.MainPart != null &&
+            element.GetAttribute("cite") is { Length: > 0 } cite)
+        {
+            context.CurrentRuns.Add(BuildFootnoteRun(context, cite));
+        }
 
         if (bookmarkId != null)
         {
