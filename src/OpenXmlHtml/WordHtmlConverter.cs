@@ -595,7 +595,9 @@ public static class WordHtmlConverter
 
         if (format.FontSizePt != null)
         {
-            var halfPoints = (int) (format.FontSizePt.Value * 2);
+            // Rounded, not truncated. A browser writes 10pt as 13.3333px, which is 19.99995
+            // half-points: cut off, that is 9.5pt, and 16pt (21.3333px) came out as 15.5pt.
+            var halfPoints = (int) Math.Round(format.FontSizePt.Value * 2, MidpointRounding.AwayFromZero);
             props.Append(
                 new FontSize
                 {
