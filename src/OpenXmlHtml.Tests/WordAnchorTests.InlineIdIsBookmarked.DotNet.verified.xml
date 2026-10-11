@@ -1,0 +1,13 @@
+﻿<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:r>
+    <w:t xml:space="preserve">See </w:t>
+  </w:r>
+  <w:bookmarkStart w:name="term" w:id="1" />
+  <w:r>
+    <w:t xml:space="preserve">the term</w:t>
+  </w:r>
+  <w:bookmarkEnd w:id="1" />
+  <w:r>
+    <w:t xml:space="preserve"> here.</w:t>
+  </w:r>
+</w:p>

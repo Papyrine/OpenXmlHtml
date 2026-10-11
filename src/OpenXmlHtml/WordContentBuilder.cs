@@ -58,6 +58,7 @@
         ProcessChildren(body, rootFormat, elements, context, false);
         FlushParagraph(elements, context);
         TrimTrailingEmptyParagraphs(elements);
+        PlaceLeftoverBookmarks(elements, context);
 
         if (settings?.NumberingSession is { } session2)
         {
@@ -252,8 +253,13 @@
                 return;
             }
             case "a":
+            {
+                // <a name="top"> and <a id="top"> are how html names a place to link to.
+                var anchorBookmark = OpenInlineBookmark(element, context);
                 BuildAnchor(element, format, newFormat, elements, context, inPre);
+                CloseInlineBookmark(anchorBookmark, context);
                 return;
+            }
             case "q":
             {
                 AddTextRun("\u201C", format, context);
@@ -381,19 +387,22 @@
             }
         }
 
-        // Add bookmark for elements with id attribute
-        var elementId = element.GetAttribute("id") ?? element.GetAttribute("name");
-        string? bookmarkId = null;
-        if (elementId != null && isBlock)
+        // Add bookmark for elements with id attribute. An inline element sits inside a paragraph
+        // already, so its markers go straight in around its runs. A block's wait for a paragraph.
+        BookmarkStart? blockBookmark = null;
+        string? inlineBookmark = null;
+        if (isBlock)
         {
-            context.BookmarkId++;
-            bookmarkId = context.BookmarkId.ToString();
-            context.CurrentRuns.Add(
-                new BookmarkStart
-                {
-                    Id = bookmarkId,
-                    Name = elementId
-                });
+            var elementId = element.GetAttribute("id") ?? element.GetAttribute("name");
+            if (elementId != null)
+            {
+                blockBookmark = NewBookmarkStart(elementId, context);
+                context.PendingBookmarks.Add(blockBookmark);
+            }
+        }
+        else
+        {
+            inlineBookmark = OpenInlineBookmark(element, context);
         }
 
         var elementCountBeforeChildren = elements.Count;
@@ -413,13 +422,10 @@
             context.CurrentRuns.Add(BuildFootnoteRun(context, cite));
         }
 
-        if (bookmarkId != null)
+        CloseInlineBookmark(inlineBookmark, context);
+        if (blockBookmark != null)
         {
-            context.CurrentRuns.Add(
-                new BookmarkEnd
-                {
-                    Id = bookmarkId
-                });
+            CloseBlockBookmark(blockBookmark, elements, context);
         }
 
         if (isBlock)
@@ -452,6 +458,116 @@
                 context.PendingPageBreak = true;
             }
         }
+    }
+
+    static BookmarkStart NewBookmarkStart(string name, WordBuildContext context)
+    {
+        context.BookmarkId++;
+        return new()
+        {
+            Id = context.BookmarkId.ToString(),
+            Name = name
+        };
+    }
+
+    static string? OpenInlineBookmark(IElement element, WordBuildContext context)
+    {
+        var name = element.GetAttribute("id") ?? element.GetAttribute("name");
+        if (name == null)
+        {
+            return null;
+        }
+
+        var start = NewBookmarkStart(name, context);
+        context.CurrentRuns.Add(start);
+        return start.Id!.Value;
+    }
+
+    static void CloseInlineBookmark(string? bookmarkId, WordBuildContext context)
+    {
+        if (bookmarkId == null)
+        {
+            return;
+        }
+
+        context.CurrentRuns.Add(
+            new BookmarkEnd
+            {
+                Id = bookmarkId
+            });
+    }
+
+    // Closes a block's bookmark where its content ended, without making a paragraph to do it in.
+    static void CloseBlockBookmark(BookmarkStart start, List<OpenXmlElement> elements, WordBuildContext context)
+    {
+        var end = new BookmarkEnd
+        {
+            Id = start.Id!.Value
+        };
+
+        // The block's own text is still open, so the bookmark closes after it.
+        if (context.CurrentRuns.Count > 0)
+        {
+            context.CurrentRuns.Add(end);
+            return;
+        }
+
+        // Still waiting, so nothing was built inside the block: the pair stays together.
+        if (context.PendingBookmarks.Contains(start))
+        {
+            context.PendingBookmarks.Add(end);
+            return;
+        }
+
+        if (LastParagraph(elements) is { } last)
+        {
+            last.Append(end);
+            return;
+        }
+
+        context.PendingBookmarks.Add(end);
+    }
+
+    // The paragraph the content built so far ends in. After a table that is the one closing its
+    // last cell, which every cell has.
+    static Paragraph? LastParagraph(List<OpenXmlElement> elements)
+    {
+        if (elements.Count == 0)
+        {
+            return null;
+        }
+
+        if (elements[^1] is Paragraph paragraph)
+        {
+            return paragraph;
+        }
+
+        return elements[^1].Descendants<Paragraph>().LastOrDefault();
+    }
+
+    // Markers that never met a paragraph, such as a bookmarked block with nothing in it at the end
+    // of the html. They go on the last paragraph there is, or on one of their own when there is
+    // none.
+    static void PlaceLeftoverBookmarks(List<OpenXmlElement> elements, WordBuildContext context)
+    {
+        if (context.PendingBookmarks.Count == 0)
+        {
+            return;
+        }
+
+        var paragraph = LastParagraph(elements);
+        if (paragraph == null)
+        {
+            paragraph = new();
+            elements.Add(paragraph);
+        }
+
+        foreach (var marker in context.PendingBookmarks)
+        {
+            paragraph.Append(marker);
+        }
+
+        context.PendingBookmarks.Clear();
     }
 
     // Sets the paragraph style an element's class maps to, as owed by everything inside it, and hands
@@ -705,6 +821,12 @@
             }
 
             return;
+        }
+
+        if (context.PendingBookmarks.Count > 0)
+        {
+            context.CurrentRuns.InsertRange(0, context.PendingBookmarks);
+            context.PendingBookmarks.Clear();
         }
 
         var paragraph = WordHtmlConverter.BuildParagraph(context.CurrentRuns, context.ListNumId != null ? 0 : context.ListDepth);
