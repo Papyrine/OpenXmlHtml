@@ -342,11 +342,28 @@ static partial class WordContentBuilder
             }
         }
 
+        // What the cell owes the paragraphs inside it. Word aligns paragraphs, not cells, so a
+        // cell's text-align has nowhere to go but onto them. Its margins, border and background
+        // are the cell's own and are already in its tcPr.
+        ParagraphFormatState? cellParagraphFormat = null;
         var cellStyle = cellElement.GetAttribute("style");
         if (cellStyle != null)
         {
             var declarations = StyleParser.Parse(cellStyle);
             cellProperties = ApplyCellStyles(declarations, cellProperties);
+
+            var parsed = ParagraphFormatState.ParseFrom(declarations);
+            if (parsed.TextAlign != null ||
+                parsed.LineHeightMultiple != null ||
+                parsed.LineHeightTwips != null)
+            {
+                cellParagraphFormat = new()
+                {
+                    TextAlign = parsed.TextAlign,
+                    LineHeightMultiple = parsed.LineHeightMultiple,
+                    LineHeightTwips = parsed.LineHeightTwips
+                };
+            }
         }
 
         var bgColorAttr = cellElement.GetAttribute("bgcolor");
@@ -422,7 +439,9 @@ static partial class WordContentBuilder
             NextNumId = parentCtx.NextNumId,
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
-            ParagraphRightToLeft = cellFormat.RightToLeft
+            ParagraphRightToLeft = cellFormat.RightToLeft,
+            ParagraphFormat = cellParagraphFormat,
+            AmbientParagraphFormat = cellParagraphFormat
         };
         ProcessChildren(cellElement, cellFormat, cellElements, cellCtx, false);
         FlushParagraph(cellElements, cellCtx);
