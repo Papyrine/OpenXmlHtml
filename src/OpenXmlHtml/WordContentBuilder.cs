@@ -74,6 +74,22 @@
 
     static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
+        if (!HtmlSegmentParser.HasStackToRecurse())
+        {
+            HtmlSegmentParser.ReportTooDeep(node, ctx.Settings);
+            foreach (var textNode in HtmlSegmentParser.TextNodes(node))
+            {
+                var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
+                if (text.Length > 0)
+                {
+                    AddTextRun(text, format, ctx);
+                    ctx.LastWasSpace = !inPre && text[^1] == ' ';
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -162,6 +178,8 @@
                 {
                     context.ImageIndex++;
                     context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    // An image is content, so a space after it does not fold into one before it.
+                    context.LastWasSpace = false;
                 }
 
                 return;
@@ -177,6 +195,7 @@
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
                 context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
+                context.LastWasSpace = false;
                 return;
             }
             case "col":
@@ -200,6 +219,15 @@
                 {
                     context.PendingPageBreak = false;
                     elements.Add(new Paragraph(new ParagraphProperties(new PageBreakBefore())));
+                }
+
+                // Word reads two tables with nothing between them as one table: it joins the rows
+                // and lays them out on a single grid. An empty paragraph is what keeps them apart,
+                // and is what Word itself puts there.
+                if (elements.Count > 0 &&
+                    elements[^1] is Table)
+                {
+                    elements.Add(new Paragraph());
                 }
 
                 BuildTable(element, format, elements, context);
@@ -490,6 +518,14 @@
             run.Append(WordHtmlConverter.BuildWordRunProperties(format));
         }
 
+        // Every run that reaches the paragraph moves the fold state, not only the ones that came
+        // from a text node. Alt text, a checkbox glyph and a list marker are written here too, and
+        // while they left the state alone the next text node folded against whatever came before
+        // them: "see <img alt="x"> below" lost the space after the alt text, and "☑ " kept a
+        // second space ahead of its label. The segment path reads the last segment, so it never
+        // had this.
+        ctx.LastWasSpace = text.Length > 0 && text[^1] == ' ';
+
         var transformed = ApplyTextTransform(text, format);
         if (transformed.IndexOf('\t') < 0)
         {
@@ -605,6 +641,23 @@
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
         context.LastWasSpace = false;
+
+        // A <br> that ends a block is that block's end, not a line of its own. Left in, Word draws
+        // an empty line after it, where a browser draws nothing. A paragraph that held only the
+        // break is still a paragraph: <p><br></p> is how an editor writes a blank line.
+        if (context.CurrentRuns.Count > 0 &&
+            context.CurrentRuns[^1] is Run { LastChild: Break { Type: null } } closing &&
+            closing.ChildElements.All(_ => _ is RunProperties or Break))
+        {
+            closing.LastChild!.Remove();
+            if (closing.ChildElements.All(_ => _ is RunProperties))
+            {
+                context.CurrentRuns.RemoveAt(context.CurrentRuns.Count - 1);
+            }
+
+            emitEmpty = true;
+        }
+
         if (context.CurrentRuns.Count == 0 && !emitEmpty)
         {
             context.HeadingLevel = 0;

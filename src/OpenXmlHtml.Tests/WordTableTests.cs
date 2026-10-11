@@ -245,6 +245,92 @@ public class WordTableTests
         await Assert.That(string.Join(",", table.Elements<TableRow>().Select(_ => _.InnerText))).IsEqualTo(expected);
     }
 
+    // colspan="100" is a common way to say "span every column". The columns it names past the last
+    // one a cell starts in are not real, and used to be padded out with empty cells on every row.
+    [Test]
+    public async Task ColspanPastTheGridIsClamped()
+    {
+        var table = (WTable)WordHtmlConverter.ToElements(
+            """<table><tr><td colspan="100">Title</td></tr><tr><td>a</td><td>b</td></tr></table>""").Single();
+
+        await Assert.That(table.Descendants<GridColumn>().Count()).IsEqualTo(2);
+        await Assert.That(CellsPerRow(table)).IsEquivalentTo([1, 2], CollectionOrdering.Matching);
+        await Assert.That(table.Descendants<GridSpan>().Single().Val!.Value).IsEqualTo(2);
+    }
+
+    // html limits colspan to 1000. Unbounded, one attribute sized the whole grid.
+    [Test]
+    public async Task HugeColspanDoesNotSizeTheGrid()
+    {
+        var table = (WTable)WordHtmlConverter.ToElements(
+            """<table><tr><td colspan="2000000000">t</td><td>u</td></tr><tr><td>a</td></tr></table>""").Single();
+
+        await Assert.That(table.Descendants<GridColumn>().Count()).IsEqualTo(63);
+    }
+
+    [Test]
+    public async Task HugeColSpanDoesNotSizeTheGrid()
+    {
+        var table = (WTable)WordHtmlConverter.ToElements(
+            """<table><colgroup><col span="2000000000" width="10"></colgroup><tr><td>a</td><td>b</td></tr></table>""").Single();
+
+        await Assert.That(table.Descendants<GridColumn>().Count()).IsEqualTo(2);
+    }
+
+    // A Word table cannot hold more than 63 columns, so the rest are dropped and reported.
+    [Test]
+    public async Task ColumnsPastWordsLimitAreReported()
+    {
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+        var cells = string.Concat(Enumerable.Range(0, 70).Select(_ => $"<td>{_}</td>"));
+
+        var table = (WTable)WordHtmlConverter.ToElements($"<table><tr>{cells}</tr></table>", null, settings).Single();
+
+        await Assert.That(CellsPerRow(table)).IsEquivalentTo([63], CollectionOrdering.Matching);
+        await Assert.That(reported.Single().Name).IsEqualTo("table");
+    }
+
+    static List<int> CellsPerRow(WTable table) =>
+        table.Elements<TableRow>()
+            .Select(_ => _.Elements<TableCell>().Count())
+            .ToList();
+
+    // Word joins two tables that have nothing between them into one. An empty paragraph keeps
+    // them apart. In a cell as well as in the body.
+    [Test]
+    public async Task AdjacentTablesAreKeptApart()
+    {
+        var elements = WordHtmlConverter.ToElements(
+            "<table><tr><td>a</td></tr></table>\n<table><tr><td>b</td></tr></table>");
+
+        await Assert.That(elements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task AdjacentNestedTablesAreKeptApart()
+    {
+        var outer = WordHtmlConverter.ToElements(
+            "<table><tr><td><table><tr><td>a</td></tr></table><table><tr><td>b</td></tr></table></td></tr></table>").Single();
+
+        var cell = outer.Descendants<TableCell>().First();
+
+        await Assert.That(cell.ChildElements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl", "p"], CollectionOrdering.Matching);
+    }
+
+    // Tables already separated by content get nothing extra.
+    [Test]
+    public async Task SeparatedTablesGetNoExtraParagraph()
+    {
+        var elements = WordHtmlConverter.ToElements(
+            "<table><tr><td>a</td></tr></table><p>between</p><table><tr><td>b</td></tr></table>");
+
+        await Assert.That(elements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl"], CollectionOrdering.Matching);
+    }
+
     // A short row under a rowspan it never reaches. The column count kept that span alive a row
     // too long, which pushed the last row's third cell into a fourth column.
     [Test]
