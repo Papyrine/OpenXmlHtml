@@ -88,8 +88,8 @@ static partial class WordContentBuilder
         }
 
         var numId = context.NextNumId++;
-        WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride);
         var ilvl = context.ListStack.Count > 0 ? Math.Min(context.ListStack.Peek().Ilvl + 1, 8) : 0;
+        WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride, ilvl);
         var parentInside = context.ListStack.Count > 0 && context.ListStack.Peek().Inside;
         context.ListStack.Push((numId, ilvl, isOrdered, inside || parentInside, false));
         ProcessChildren(element, newFormat, elements, context, inPre);
