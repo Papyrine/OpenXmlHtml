@@ -2,6 +2,10 @@
 {
     internal List<OpenXmlElement> CurrentRuns = [];
     internal int ImageIndex;
+
+    // The image parts this conversion has already written, by content, so that an image used more
+    // than once is stored once. Shared with table cells by reference.
+    internal Dictionary<string, StoredImage> StoredImages = [];
     internal int ListDepth;
     internal int HeadingLevel;
     internal int FootnoteIndex;

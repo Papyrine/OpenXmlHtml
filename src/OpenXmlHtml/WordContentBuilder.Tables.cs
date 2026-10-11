@@ -460,6 +460,7 @@ static partial class WordContentBuilder
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
             PendingBookmarks = parentCtx.PendingBookmarks,
+            StoredImages = parentCtx.StoredImages,
             ParagraphRightToLeft = cellFormat.RightToLeft,
             ParagraphFormat = cellParagraphFormat,
             AmbientParagraphFormat = cellParagraphFormat
