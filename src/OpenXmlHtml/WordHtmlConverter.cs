@@ -135,11 +135,7 @@ public static class WordHtmlConverter
                 run.Append(BuildWordRunProperties(segment.Format));
             }
 
-            run.Append(
-                new Text(WordContentBuilder.ApplyTextTransform(text, segment.Format))
-                {
-                    Space = SpaceProcessingModeValues.Preserve
-                });
+            WordContentBuilder.AppendText(run, WordContentBuilder.ApplyTextTransform(text, segment.Format));
 
             // Text inside an anchor becomes a real hyperlink rather than text merely coloured to
             // look like one. Consecutive runs under the same target join the hyperlink already

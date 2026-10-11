@@ -79,7 +79,9 @@ static class HtmlSegmentParser
             return;
         }
 
+        var wasPre = inPre;
         inPre = ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
+        var segmentsBefore = segments.Count;
 
         switch (tag)
         {
@@ -226,9 +228,19 @@ static class HtmlSegmentParser
                 return;
             case "pre":
                 ProcessNode(element, newFormat, segments, true, settings);
+                if (!wasPre)
+                {
+                    TrimClosingNewline(segments, segmentsBefore);
+                }
+
                 break;
             default:
                 ProcessNode(element, newFormat, segments, inPre, settings);
+                if (inPre && !wasPre)
+                {
+                    TrimClosingNewline(segments, segmentsBefore);
+                }
+
                 break;
         }
 
@@ -847,6 +859,36 @@ static class HtmlSegmentParser
 
         // Subtract 1 because the immediate parent ul/ol is depth 0
         return Math.Max(0, depth - 1);
+    }
+
+    // The newline that ends preformatted text closes its last line rather than opening another, and
+    // a browser draws nothing for it. Only segments the preformatted element added itself are
+    // looked at, so a paragraph break ahead of it is left alone.
+    static void TrimClosingNewline(List<TextSegment> segments, int from)
+    {
+        if (segments.Count <= from)
+        {
+            return;
+        }
+
+        var last = segments[^1];
+        if (last.IsLineBreak ||
+            last.IsListMarker ||
+            !last.Text.EndsWith('\n'))
+        {
+            return;
+        }
+
+        if (last.Text.Length == 1)
+        {
+            segments.RemoveAt(segments.Count - 1);
+            return;
+        }
+
+        segments[^1] = last with
+        {
+            Text = last.Text[..^1]
+        };
     }
 
     static void TrimTrailingNewlines(List<TextSegment> segments)
