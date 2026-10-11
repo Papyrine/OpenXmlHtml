@@ -181,6 +181,14 @@ static class ColorParser
 
             if (hex.Length is 6 or 8)
             {
+                // Fully transparent is no colour at all — see IsTransparent.
+                if (hex.Length == 8 &&
+                    hex[6] == '0' &&
+                    hex[7] == '0')
+                {
+                    return null;
+                }
+
                 // #RRGGBBAA → strip alpha, keep RGB
                 for (var i = 0; i < 6; i++)
                 {
@@ -205,7 +213,10 @@ static class ColorParser
     {
         var start = span.IndexOf('(');
         var end = span.IndexOf(')');
-        if (start < 0 || end < 0)
+
+        // The closing bracket has to follow the opening one. Checked only for presence, a value
+        // with them the other way round sliced a negative range and threw out of the converter.
+        if (start < 0 || end < start)
         {
             return null;
         }
@@ -225,11 +236,17 @@ static class ColorParser
             return null;
         }
 
-        // For rgba(r,g,b,a), extract only r,g,b — ignore alpha
+        // For rgba(r,g,b,a), extract only r,g,b. A partial alpha is ignored, since Word has no
+        // translucent text or shading to map it to.
         var bSpan = rest[(secondComma + 1)..];
         var thirdComma = bSpan.IndexOf(',');
         if (thirdComma >= 0)
         {
+            if (IsTransparent(bSpan[(thirdComma + 1)..]))
+            {
+                return null;
+            }
+
             bSpan = bSpan[..thirdComma];
         }
 
@@ -241,6 +258,21 @@ static class ColorParser
         }
 
         return $"{r:X2}{g:X2}{b:X2}";
+    }
+
+    // An alpha of zero. Dropping the alpha turned "transparent" into the opaque colour underneath
+    // it, and rgba(0, 0, 0, 0) is how a browser serialises a transparent background, so html copied
+    // out of one came through with solid black behind the text.
+    static bool IsTransparent(ReadOnlySpan<char> alpha)
+    {
+        alpha = alpha.Trim();
+        if (alpha.EndsWith("%".AsSpan(), StringComparison.Ordinal))
+        {
+            alpha = alpha[..^1];
+        }
+
+        return double.TryParse(alpha, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) &&
+               value == 0;
     }
 
     // Parses a single rgb() component: integer, decimal, or percentage (e.g. "255", "49.5", "50%").

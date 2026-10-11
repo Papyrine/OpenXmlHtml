@@ -8,8 +8,9 @@ public class WordWhiteSpaceTests
                 """
                 <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:r>
-                    <w:t xml:space="preserve">  spaces   preserved
-                  and  newlines</w:t>
+                    <w:t xml:space="preserve">  spaces   preserved</w:t>
+                    <w:br />
+                    <w:t xml:space="preserve">  and  newlines</w:t>
                   </w:r>
                 </w:p>
                 """);
@@ -110,5 +111,51 @@ public class WordWhiteSpaceTests
             await Assert.That(paragraph.Descendants<TabChar>()).IsEmpty();
             await Assert.That(paragraph.InnerText).IsEqualTo("cc Counsel");
         }
+    }
+
+    // Word draws a newline inside <w:t> as a space, so preformatted lines ran together. Both paths,
+    // since each writes its own runs.
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task PreNewlinesBecomeLineBreaks(bool elements)
+    {
+        var paragraph = Convert("<pre>one\ntwo\nthree</pre>", elements).Single();
+
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>().Count()).IsEqualTo(2);
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(_ => _.Text)).IsEquivalentTo(["one", "two", "three"], CollectionOrdering.Matching);
+    }
+
+    // The newline before </pre> closes the last line. It is not a blank line after it, and in the
+    // segment path it used to swallow the paragraph break that follows.
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task PreClosingNewlineIsNotALine(bool elements)
+    {
+        var paragraphs = Convert("<pre>\ncode\n</pre><p>after</p>", elements);
+
+        await Assert.That(paragraphs.Select(_ => _.InnerText)).IsEquivalentTo(["code", "after"], CollectionOrdering.Matching);
+        await Assert.That(paragraphs.SelectMany(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>()).Count()).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task WhiteSpacePreNewlinesBecomeLineBreaks(bool elements)
+    {
+        var paragraph = Convert("<div style=\"white-space: pre\">one\ntwo\n</div>", elements).Single();
+
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>().Count()).IsEqualTo(1);
+    }
+
+    static List<OpenXmlElement> Convert(string html, bool elements)
+    {
+        if (elements)
+        {
+            return WordHtmlConverter.ToElements(html);
+        }
+
+        return [..WordHtmlConverter.ToParagraphs(html)];
     }
 }
