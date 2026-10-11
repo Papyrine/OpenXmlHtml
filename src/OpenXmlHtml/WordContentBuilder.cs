@@ -74,6 +74,22 @@
 
     static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
+        if (!HtmlSegmentParser.HasStackToRecurse())
+        {
+            HtmlSegmentParser.ReportTooDeep(node, ctx.Settings);
+            foreach (var textNode in HtmlSegmentParser.TextNodes(node))
+            {
+                var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
+                if (text.Length > 0)
+                {
+                    AddTextRun(text, format, ctx);
+                    ctx.LastWasSpace = !inPre && text[^1] == ' ';
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -200,6 +216,15 @@
                 {
                     context.PendingPageBreak = false;
                     elements.Add(new Paragraph(new ParagraphProperties(new PageBreakBefore())));
+                }
+
+                // Word reads two tables with nothing between them as one table: it joins the rows
+                // and lays them out on a single grid. An empty paragraph is what keeps them apart,
+                // and is what Word itself puts there.
+                if (elements.Count > 0 &&
+                    elements[^1] is Table)
+                {
+                    elements.Add(new Paragraph());
                 }
 
                 BuildTable(element, format, elements, context);
