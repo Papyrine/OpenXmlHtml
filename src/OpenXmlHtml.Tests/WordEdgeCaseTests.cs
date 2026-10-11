@@ -338,4 +338,36 @@ public class WordEdgeCaseTests
 
                         return "";
                     }))));
+
+    // Whether whitespace sits between blocks is asked once per parent now rather than once per
+    // whitespace node. The answer must not change: dropped between blocks, kept beside inline
+    // content, and each parent judged for itself.
+    [Test]
+    [Arguments("<p>a</p>\n<p>b</p>\n<p>c</p>", "a|b|c")]
+    [Arguments("<div>\n<p>a</p>\n<p>b</p>\n</div>", "a|b")]
+    [Arguments("<p><b>a</b> <i>b</i> <u>c</u></p>", "a b c")]
+    [Arguments("<div>\n<p>a</p>\n</div>\n<p><b>b</b> <i>c</i></p>", "a|b c")]
+    public async Task WhitespaceBetweenBlocksIsStillDropped(string html, string expected)
+    {
+        await Assert.That(string.Join("|", WordHtmlConverter.ToElements(html).Select(_ => _.InnerText))).IsEqualTo(expected);
+        await Assert.That(string.Join("|", WordHtmlConverter.ToParagraphs(html).Select(_ => _.InnerText))).IsEqualTo(expected);
+    }
+
+    // A long pretty-printed document: many sibling blocks with a newline between each. This took
+    // tens of seconds while the check was quadratic.
+    [Test]
+    public async Task ManyNewlineSeparatedBlocksConvert()
+    {
+        const int count = 30_000;
+        var builder = new StringBuilder();
+        for (var i = 0; i < count; i++)
+        {
+            builder.Append("<p>x</p>\n");
+        }
+
+        var html = builder.ToString();
+
+        await Assert.That(WordHtmlConverter.ToElements(html).Count).IsEqualTo(count);
+        await Assert.That(WordHtmlConverter.ToParagraphs(html).Count).IsEqualTo(count);
+    }
 }
