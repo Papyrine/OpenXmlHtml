@@ -213,7 +213,10 @@ static class ColorParser
     {
         var start = span.IndexOf('(');
         var end = span.IndexOf(')');
-        if (start < 0 || end < 0)
+
+        // The closing bracket has to follow the opening one. Checked only for presence, a value
+        // with them the other way round sliced a negative range and threw out of the converter.
+        if (start < 0 || end < start)
         {
             return null;
         }

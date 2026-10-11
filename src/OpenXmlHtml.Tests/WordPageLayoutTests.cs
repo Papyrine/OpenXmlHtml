@@ -114,4 +114,28 @@ public class WordPageLayoutTests
 
         await Assert.That(layout.MarginTopTwips).IsEqualTo(1440);
     }
+
+    // size is a page size, an orientation, or both in either order. Only an orientation trailing a
+    // named size used to be read.
+    [Test]
+    [Arguments("landscape", 16838, 11906, true)]
+    [Arguments("landscape A4", 16838, 11906, true)]
+    [Arguments("A4 landscape", 16838, 11906, true)]
+    [Arguments("letter  LANDSCAPE", 15840, 12240, true)]
+    [Arguments("portrait Letter", 12240, 15840, false)]
+    [Arguments("A5", 8391, 11906, false)]
+    [Arguments("8.5in 11in", 12240, 15840, false)]
+    public async Task PageSizeReadsOrientationAndSizeInEitherOrder(string size, int width, int height, bool landscape)
+    {
+        var layout = AtPageParser.Parse($"<style>@page {{ size: {size}; }}</style>")!;
+
+        await Assert.That(layout.WidthTwips).IsEqualTo(width);
+        await Assert.That(layout.HeightTwips).IsEqualTo(height);
+        await Assert.That(layout.Landscape).IsEqualTo(landscape);
+    }
+
+    // "portrait" by itself asks for what the default already is.
+    [Test]
+    public async Task PortraitAloneChangesNothing() =>
+        await Assert.That(AtPageParser.Parse("<style>@page { size: portrait; }</style>")).IsNull();
 }

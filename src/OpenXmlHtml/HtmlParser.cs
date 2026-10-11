@@ -18,6 +18,23 @@ static class HtmlSegmentParser
 
     static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
     {
+        if (!HasStackToRecurse())
+        {
+            ReportTooDeep(node, settings);
+            foreach (var textNode in TextNodes(node))
+            {
+                var lastWasSpace = segments.Count > 0 &&
+                                   (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
+                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
+                if (text.Length > 0)
+                {
+                    segments.Add(new(text, format));
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -218,6 +235,59 @@ static class HtmlSegmentParser
         if (isBlock)
         {
             EnsureNewline(segments, format);
+        }
+    }
+
+    internal const string NestedTooDeep = "nested too deeply to convert, so its text was kept without its markup";
+
+    // The walk recurses once per nesting level, and html puts no limit on nesting: a few hundred
+    // nested elements used to run the thread out of stack, which cannot be caught and takes the
+    // process with it. When the stack is nearly spent the rest of the subtree is flattened to its
+    // text instead, read with TextNodes, which does not recurse.
+#if NETFRAMEWORK
+    internal static bool HasStackToRecurse()
+    {
+        try
+        {
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+            return true;
+        }
+        catch (InsufficientExecutionStackException)
+        {
+            return false;
+        }
+    }
+#else
+    internal static bool HasStackToRecurse() =>
+        RuntimeHelpers.TryEnsureSufficientExecutionStack();
+#endif
+
+    internal static void ReportTooDeep(INode node, HtmlConvertSettings? settings)
+    {
+        if (node is IElement element)
+        {
+            Diagnostic.UnsupportedElement(settings, element.LocalName, NestedTooDeep);
+        }
+    }
+
+    // Every text node under root, in document order, without recursion.
+    internal static IEnumerable<IText> TextNodes(INode root)
+    {
+        var pending = new Stack<INode>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            var node = pending.Pop();
+            if (node is IText text)
+            {
+                yield return text;
+                continue;
+            }
+
+            for (var child = node.LastChild; child != null; child = child.PreviousSibling)
+            {
+                pending.Push(child);
+            }
         }
     }
 
@@ -735,7 +805,17 @@ static class HtmlSegmentParser
         }
 
         var last = segments[^1];
-        if (!last.Text.EndsWith('\n'))
+
+        // A <br> that ends a block is that block's end, not a line of its own: a browser draws
+        // nothing extra for it. Its text is "\n" too, so it used to pass for the paragraph break
+        // and the next block was run on into the same paragraph. It becomes the break instead.
+        if (last.IsLineBreak)
+        {
+            segments[^1] = new("\n", format);
+            return;
+        }
+
+        if (last.Text != "\n")
         {
             segments.Add(new("\n", format));
         }

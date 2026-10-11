@@ -160,15 +160,14 @@ public static class SpreadsheetHtmlConverter
             return;
         }
 
-        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true);
+        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(worksheetPart, "rLink"));
 
         var worksheet = worksheetPart.Worksheet!;
         var hyperlinks = worksheet.GetFirstChild<Hyperlinks>();
         if (hyperlinks == null)
         {
             hyperlinks = new();
-            var sheetData = worksheet.GetFirstChild<SheetData>()!;
-            worksheet.InsertAfter(hyperlinks, sheetData);
+            InsertHyperlinks(worksheet, hyperlinks);
         }
 
         var hyperlink = new DocumentFormat.OpenXml.Spreadsheet.Hyperlink
@@ -184,6 +183,42 @@ public static class SpreadsheetHtmlConverter
 
         hyperlinks.Append(hyperlink);
     }
+
+    // CT_Worksheet fixes the order of its children, and hyperlinks comes well after sheetData: merged
+    // cells, an auto filter, conditional formatting and data validations all sit between the two.
+    // Put straight after sheetData it landed ahead of any of those the sheet had, and Excel does not
+    // repair a worksheet whose children are out of order — it reports the workbook as damaged.
+    static void InsertHyperlinks(Worksheet worksheet, Hyperlinks hyperlinks)
+    {
+        var last = worksheet.ChildElements.LastOrDefault(PrecedesHyperlinks);
+        if (last == null)
+        {
+            worksheet.InsertAt(hyperlinks, 0);
+            return;
+        }
+
+        worksheet.InsertAfter(hyperlinks, last);
+    }
+
+    static bool PrecedesHyperlinks(OpenXmlElement element) =>
+        element is SheetProperties or
+            SheetDimension or
+            SheetViews or
+            SheetFormatProperties or
+            DocumentFormat.OpenXml.Spreadsheet.Columns or
+            SheetData or
+            SheetCalculationProperties or
+            SheetProtection or
+            ProtectedRanges or
+            Scenarios or
+            AutoFilter or
+            SortState or
+            DataConsolidate or
+            CustomSheetViews or
+            MergeCells or
+            PhoneticProperties or
+            ConditionalFormatting or
+            DataValidations;
 
     static bool HasNewlines(InlineString inlineString)
     {

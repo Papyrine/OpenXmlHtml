@@ -54,7 +54,7 @@ public static class WordHtmlConverter
         {
             hyperlink = new()
             {
-                Id = main.AddHyperlinkRelationship(uri, true).Id
+                Id = main.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(main, "rLink")).Id
             };
             return true;
         }
@@ -306,7 +306,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetHeader(MainDocumentPart main, string html)
     {
-        var headerPart = main.AddNewPart<HeaderPart>();
+        var headerPart = main.AddNewPart<HeaderPart>(PartRelationshipId.Next(main, "rHeader"));
         var header = new Header();
         foreach (var element in WordContentBuilder.Build(html, main))
         {
@@ -328,7 +328,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetHeader(MainDocumentPart main, string html, HtmlConvertSettings settings)
     {
-        var headerPart = main.AddNewPart<HeaderPart>();
+        var headerPart = main.AddNewPart<HeaderPart>(PartRelationshipId.Next(main, "rHeader"));
         var header = new Header();
         foreach (var element in WordContentBuilder.Build(html, main, settings))
         {
@@ -350,7 +350,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetFooter(MainDocumentPart main, string html)
     {
-        var footerPart = main.AddNewPart<FooterPart>();
+        var footerPart = main.AddNewPart<FooterPart>(PartRelationshipId.Next(main, "rFooter"));
         var footer = new Footer();
         foreach (var element in WordContentBuilder.Build(html, main))
         {
@@ -372,7 +372,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetFooter(MainDocumentPart main, string html, HtmlConvertSettings settings)
     {
-        var footerPart = main.AddNewPart<FooterPart>();
+        var footerPart = main.AddNewPart<FooterPart>(PartRelationshipId.Next(main, "rFooter"));
         var footer = new Footer();
         foreach (var element in WordContentBuilder.Build(html, main, settings))
         {

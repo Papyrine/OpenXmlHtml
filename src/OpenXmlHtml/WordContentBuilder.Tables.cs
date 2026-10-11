@@ -30,6 +30,12 @@ static partial class WordContentBuilder
         }
 
         var columnCount = GetColumnCount(rows);
+        if (columnCount > maxColumns)
+        {
+            Diagnostic.UnsupportedElement(ctx.Settings, "table", tooManyColumns);
+            columnCount = maxColumns;
+        }
+
         var table = new Table();
 
         var defaultBorder = new BorderInfo(4, BorderValues.Single, "auto");
@@ -182,6 +188,7 @@ static partial class WordContentBuilder
             };
         }
 
+        NormaliseProperties(tblPr, tablePropertyOrder);
         table.Append(tblPr);
 
         var grid = new TableGrid();
@@ -287,8 +294,10 @@ static partial class WordContentBuilder
                 var cellElement = cells[cellIndex];
                 cellIndex++;
 
-                var colspan = ParseIntAttribute(cellElement, "colspan", 1);
-                var rowspan = ParseIntAttribute(cellElement, "rowspan", 1);
+                // A span cannot reach past the grid. colspan="100" is a common way to say "all of
+                // them", and the columns it names beyond the last one a cell starts in do not exist.
+                var colspan = Math.Min(ParseSpan(cellElement, "colspan", maxColspan), columnCount - colIndex);
+                var rowspan = ParseSpan(cellElement, "rowspan", maxRowspan);
 
                 int? cellColWidth = null;
                 for (var i = 0; i < colspan && colIndex + i < columnWidths.Count; i++)
@@ -418,7 +427,7 @@ static partial class WordContentBuilder
 
         if (cellProperties != null)
         {
-            ReorderCellProperties(cellProperties);
+            NormaliseProperties(cellProperties, cellPropertyOrder);
             tc.Append(cellProperties);
         }
 
@@ -661,8 +670,8 @@ static partial class WordContentBuilder
             }
 
             // A span makes the cell-to-column mapping ambiguous, so such a row is not a source.
-            if (cells.Exists(_ => ParseIntAttribute(_, "colspan", 1) > 1 ||
-                                  ParseIntAttribute(_, "rowspan", 1) > 1))
+            if (cells.Exists(_ => ParseSpan(_, "colspan", maxColspan) > 1 ||
+                                  ParseSpan(_, "rowspan", maxRowspan) > 1))
             {
                 continue;
             }
@@ -692,7 +701,7 @@ static partial class WordContentBuilder
 
     static void AddColWidth(IElement col, List<int?> widths, HtmlConvertSettings? settings)
     {
-        var span = ParseIntAttribute(col, "span", 1);
+        var span = ParseSpan(col, "span", maxColspan);
         var width = ParseColWidth(col, settings);
         for (var i = 0; i < span; i++)
         {
@@ -843,37 +852,66 @@ static partial class WordContentBuilder
                         rowspanTracker[colIndex] = (spanInfo.Remaining - 1, spanInfo.Colspan);
                     }
 
+                    maxCols = Math.Max(maxCols, colIndex + 1);
                     colIndex += spanInfo.Colspan;
                     continue;
                 }
 
                 var cell = cells[cellIndex];
                 cellIndex++;
-                var colspan = ParseIntAttribute(cell, "colspan", 1);
-                var rowspan = ParseIntAttribute(cell, "rowspan", 1);
+                var colspan = ParseSpan(cell, "colspan", maxColspan);
+                var rowspan = ParseSpan(cell, "rowspan", maxRowspan);
                 if (rowspan > 1)
                 {
                     rowspanTracker[colIndex] = (rowspan - 1, colspan);
                 }
 
+                // A column exists where a cell starts, not everywhere a span reaches: a browser
+                // gives the columns only a span covers no width, so they are not columns here.
+                maxCols = Math.Max(maxCols, colIndex + 1);
                 colIndex += colspan;
             }
 
-            maxCols = Math.Max(maxCols, colIndex);
+            // A row with fewer cells than the grid stops short of the columns to its right, and a
+            // rowspan running down one of those still passes through this row. The render loop
+            // visits every column and counts it off there; this one only walks as far as the row's
+            // own cells, so the span was left a row too long and pushed a cell in a later row out
+            // into a column that does not exist.
+            foreach (var column in rowspanTracker.Keys.Where(_ => _ >= colIndex).ToList())
+            {
+                var (remaining, span) = rowspanTracker[column];
+                if (remaining <= 1)
+                {
+                    rowspanTracker.Remove(column);
+                }
+                else
+                {
+                    rowspanTracker[column] = (remaining - 1, span);
+                }
+            }
         }
 
         return Math.Max(1, maxCols);
     }
 
-    static int ParseIntAttribute(IElement element, string attribute, int defaultValue)
+    // The limits html itself puts on colspan, col span and rowspan. Without them a single attribute
+    // sized the grid: colspan="1000000" allocated hundreds of megabytes from ninety characters.
+    const int maxColspan = 1000;
+    const int maxRowspan = 65534;
+
+    // The most columns a Word table can hold.
+    const int maxColumns = 63;
+    const string tooManyColumns = "a Word table holds at most 63 columns, so the cells past that were dropped";
+
+    static int ParseSpan(IElement element, string attribute, int max)
     {
         var value = element.GetAttribute(attribute);
         if (value != null && int.TryParse(value, out var result) && result > 1)
         {
-            return result;
+            return Math.Min(result, max);
         }
 
-        return defaultValue;
+        return 1;
     }
 
     static readonly Type[] cellPropertyOrder =
@@ -888,14 +926,33 @@ static partial class WordContentBuilder
         typeof(TableCellVerticalAlignment)
     ];
 
-    // The various cell-style sources append in a convenient order; CT_TcPr requires a fixed
-    // schema sequence, so normalise the children before emitting the cell.
-    static void ReorderCellProperties(TableCellProperties tcPr)
+    // CT_TblPrBase, for the children this builder writes. bidiVisual sits ahead of the width, which
+    // is the one that was wrong for every table under dir="rtl"; shd, tblLayout and tblCellMar all
+    // come before tblLook, which a class-styled table writes early.
+    static readonly Type[] tablePropertyOrder =
+    [
+        typeof(TableStyle),
+        typeof(BiDiVisual),
+        typeof(TableWidth),
+        typeof(TableBorders),
+        typeof(Shading),
+        typeof(TableLayout),
+        typeof(TableCellMarginDefault),
+        typeof(TableLook)
+    ];
+
+    // The various style sources append in a convenient order, and more than one of them can supply
+    // the same property: css and the presentational attribute it replaced, a background and a
+    // bgcolor, a padding and a cellpadding. CT_TcPr and CT_TblPr each require a fixed sequence and
+    // allow one of each child, so the children are put in schema order and a repeat is dropped.
+    // css is read first throughout and the sort is stable, so the one kept is the css one, which
+    // is the one that outranks an attribute.
+    static void NormaliseProperties(OpenXmlCompositeElement properties, Type[] order)
     {
-        var sorted = tcPr.ChildElements
+        var sorted = properties.ChildElements
             .OrderBy(_ =>
             {
-                var index = Array.IndexOf(cellPropertyOrder, _.GetType());
+                var index = Array.IndexOf(order, _.GetType());
                 if (index < 0)
                 {
                     return int.MaxValue;
@@ -904,10 +961,19 @@ static partial class WordContentBuilder
                 return index;
             })
             .ToList();
-        tcPr.RemoveAllChildren();
+        properties.RemoveAllChildren();
+        Type? previous = null;
         foreach (var child in sorted)
         {
-            tcPr.Append(child);
+            var type = child.GetType();
+            if (type == previous &&
+                Array.IndexOf(order, type) >= 0)
+            {
+                continue;
+            }
+
+            properties.Append(child);
+            previous = type;
         }
     }
 }
