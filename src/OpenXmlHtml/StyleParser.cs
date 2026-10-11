@@ -134,6 +134,21 @@ static class StyleParser
         return number;
     }
 
+    // The limits Word's schema puts on the measures css can reach. A css length is unbounded and may
+    // be negative, and written through as it stood it produced attributes the schema rejects:
+    // w:before="-150" from a negative margin, w:sz="-7" from a negative font size, a row height
+    // wrapped round to four billion by a cast to unsigned.
+    internal const double MaxFontSizePt = 1638;
+    internal const int MaxTwips = 31680;
+
+    internal static int ClampSignedTwips(int twips) =>
+        Math.Clamp(twips, -MaxTwips, MaxTwips);
+
+    // For a measure that cannot be negative. css allows a negative margin to pull content back;
+    // Word has no such thing, and the nearest it can say is none at all.
+    internal static int ClampUnsignedTwips(int twips) =>
+        Math.Clamp(twips, 0, MaxTwips);
+
     internal static double? ParseFontSize(string value)
     {
         var span = value.AsSpan().Trim();

@@ -219,6 +219,16 @@ static partial class WordContentBuilder
                 : null;
             rowHeight ??= row.GetAttribute("height") is { } rh ? StyleParser.ParseLengthToTwips(rh) : null;
 
+            // A row cannot be less than no height, and the cast below would wrap a negative one.
+            if (rowHeight is < 0)
+            {
+                rowHeight = null;
+            }
+            else if (rowHeight is > StyleParser.MaxTwips)
+            {
+                rowHeight = StyleParser.MaxTwips;
+            }
+
             // A thead row repeats at the top of every page the table spans. Without it a table
             // broken across a page break loses its header on each page after the first, which for a
             // long table is the difference between readable and not. Rows are flattened out of

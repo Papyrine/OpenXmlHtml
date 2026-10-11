@@ -180,4 +180,45 @@ public class WordValidationTests
             .Order(StringComparer.Ordinal)
             .ToList();
     }
+
+    // A css length is unbounded and may be negative. Written through as it stood, each of these
+    // produced an attribute the schema rejects.
+    [Test]
+    [Arguments("""<p style="margin-top: -10px; margin-bottom: -4px">x</p>""")]
+    [Arguments("""<p style="margin: -1in 0">x</p>""")]
+    [Arguments("""<p style="line-height: -2">x</p>""")]
+    [Arguments("""<p style="line-height: -12pt">x</p>""")]
+    [Arguments("""<span style="font-size: -5px">x</span>""")]
+    [Arguments("""<span style="font-size: 0">x</span>""")]
+    [Arguments("""<span style="font-size: 5000pt">x</span>""")]
+    [Arguments("""<span style="letter-spacing: 5000px">x</span>""")]
+    [Arguments("""<span style="letter-spacing: -5000px">x</span>""")]
+    [Arguments("""<span style="word-spacing: 5000px">x</span>""")]
+    [Arguments("""<table><tr style="height: -5px"><td>x</td></tr></table>""")]
+    [Arguments("""<table><tr height="99999"><td>x</td></tr></table>""")]
+    [Arguments("""<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==" width="-5" height="5">""")]
+    [Arguments("""<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==" style="width: -5px; height: -5px">""")]
+    [Arguments("""<style>@page { margin: -1in; size: -5in -5in }</style><p>x</p>""")]
+    public async Task OutOfRangeLengthsStayWithinTheSchema(string html)
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(html, stream);
+
+        stream.Position = 0;
+        using var document = WordprocessingDocument.Open(stream, false);
+        var errors = new OpenXmlValidator().Validate(document)
+            .Select(_ => $"{_.Description} ({_.Path?.XPath})")
+            .ToList();
+
+        await Assert.That(errors).IsEmpty().Because(string.Join('\n', errors));
+    }
+
+    // A negative margin has no form in Word. The nearest it can say is none.
+    [Test]
+    public async Task NegativeVerticalMarginBecomesNone()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<p style="margin-top: -10px">x</p>""").Single();
+
+        await Assert.That(paragraph.Descendants<SpacingBetweenLines>().Single().Before!.Value).IsEqualTo("0");
+    }
 }

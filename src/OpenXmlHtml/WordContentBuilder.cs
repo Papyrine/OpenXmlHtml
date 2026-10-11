@@ -815,12 +815,12 @@
             var spacing = new SpacingBetweenLines();
             if (pf.MarginTopTwips != null)
             {
-                spacing.Before = pf.MarginTopTwips.Value.ToString();
+                spacing.Before = StyleParser.ClampUnsignedTwips(pf.MarginTopTwips.Value).ToString();
             }
 
             if (pf.MarginBottomTwips != null)
             {
-                spacing.After = pf.MarginBottomTwips.Value.ToString();
+                spacing.After = StyleParser.ClampUnsignedTwips(pf.MarginBottomTwips.Value).ToString();
             }
 
             if (pf.LineHeightMultiple != null)
