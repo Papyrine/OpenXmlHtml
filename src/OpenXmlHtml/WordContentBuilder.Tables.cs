@@ -407,6 +407,9 @@ static partial class WordContentBuilder
 
         var cellFormat = format;
         HtmlSegmentParser.ApplyElementFormatting(cellElement, cellElement.LocalName, ref cellFormat);
+        // The cell's own border is its tcBorders, already written above. It is not a border around
+        // the text inside the cell.
+        cellFormat.Border = format.Border;
 
         var cellElements = new List<OpenXmlElement>();
         var cellCtx = new WordBuildContext
