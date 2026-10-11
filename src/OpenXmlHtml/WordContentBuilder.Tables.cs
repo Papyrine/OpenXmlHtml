@@ -365,10 +365,14 @@ static partial class WordContentBuilder
         // cell's text-align has nowhere to go but onto them. Its margins, border and background
         // are the cell's own and are already in its tcPr.
         ParagraphFormatState? cellParagraphFormat = null;
+
+        // Parsed once here and handed on to the run formatting below, which used to parse the same
+        // attribute again.
+        Dictionary<string, string>? declarations = null;
         var cellStyle = cellElement.GetAttribute("style");
         if (cellStyle != null)
         {
-            var declarations = StyleParser.Parse(cellStyle);
+            declarations = StyleParser.Parse(cellStyle);
             cellProperties = ApplyCellStyles(declarations, cellProperties);
 
             var parsed = ParagraphFormatState.ParseFrom(declarations);
@@ -442,7 +446,7 @@ static partial class WordContentBuilder
         }
 
         var cellFormat = format;
-        HtmlSegmentParser.ApplyElementFormatting(cellElement, cellElement.LocalName, ref cellFormat);
+        HtmlSegmentParser.ApplyElementFormatting(cellElement, cellElement.LocalName, ref cellFormat, declarations);
         // The cell's own border is its tcBorders, already written above. It is not a border around
         // the text inside the cell.
         cellFormat.Border = format.Border;
@@ -691,13 +695,21 @@ static partial class WordContentBuilder
             // Widths are read without settings, so nothing is reported: a percentage is honoured on
             // the cell itself, and calling that a dropped property here would be wrong. It only
             // means this row cannot fill the grid, so the search moves on.
+            // The row is only a source if every cell gives a width, so it is dropped at the first
+            // one that does not rather than after reading them all.
             var resolved = new List<int?>(columnCount);
             foreach (var cell in cells)
             {
-                resolved.Add(ParseColWidth(cell, null));
+                var width = ParseColWidth(cell, null);
+                if (width == null)
+                {
+                    break;
+                }
+
+                resolved.Add(width);
             }
 
-            if (resolved.Contains(null))
+            if (resolved.Count != columnCount)
             {
                 continue;
             }
@@ -727,8 +739,11 @@ static partial class WordContentBuilder
 
     static int? ParseColWidth(IElement col, HtmlConvertSettings? settings)
     {
+        // Only a style that mentions a width is worth parsing for one. This is asked of every cell
+        // of every row when the grid is filled from cell widths, and most cells have none.
         var style = col.GetAttribute("style");
-        if (style != null)
+        if (style != null &&
+            style.IndexOf("width", StringComparison.OrdinalIgnoreCase) >= 0)
         {
             var declarations = StyleParser.Parse(style);
             if (declarations.TryGetValue("width", out var cssWidth))
