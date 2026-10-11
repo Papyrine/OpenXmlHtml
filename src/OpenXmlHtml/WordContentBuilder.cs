@@ -140,7 +140,14 @@
                 }
                 else if (context.MainPart == null)
                 {
+                    // Nowhere to put the image, so its alt text stands in for it.
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                    var alt = element.GetAttribute("alt");
+                    if (!string.IsNullOrEmpty(alt))
+                    {
+                        // ReSharper disable once RedundantSuppressNullableWarningExpression
+                        AddTextRun(alt!, format, context);
+                    }
                 }
                 else
                 {

@@ -90,22 +90,27 @@ public static class WordHtmlConverter
                 continue;
             }
 
+            var text = segment.Text;
             if (segment.Format.Image is { } image)
             {
-                if (main == null)
-                {
-                    Diagnostic.UnsupportedElement(settings, image.SourceTag, WordContentBuilder.NoMainPartForImages);
-                }
-                else
+                if (main != null)
                 {
                     imageIndex++;
                     currentRuns.Add(BuildImageRun(main, image, imageIndex));
+                    continue;
                 }
 
-                continue;
+                // Nowhere to put the image, so its alt text stands in for it.
+                Diagnostic.UnsupportedElement(settings, image.SourceTag, WordContentBuilder.NoMainPartForImages);
+                if (string.IsNullOrEmpty(image.AltText))
+                {
+                    continue;
+                }
+
+                // ReSharper disable once RedundantSuppressNullableWarningExpression
+                text = image.AltText!;
             }
 
-            var text = segment.Text;
             if (segment.Format.ListDepth > 0)
             {
                 listDepth = segment.Format.ListDepth;
