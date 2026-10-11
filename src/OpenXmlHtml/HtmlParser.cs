@@ -403,9 +403,10 @@ static class HtmlSegmentParser
             }
 
             var fontFace = element.GetAttribute("face");
-            if (fontFace != null)
+            if (fontFace != null &&
+                StyleParser.ParseFontFamily(fontFace) is { } face)
             {
-                format.FontFamily = fontFace;
+                format.FontFamily = face;
             }
 
             var fontSize = element.GetAttribute("size");
@@ -558,9 +559,10 @@ static class HtmlSegmentParser
             }
         }
 
-        if (declarations.TryGetValue("font-family", out var fontFamily))
+        if (declarations.TryGetValue("font-family", out var fontFamily) &&
+            StyleParser.ParseFontFamily(fontFamily) is { } family)
         {
-            format.FontFamily = fontFamily.Trim('\'', '"');
+            format.FontFamily = family;
         }
 
         if (declarations.TryGetValue("background-color", out var bgColor) ||

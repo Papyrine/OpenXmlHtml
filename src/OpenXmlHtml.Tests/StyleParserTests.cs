@@ -129,4 +129,30 @@ public class StyleParserTests
         await Assert.That(run.RunProperties.Bold).IsNotNull();
         await Assert.That(run.RunProperties.FontSize!.Val!.Value).IsEqualTo("28");
     }
+
+    // A Word run names one font. The whole fallback list used to be handed over as the name.
+    [Test]
+    [Arguments("Arial, Helvetica, sans-serif", "Arial")]
+    [Arguments("'Times New Roman', serif", "Times New Roman")]
+    [Arguments("\"Segoe UI\" , Tahoma", "Segoe UI")]
+    [Arguments("Georgia", "Georgia")]
+    [Arguments("monospace", "Courier New")]
+    [Arguments("sans-serif", null)]
+    [Arguments("inherit", null)]
+    [Arguments("", null)]
+    public async Task ParseFontFamilyTakesTheFirstFamily(string value, string? expected) =>
+        await Assert.That(StyleParser.ParseFontFamily(value)).IsEqualTo(expected);
+
+    [Test]
+    public async Task FontFamilyStackNamesOneFont()
+    {
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<p style="font-family: 'Times New Roman', serif">a</p><p><font face="Arial, Helvetica">b</font></p>""");
+
+        var fonts = paragraphs
+            .SelectMany(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.RunFonts>())
+            .Select(_ => _.Ascii!.Value!);
+
+        await Assert.That(fonts).IsEquivalentTo(["Times New Roman", "Arial"], CollectionOrdering.Matching);
+    }
 }

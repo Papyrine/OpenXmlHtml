@@ -54,6 +54,46 @@ static class StyleParser
         return value[..bang].TrimEnd();
     }
 
+    // font-family is a list of fallbacks, and a Word run names one font. Handed the whole list,
+    // Word looked for a font literally called "Arial, Helvetica, sans-serif", found none and
+    // substituted its own. The first family is the one the author wanted, so that is the one named.
+    // A generic keyword is not a font: monospace has an obvious stand-in, and the rest say nothing
+    // Word's own default does not already say.
+    internal static string? ParseFontFamily(string value)
+    {
+        var span = value.AsSpan();
+        var comma = span.IndexOf(',');
+        if (comma >= 0)
+        {
+            span = span[..comma];
+        }
+
+        span = span.Trim().Trim('\'').Trim('"').Trim();
+        if (span.IsEmpty)
+        {
+            return null;
+        }
+
+        if (span.Equals("monospace", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Courier New";
+        }
+
+        if (span.Equals("serif", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("sans-serif", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("cursive", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("fantasy", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("system-ui", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("initial", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("unset", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return span.ToString();
+    }
+
     internal static double? ParseFontSize(string value)
     {
         var span = value.AsSpan().Trim();
