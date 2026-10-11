@@ -945,7 +945,7 @@
         }
 
         if (!string.IsNullOrEmpty(href) && context.MainPart != null &&
-            Uri.TryCreate(href, UriKind.Absolute, out var uri))
+            LinkTarget.TryParseAbsolute(href, out var uri))
         {
             var rel = context.MainPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(context.MainPart, "rLink"));
             WrapChildrenInHyperlink(

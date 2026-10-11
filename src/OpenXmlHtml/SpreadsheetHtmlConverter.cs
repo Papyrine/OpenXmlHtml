@@ -155,7 +155,7 @@ public static class SpreadsheetHtmlConverter
 
     static void ApplyHyperlink(WorksheetPart worksheetPart, string cellReference, LinkInfo link)
     {
-        if (!Uri.TryCreate(link.Url, UriKind.Absolute, out var uri))
+        if (!LinkTarget.TryParseAbsolute(link.Url, out var uri))
         {
             return;
         }

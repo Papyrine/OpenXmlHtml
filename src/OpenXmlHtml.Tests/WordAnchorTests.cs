@@ -151,4 +151,36 @@ public class WordAnchorTests
 
         await Assert.That(paragraph.Descendants<WUnderline>().Count()).IsEqualTo(2);
     }
+
+    // An href that starts with a slash is relative. Uri.TryCreate takes some of them for file
+    // paths, and which ones depends on the platform, so they are ruled out before it is asked.
+    [Test]
+    [Arguments("/docs/page")]
+    [Arguments("//example.com/page")]
+    [Arguments("\\\\server\\share\\file")]
+    [Arguments("page.html")]
+    [Arguments("../up")]
+    [Arguments("")]
+    public async Task RelativeHrefIsNotAnAbsoluteUrl(string href) =>
+        await Assert.That(LinkTarget.TryParseAbsolute(href, out _)).IsFalse();
+
+    [Test]
+    [Arguments("https://example.com/page")]
+    [Arguments("mailto:someone@example.com")]
+    [Arguments("ftp://example.com/file")]
+    public async Task AbsoluteHrefIsAnAbsoluteUrl(string href) =>
+        await Assert.That(LinkTarget.TryParseAbsolute(href, out _)).IsTrue();
+
+    // A protocol-relative link has no scheme to resolve here, so it stays text with its url.
+    [Test]
+    public async Task ProtocolRelativeLinkIsNotAFileHyperlink()
+    {
+        var main = NewMainPart();
+
+        var paragraph = WordHtmlConverter.ToElements("""<a href="//example.com/page">page</a>""", main).Single();
+
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Count()).IsEqualTo(0);
+        await Assert.That(main.HyperlinkRelationships.Count()).IsEqualTo(0);
+        await Assert.That(paragraph.InnerText).IsEqualTo("page (//example.com/page)");
+    }
 }
