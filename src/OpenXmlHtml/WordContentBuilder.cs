@@ -14,6 +14,7 @@
         var context = new WordBuildContext
         {
             MainPart = main,
+            ImageIndex = WordHtmlConverter.LastImageIndex(main),
             Settings = settings,
             StyleMap = WordStyleLookup.BuildStyleMap(main)
         };
@@ -113,6 +114,14 @@
 
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
+        // <pre> is an ordinary block whose text happens to be preformatted. It used to return from
+        // the switch below, ahead of everything a block is given further down: its class was never
+        // looked up in the style map, and its margins, page breaks and id were dropped.
+        if (tag == "pre")
+        {
+            inPre = true;
+        }
+
         switch (tag)
         {
             case "br":
@@ -140,7 +149,14 @@
                 }
                 else if (context.MainPart == null)
                 {
+                    // Nowhere to put the image, so its alt text stands in for it.
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                    var alt = element.GetAttribute("alt");
+                    if (!string.IsNullOrEmpty(alt))
+                    {
+                        // ReSharper disable once RedundantSuppressNullableWarningExpression
+                        AddTextRun(alt!, format, context);
+                    }
                 }
                 else
                 {
@@ -202,7 +218,7 @@
             case "li":
             {
                 var ambient = ApplyAmbientParagraphStyle(element, context);
-                BuildListItem(element, newFormat, elements, context, inPre, listIndex);
+                BuildListItem(element, newFormat, elements, context, inPre, listIndex, styleDeclarations);
                 RestoreAmbientParagraphStyle(context, ambient);
                 return;
             }
@@ -214,13 +230,6 @@
                 AddTextRun("\u201C", format, context);
                 ProcessChildren(element, newFormat, elements, context, inPre);
                 AddTextRun("\u201D", format, context);
-                return;
-            }
-            case "pre":
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, true);
-                FlushParagraph(elements, context);
                 return;
             }
             case "rt":
@@ -249,31 +258,22 @@
             }
         }
 
-        // Handle blockquote with cite attribute as footnote
-        if (tag == "blockquote")
-        {
-            var cite = element.GetAttribute("cite");
-            if (!string.IsNullOrEmpty(cite) &&
-                context.MainPart != null)
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, inPre);
-                // ReSharper disable once RedundantSuppressNullableWarningExpression
-                context.CurrentRuns.Add(BuildFootnoteRun(context, cite!));
-                FlushParagraph(elements, context);
-                return;
-            }
-        }
-
         var isBlock = HtmlSegmentParser.IsBlockElement(tag);
         var pageBreakBefore = false;
         var pageBreakAfter = false;
         // What an enclosing block owed before this one, restored once its children are done so a
         // sibling does not inherit it — see AmbientParagraphStyleId.
         var ambientParagraphStyleId = context.AmbientParagraphStyleId;
+        var ambientParagraphFormat = context.AmbientParagraphFormat;
 
         if (isBlock)
         {
+            // A block's border belongs to its paragraph, which ParagraphFormatState draws as pBdr.
+            // Left on the run format as well it was drawn a second time around the text itself, a
+            // box inside the box, and handed down to every block nested inside. css does not
+            // inherit border, so the runs go back to whatever an enclosing inline element set.
+            newFormat.Border = format.Border;
+
             ParagraphFormatState? pendingFormat = null;
             if (styleDeclarations != null)
             {
@@ -298,9 +298,13 @@
                 FlushParagraph(elements, context);
             }
 
+            // Over what the enclosing block owes, and owed in turn to the blocks inside this one.
+            // Restored on the way out, below.
+            pendingFormat = ParagraphFormatState.Combine(ambientParagraphFormat, pendingFormat);
             if (pendingFormat != null)
             {
                 context.ParagraphFormat = pendingFormat;
+                context.AmbientParagraphFormat = pendingFormat.ForDescendants();
             }
 
             if (newFormat.RightToLeft)
@@ -366,6 +370,16 @@
         var elementCountBeforeChildren = elements.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);
 
+        // A blockquote's cite becomes a footnote at its end. It is still a block like any other, so
+        // this sits inside the ordinary handling rather than returning ahead of it, which is what
+        // cost a cited blockquote its class, its margins and its id.
+        if (tag == "blockquote" &&
+            context.MainPart != null &&
+            element.GetAttribute("cite") is { Length: > 0 } cite)
+        {
+            context.CurrentRuns.Add(BuildFootnoteRun(context, cite));
+        }
+
         if (bookmarkId != null)
         {
             context.CurrentRuns.Add(
@@ -392,6 +406,12 @@
             {
                 context.AmbientParagraphStyleId = ambientParagraphStyleId;
                 context.ParagraphStyleId = ambientParagraphStyleId;
+            }
+
+            if (context.AmbientParagraphFormat != ambientParagraphFormat)
+            {
+                context.AmbientParagraphFormat = ambientParagraphFormat;
+                context.ParagraphFormat = ambientParagraphFormat;
             }
 
             if (pageBreakAfter)
@@ -592,7 +612,7 @@
             // AmbientParagraphStyleId. This is the flush that used to discard it, since entering a
             // block child flushes before any of that child's text has arrived.
             context.ParagraphStyleId = context.AmbientParagraphStyleId;
-            context.ParagraphFormat = null;
+            context.ParagraphFormat = context.AmbientParagraphFormat;
             context.ParagraphRightToLeft = false;
             if (context.ListItemDepth == 0)
             {
@@ -687,7 +707,7 @@
         // The next paragraph inside the same block is owed the same style, so this returns to the
         // enclosing block's rather than clearing outright — see AmbientParagraphStyleId.
         context.ParagraphStyleId = context.AmbientParagraphStyleId;
-        context.ParagraphFormat = null;
+        context.ParagraphFormat = context.AmbientParagraphFormat;
         context.ParagraphRightToLeft = false;
         context.ListNumId = null;
         context.ListIlvl = null;
