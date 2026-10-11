@@ -153,7 +153,8 @@ class ParagraphFormatState
     {
         if (lh.EndsWith('%'))
         {
-            if (double.TryParse(lh.AsSpan()[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
+            if (double.TryParse(lh.AsSpan()[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var pct) &&
+                pct > 0)
             {
                 pf.LineHeightMultiple = pct / 100.0;
             }
@@ -162,11 +163,15 @@ class ParagraphFormatState
         {
             // NumberStyles.Float rejects any non-numeric trailing chars, so a
             // successful parse already excludes "pt", "px", "em" suffixes.
-            pf.LineHeightMultiple = multiple;
+            // A line height below zero is not valid css, and w:line cannot hold one.
+            if (multiple > 0)
+            {
+                pf.LineHeightMultiple = multiple;
+            }
         }
-        else
+        else if (StyleParser.ParseLengthToTwips(lh) is > 0 and var twips)
         {
-            pf.LineHeightTwips = StyleParser.ParseLengthToTwips(lh);
+            pf.LineHeightTwips = Math.Min(twips, StyleParser.MaxTwips);
         }
     }
 }

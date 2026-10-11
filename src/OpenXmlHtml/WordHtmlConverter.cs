@@ -424,8 +424,8 @@ public static class WordHtmlConverter
 
         var pageSize = new PageSize
         {
-            Width = (uint) (layout?.WidthTwips ?? 11906),
-            Height = (uint) (layout?.HeightTwips ?? 16838)
+            Width = (uint) PositiveOr(layout?.WidthTwips, 11906),
+            Height = (uint) PositiveOr(layout?.HeightTwips, 16838)
         };
 
         if (layout?.Landscape == true)
@@ -436,9 +436,9 @@ public static class WordHtmlConverter
         var pageMargin = new PageMargin
         {
             Top = layout?.MarginTopTwips ?? 1440,
-            Right = (uint) (layout?.MarginRightTwips ?? 1440),
+            Right = (uint) Math.Max(0, layout?.MarginRightTwips ?? 1440),
             Bottom = layout?.MarginBottomTwips ?? 1440,
-            Left = (uint) (layout?.MarginLeftTwips ?? 1440),
+            Left = (uint) Math.Max(0, layout?.MarginLeftTwips ?? 1440),
             Header = 720,
             Footer = 720,
             Gutter = 0
@@ -458,6 +458,18 @@ public static class WordHtmlConverter
 
         body.Append(sectionProps);
         return sectionProps;
+    }
+
+    // A page has to have a size. One that is zero or negative falls back to the default rather
+    // than being cast to unsigned, where a negative wraps round to four billion.
+    static int PositiveOr(int? value, int fallback)
+    {
+        if (value is > 0)
+        {
+            return value.Value;
+        }
+
+        return fallback;
     }
 
     internal static Paragraph BuildParagraph(List<OpenXmlElement> runs, int listDepth = 0)

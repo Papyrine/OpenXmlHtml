@@ -451,10 +451,12 @@ static class HtmlSegmentParser
 
         if (declarations.TryGetValue("font-size", out var fontSize))
         {
+            // Word takes a size from half a point up to 1638pt. Nothing outside that can be
+            // written: a negative one is not even a valid attribute value.
             var parsed = StyleParser.ParseFontSize(fontSize);
-            if (parsed != null)
+            if (parsed is >= 0.5)
             {
-                format.FontSizePt = parsed;
+                format.FontSizePt = Math.Min(parsed.Value, StyleParser.MaxFontSizePt);
             }
         }
 
@@ -521,7 +523,7 @@ static class HtmlSegmentParser
             var twips = StyleParser.ParseLengthToTwips(letterSpacing);
             if (twips != null)
             {
-                format.CharacterSpacingTwips = twips;
+                format.CharacterSpacingTwips = StyleParser.ClampSignedTwips(twips.Value);
             }
         }
 
@@ -534,7 +536,7 @@ static class HtmlSegmentParser
             var twips = StyleParser.ParseLengthToTwips(wordSpacing);
             if (twips != null)
             {
-                format.CharacterSpacingTwips = twips;
+                format.CharacterSpacingTwips = StyleParser.ClampSignedTwips(twips.Value);
             }
         }
 
