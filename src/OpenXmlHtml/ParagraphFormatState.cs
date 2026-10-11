@@ -31,6 +31,84 @@ class ParagraphFormatState
         BorderBottom != null ||
         BorderLeft != null;
 
+    // What a block owes the paragraphs inside it. Alignment, line height and indent are inherited in
+    // css; a border, a background and the side margins are not, but they enclose everything in the
+    // block, and the paragraphs are the only thing in Word that can carry them. The top and bottom
+    // margins are the block's own, so they stay with it.
+    internal ParagraphFormatState? ForDescendants()
+    {
+        var inherited = new ParagraphFormatState
+        {
+            MarginLeftTwips = MarginLeftTwips,
+            MarginRightTwips = MarginRightTwips,
+            TextIndentTwips = TextIndentTwips,
+            LineHeightTwips = LineHeightTwips,
+            LineHeightMultiple = LineHeightMultiple,
+            TextAlign = TextAlign,
+            BackgroundColor = BackgroundColor,
+            WritingMode = WritingMode,
+            BorderTop = BorderTop,
+            BorderRight = BorderRight,
+            BorderBottom = BorderBottom,
+            BorderLeft = BorderLeft
+        };
+        if (inherited.HasProperties)
+        {
+            return inherited;
+        }
+
+        return null;
+    }
+
+    // A block's own declarations over what the enclosing block owes it. Its own value wins, except
+    // for the side margins, which nest: an indented block inside an indented block is indented by
+    // both.
+    internal static ParagraphFormatState? Combine(ParagraphFormatState? ambient, ParagraphFormatState? own)
+    {
+        if (ambient == null)
+        {
+            return own;
+        }
+
+        if (own == null)
+        {
+            return ambient;
+        }
+
+        return new()
+        {
+            MarginTopTwips = own.MarginTopTwips,
+            MarginBottomTwips = own.MarginBottomTwips,
+            MarginLeftTwips = Sum(ambient.MarginLeftTwips, own.MarginLeftTwips),
+            MarginRightTwips = Sum(ambient.MarginRightTwips, own.MarginRightTwips),
+            TextIndentTwips = own.TextIndentTwips ?? ambient.TextIndentTwips,
+            LineHeightTwips = own.LineHeightTwips ?? (own.LineHeightMultiple == null ? ambient.LineHeightTwips : null),
+            LineHeightMultiple = own.LineHeightMultiple ?? (own.LineHeightTwips == null ? ambient.LineHeightMultiple : null),
+            TextAlign = own.TextAlign ?? ambient.TextAlign,
+            BackgroundColor = own.BackgroundColor ?? ambient.BackgroundColor,
+            WritingMode = own.WritingMode ?? ambient.WritingMode,
+            BorderTop = own.BorderTop ?? ambient.BorderTop,
+            BorderRight = own.BorderRight ?? ambient.BorderRight,
+            BorderBottom = own.BorderBottom ?? ambient.BorderBottom,
+            BorderLeft = own.BorderLeft ?? ambient.BorderLeft
+        };
+    }
+
+    static int? Sum(int? first, int? second)
+    {
+        if (first == null)
+        {
+            return second;
+        }
+
+        if (second == null)
+        {
+            return first;
+        }
+
+        return first + second;
+    }
+
     internal static ParagraphFormatState ParseFrom(Dictionary<string, string> declarations)
     {
         var pf = new ParagraphFormatState();
@@ -153,7 +231,8 @@ class ParagraphFormatState
     {
         if (lh.EndsWith('%'))
         {
-            if (double.TryParse(lh.AsSpan()[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var pct))
+            if (double.TryParse(lh.AsSpan()[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var pct) &&
+                pct > 0)
             {
                 pf.LineHeightMultiple = pct / 100.0;
             }
@@ -162,11 +241,15 @@ class ParagraphFormatState
         {
             // NumberStyles.Float rejects any non-numeric trailing chars, so a
             // successful parse already excludes "pt", "px", "em" suffixes.
-            pf.LineHeightMultiple = multiple;
+            // A line height below zero is not valid css, and w:line cannot hold one.
+            if (multiple > 0)
+            {
+                pf.LineHeightMultiple = multiple;
+            }
         }
-        else
+        else if (StyleParser.ParseLengthToTwips(lh) is > 0 and var twips)
         {
-            pf.LineHeightTwips = StyleParser.ParseLengthToTwips(lh);
+            pf.LineHeightTwips = Math.Min(twips, StyleParser.MaxTwips);
         }
     }
 }

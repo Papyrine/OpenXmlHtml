@@ -18,6 +18,23 @@ static class HtmlSegmentParser
 
     static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
     {
+        if (!HasStackToRecurse())
+        {
+            ReportTooDeep(node, settings);
+            foreach (var textNode in TextNodes(node))
+            {
+                var lastWasSpace = segments.Count > 0 &&
+                                   (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
+                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
+                if (text.Length > 0)
+                {
+                    segments.Add(new(text, format));
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -62,7 +79,9 @@ static class HtmlSegmentParser
             return;
         }
 
+        var wasPre = inPre;
         inPre = ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
+        var segmentsBefore = segments.Count;
 
         switch (tag)
         {
@@ -83,7 +102,10 @@ static class HtmlSegmentParser
                 if (imageData != null)
                 {
                     var imageFormat = format;
-                    imageFormat.Image = imageData;
+                    imageFormat.Image = imageData with
+                    {
+                        AltText = element.GetAttribute("alt")
+                    };
                     segments.Add(new("\uFFFC", imageFormat));
                 }
                 else
@@ -206,15 +228,78 @@ static class HtmlSegmentParser
                 return;
             case "pre":
                 ProcessNode(element, newFormat, segments, true, settings);
+                if (!wasPre)
+                {
+                    TrimClosingNewline(segments, segmentsBefore);
+                }
+
                 break;
             default:
                 ProcessNode(element, newFormat, segments, inPre, settings);
+                if (inPre && !wasPre)
+                {
+                    TrimClosingNewline(segments, segmentsBefore);
+                }
+
                 break;
         }
 
         if (isBlock)
         {
             EnsureNewline(segments, format);
+        }
+    }
+
+    internal const string NestedTooDeep = "nested too deeply to convert, so its text was kept without its markup";
+
+    // The walk recurses once per nesting level, and html puts no limit on nesting: a few hundred
+    // nested elements used to run the thread out of stack, which cannot be caught and takes the
+    // process with it. When the stack is nearly spent the rest of the subtree is flattened to its
+    // text instead, read with TextNodes, which does not recurse.
+#if NETFRAMEWORK
+    internal static bool HasStackToRecurse()
+    {
+        try
+        {
+            RuntimeHelpers.EnsureSufficientExecutionStack();
+            return true;
+        }
+        catch (InsufficientExecutionStackException)
+        {
+            return false;
+        }
+    }
+#else
+    internal static bool HasStackToRecurse() =>
+        RuntimeHelpers.TryEnsureSufficientExecutionStack();
+#endif
+
+    internal static void ReportTooDeep(INode node, HtmlConvertSettings? settings)
+    {
+        if (node is IElement element)
+        {
+            Diagnostic.UnsupportedElement(settings, element.LocalName, NestedTooDeep);
+        }
+    }
+
+    // Every text node under root, in document order, without recursion.
+    internal static IEnumerable<IText> TextNodes(INode root)
+    {
+        var pending = new Stack<INode>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            var node = pending.Pop();
+            if (node is IText text)
+            {
+                yield return text;
+                continue;
+            }
+
+            for (var child = node.LastChild; child != null; child = child.PreviousSibling)
+            {
+                pending.Push(child);
+            }
         }
     }
 
@@ -247,6 +332,17 @@ static class HtmlSegmentParser
 
     internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, out Dictionary<string, string>? declarations)
     {
+        // What reached this element from outside it, before its own tag adds anything. That is what
+        // text-decoration:none falls back to: it cannot cancel a decoration an ancestor drew, but
+        // it does cancel the one this element's own tag would have drawn.
+        var inheritedUnderline = format.UnderlineStyle;
+        var inheritedStrikethrough = format.Strikethrough;
+
+        // What a tag means by default is set outright, not only where nothing was inherited. These
+        // are the browser's own rules for the element, and a rule on an element outranks a value
+        // it would otherwise inherit: <code> inside a paragraph with a font-family is still
+        // monospace, a link inside coloured text is still link blue, <mark> inside a background is
+        // still yellow. The element's own style attribute is applied after this and still wins.
         switch (tag)
         {
             case "b" or "strong" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "th" or "caption" or "dt" or "legend":
@@ -262,8 +358,14 @@ static class HtmlSegmentParser
                 format.Strikethrough = true;
                 break;
             case "a":
-                format.UnderlineStyle ??= UnderlineValues.Single;
-                format.Color ??= "0563C1";
+                // Only an <a> with an href is a link. Without one it is a named anchor or a
+                // placeholder, which a browser draws as ordinary text.
+                if (element.HasAttribute("href"))
+                {
+                    format.UnderlineStyle ??= UnderlineValues.Single;
+                    format.Color = "0563C1";
+                }
+
                 format.LinkUrl = element.GetAttribute("href");
                 format.LinkTitle = element.GetAttribute("title");
                 break;
@@ -276,11 +378,11 @@ static class HtmlSegmentParser
                 format.Superscript = false;
                 break;
             case "mark":
-                format.Color ??= "000000";
-                format.BackgroundColor ??= "FFFF00";
+                format.Color = "000000";
+                format.BackgroundColor = "FFFF00";
                 break;
             case "code" or "kbd" or "samp":
-                format.FontFamily ??= "Courier New";
+                format.FontFamily = "Courier New";
                 break;
             case "small":
                 format.FontSizePt = Math.Round((format.FontSizePt ?? 12) * 0.8, 2);
@@ -313,19 +415,21 @@ static class HtmlSegmentParser
             }
 
             var fontFace = element.GetAttribute("face");
-            if (fontFace != null)
+            if (fontFace != null &&
+                StyleParser.ParseFontFamily(fontFace) is { } face)
             {
-                format.FontFamily = fontFace;
+                format.FontFamily = face;
             }
 
             var fontSize = element.GetAttribute("size");
-            if (fontSize != null && double.TryParse(fontSize, CultureInfo.InvariantCulture, out var size))
+            if (fontSize != null &&
+                StyleParser.ParseFontSizeAttribute(fontSize) is { } size)
             {
                 format.FontSizePt = size;
             }
         }
 
-        ApplyInlineStyle(element, ref format, out declarations);
+        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough);
 
         if (tag == "fieldset")
         {
@@ -334,7 +438,12 @@ static class HtmlSegmentParser
         }
     }
 
-    static void ApplyInlineStyle(IElement element, ref FormatState format, out Dictionary<string, string>? declarations)
+    static void ApplyInlineStyle(
+        IElement element,
+        ref FormatState format,
+        out Dictionary<string, string>? declarations,
+        UnderlineValues? inheritedUnderline,
+        bool inheritedStrikethrough)
     {
         var style = element.GetAttribute("style");
         if (style == null)
@@ -407,6 +516,11 @@ static class HtmlSegmentParser
                 {
                     format.Strikethrough = true;
                 }
+                else if (token.Equals("none", StringComparison.OrdinalIgnoreCase))
+                {
+                    format.UnderlineStyle = inheritedUnderline;
+                    format.Strikethrough = inheritedStrikethrough;
+                }
             }
         }
 
@@ -451,16 +565,19 @@ static class HtmlSegmentParser
 
         if (declarations.TryGetValue("font-size", out var fontSize))
         {
+            // Word takes a size from half a point up to 1638pt. Nothing outside that can be
+            // written: a negative one is not even a valid attribute value.
             var parsed = StyleParser.ParseFontSize(fontSize);
-            if (parsed != null)
+            if (parsed is >= 0.5)
             {
-                format.FontSizePt = parsed;
+                format.FontSizePt = Math.Min(parsed.Value, StyleParser.MaxFontSizePt);
             }
         }
 
-        if (declarations.TryGetValue("font-family", out var fontFamily))
+        if (declarations.TryGetValue("font-family", out var fontFamily) &&
+            StyleParser.ParseFontFamily(fontFamily) is { } family)
         {
-            format.FontFamily = fontFamily.Trim('\'', '"');
+            format.FontFamily = family;
         }
 
         if (declarations.TryGetValue("background-color", out var bgColor) ||
@@ -521,7 +638,7 @@ static class HtmlSegmentParser
             var twips = StyleParser.ParseLengthToTwips(letterSpacing);
             if (twips != null)
             {
-                format.CharacterSpacingTwips = twips;
+                format.CharacterSpacingTwips = StyleParser.ClampSignedTwips(twips.Value);
             }
         }
 
@@ -534,7 +651,7 @@ static class HtmlSegmentParser
             var twips = StyleParser.ParseLengthToTwips(wordSpacing);
             if (twips != null)
             {
-                format.CharacterSpacingTwips = twips;
+                format.CharacterSpacingTwips = StyleParser.ClampSignedTwips(twips.Value);
             }
         }
 
@@ -710,7 +827,17 @@ static class HtmlSegmentParser
         }
 
         var last = segments[^1];
-        if (!last.Text.EndsWith('\n'))
+
+        // A <br> that ends a block is that block's end, not a line of its own: a browser draws
+        // nothing extra for it. Its text is "\n" too, so it used to pass for the paragraph break
+        // and the next block was run on into the same paragraph. It becomes the break instead.
+        if (last.IsLineBreak)
+        {
+            segments[^1] = new("\n", format);
+            return;
+        }
+
+        if (last.Text != "\n")
         {
             segments.Add(new("\n", format));
         }
@@ -732,6 +859,36 @@ static class HtmlSegmentParser
 
         // Subtract 1 because the immediate parent ul/ol is depth 0
         return Math.Max(0, depth - 1);
+    }
+
+    // The newline that ends preformatted text closes its last line rather than opening another, and
+    // a browser draws nothing for it. Only segments the preformatted element added itself are
+    // looked at, so a paragraph break ahead of it is left alone.
+    static void TrimClosingNewline(List<TextSegment> segments, int from)
+    {
+        if (segments.Count <= from)
+        {
+            return;
+        }
+
+        var last = segments[^1];
+        if (last.IsLineBreak ||
+            last.IsListMarker ||
+            !last.Text.EndsWith('\n'))
+        {
+            return;
+        }
+
+        if (last.Text.Length == 1)
+        {
+            segments.RemoveAt(segments.Count - 1);
+            return;
+        }
+
+        segments[^1] = last with
+        {
+            Text = last.Text[..^1]
+        };
     }
 
     static void TrimTrailingNewlines(List<TextSegment> segments)

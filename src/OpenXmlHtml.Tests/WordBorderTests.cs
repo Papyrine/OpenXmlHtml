@@ -236,4 +236,46 @@ public class WordBorderTests
         stream.Position = 0;
         return Verify(stream, "docx");
     }
+
+    // The paragraph draws a block's border. Carried on the runs as well it was drawn again around
+    // the text: a box inside the box.
+    [Test]
+    public async Task ParagraphBorderIsNotRepeatedOnRuns()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<p style="border: 1px solid red">text</p>""").Single();
+
+        await Assert.That(paragraph.Descendants<ParagraphBorders>().Count()).IsEqualTo(1);
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Border>().Count()).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CellBorderIsNotRepeatedOnRuns()
+    {
+        var table = WordHtmlConverter.ToElements("""<table><tr><td style="border: 2px solid red">x</td></tr></table>""").Single();
+
+        await Assert.That(table.Descendants<TableCellBorders>().Count()).IsEqualTo(1);
+        await Assert.That(table.Descendants<DocumentFormat.OpenXml.Wordprocessing.Border>().Count()).IsEqualTo(0);
+    }
+
+    // An inline element's border is still a run border, inside a bordered block or not.
+    [Test]
+    public async Task InlineBorderInsideBorderedBlockIsKept()
+    {
+        var paragraph = WordHtmlConverter.ToElements(
+            """<p style="border: 1px solid red">a <span style="border: 1px solid blue">b</span></p>""").Single();
+
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Border>().Single().Color!.Value).IsEqualTo("0000FF");
+    }
+
+    // The block's border encloses the paragraphs inside it, which are the only thing in Word that
+    // can carry it. It used to be lost to the flush on entering the first child block.
+    [Test]
+    public async Task ContainerBorderReachesParagraphsInside()
+    {
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<div style="border: 1px solid red"><p>a</p><p>b</p></div><p>c</p>""");
+
+        await Assert.That(paragraphs.Select(_ => _.Descendants<ParagraphBorders>().Count())).IsEquivalentTo([1, 1, 0], CollectionOrdering.Matching);
+        await Assert.That(paragraphs.SelectMany(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.Border>()).Count()).IsEqualTo(0);
+    }
 }

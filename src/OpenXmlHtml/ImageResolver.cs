@@ -173,7 +173,7 @@ static class ImageResolver
             var declarations = StyleParser.Parse(style);
             if (declarations.TryGetValue("width", out var cssWidth))
             {
-                width = StyleParser.ParseLengthToPixels(cssWidth);
+                width = PositivePixels(cssWidth);
                 if (width == null)
                 {
                     Diagnostic.DroppedProperty(settings, "width", cssWidth, ExtentIsAbsolute);
@@ -182,7 +182,7 @@ static class ImageResolver
 
             if (declarations.TryGetValue("height", out var cssHeight))
             {
-                height = StyleParser.ParseLengthToPixels(cssHeight);
+                height = PositivePixels(cssHeight);
                 if (height == null)
                 {
                     Diagnostic.DroppedProperty(settings, "height", cssHeight, ExtentIsAbsolute);
@@ -203,6 +203,18 @@ static class ImageResolver
         return (width, height);
     }
 
+    // wp:extent cannot be negative, so a negative size is one that could not be resolved.
+    static int? PositivePixels(string value)
+    {
+        var pixels = StyleParser.ParseLengthToPixels(value);
+        if (pixels is < 0)
+        {
+            return null;
+        }
+
+        return pixels;
+    }
+
     static int? ParseDimensionAttribute(IElement element, string name, HtmlConvertSettings? settings)
     {
         var value = element.GetAttribute(name);
@@ -211,7 +223,8 @@ static class ImageResolver
             return null;
         }
 
-        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
+            parsed >= 0)
         {
             return parsed;
         }
