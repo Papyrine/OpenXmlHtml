@@ -35,7 +35,7 @@ public static class SpreadsheetHtmlConverter
 
         if (HasNewlines(cell.InlineString))
         {
-            cell.StyleIndex = EnsureWrapTextStyle(workbookPart);
+            cell.StyleIndex = EnsureWrapTextStyle(workbookPart, cell.StyleIndex?.Value);
         }
 
         var link = GetSingleLink(segments);
@@ -73,7 +73,7 @@ public static class SpreadsheetHtmlConverter
 
         if (HasNewlines(cell.InlineString))
         {
-            cell.StyleIndex = EnsureWrapTextStyle(workbookPart);
+            cell.StyleIndex = EnsureWrapTextStyle(workbookPart, cell.StyleIndex?.Value);
         }
 
         var link = GetSingleLink(segments);
@@ -190,7 +190,11 @@ public static class SpreadsheetHtmlConverter
         return false;
     }
 
-    static uint EnsureWrapTextStyle(WorkbookPart workbookPart)
+    // The cell format the cell already has, with wrapping turned on. Taking the first format in the
+    // sheet that happened to wrap gave a multi-line cell whatever else that format carried, a bold
+    // header's font and fill included, and assigning it threw away the cell's own number format and
+    // borders.
+    static uint EnsureWrapTextStyle(WorkbookPart workbookPart, uint? current)
     {
         var stylesPart = workbookPart.WorkbookStylesPart
                          ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -235,28 +239,31 @@ public static class SpreadsheetHtmlConverter
                 Count = 1
             };
 
-        uint index = 0;
-        foreach (var cf in stylesheet.CellFormats.Elements<CellFormat>())
-        {
-            if (cf.GetFirstChild<Alignment>()?.WrapText?.Value == true)
-            {
-                return index;
-            }
+        var formats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
 
-            index++;
+        var wrapped = new CellFormat();
+        if (current is { } currentIndex &&
+            currentIndex < formats.Count)
+        {
+            wrapped = (CellFormat)formats[(int)currentIndex].CloneNode(true);
         }
 
-        stylesheet.CellFormats.Append(
-            new CellFormat(
-                new Alignment
-                {
-                    WrapText = true
-                })
+        wrapped.Alignment ??= new();
+        wrapped.Alignment.WrapText = true;
+        wrapped.ApplyAlignment = true;
+
+        var wrappedXml = wrapped.OuterXml;
+        for (var index = 0; index < formats.Count; index++)
+        {
+            if (formats[index].OuterXml == wrappedXml)
             {
-                ApplyAlignment = true
-            });
-        stylesheet.CellFormats.Count = index + 1;
-        return index;
+                return (uint)index;
+            }
+        }
+
+        stylesheet.CellFormats.Append(wrapped);
+        stylesheet.CellFormats.Count = (uint)formats.Count + 1;
+        return (uint)formats.Count;
     }
 
     static SpreadsheetRunProperties BuildSpreadsheetRunProperties(FormatState format)
