@@ -298,4 +298,36 @@ public class WordTableTests
         table.Elements<TableRow>()
             .Select(_ => _.Elements<TableCell>().Count())
             .ToList();
+
+    // Word joins two tables that have nothing between them into one. An empty paragraph keeps
+    // them apart. In a cell as well as in the body.
+    [Test]
+    public async Task AdjacentTablesAreKeptApart()
+    {
+        var elements = WordHtmlConverter.ToElements(
+            "<table><tr><td>a</td></tr></table>\n<table><tr><td>b</td></tr></table>");
+
+        await Assert.That(elements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task AdjacentNestedTablesAreKeptApart()
+    {
+        var outer = WordHtmlConverter.ToElements(
+            "<table><tr><td><table><tr><td>a</td></tr></table><table><tr><td>b</td></tr></table></td></tr></table>").Single();
+
+        var cell = outer.Descendants<TableCell>().First();
+
+        await Assert.That(cell.ChildElements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl", "p"], CollectionOrdering.Matching);
+    }
+
+    // Tables already separated by content get nothing extra.
+    [Test]
+    public async Task SeparatedTablesGetNoExtraParagraph()
+    {
+        var elements = WordHtmlConverter.ToElements(
+            "<table><tr><td>a</td></tr></table><p>between</p><table><tr><td>b</td></tr></table>");
+
+        await Assert.That(elements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl"], CollectionOrdering.Matching);
+    }
 }

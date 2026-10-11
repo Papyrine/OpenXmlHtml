@@ -218,6 +218,15 @@
                     elements.Add(new Paragraph(new ParagraphProperties(new PageBreakBefore())));
                 }
 
+                // Word reads two tables with nothing between them as one table: it joins the rows
+                // and lays them out on a single grid. An empty paragraph is what keeps them apart,
+                // and is what Word itself puts there.
+                if (elements.Count > 0 &&
+                    elements[^1] is Table)
+                {
+                    elements.Add(new Paragraph());
+                }
+
                 BuildTable(element, format, elements, context);
                 return;
             // Lists dispatch before the block handling below, so their class mapping is applied here
