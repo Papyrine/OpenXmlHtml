@@ -212,4 +212,41 @@ public class WordListNumberingTests
             stream);
         return stream.ToArray();
     }
+
+    // Ordered lists of one format share an abstract definition instead of each writing its own
+    // nine levels. What keeps them separate lists is the start override every instance carries.
+    [Test]
+    public async Task OrderedListsShareOneDefinitionPerFormat()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        var paragraphs = WordHtmlConverter.ToElements(
+            """
+            <ol><li>a</li><li>b</li></ol>
+            <ol><li>c</li></ol>
+            <ol type="a"><li>d</li></ol>
+            <ol start="4"><li>e<ol><li>f</li></ol></li></ol>
+            <table><tr><td><ol><li>g</li></ol></td></tr></table>
+            """,
+            main);
+
+        var numbering = main.NumberingDefinitionsPart!.Numbering!;
+        var instances = numbering.Elements<NumberingInstance>().ToList();
+
+        // decimal and lower-alpha
+        await Assert.That(numbering.Elements<AbstractNum>().Count()).IsEqualTo(2);
+        // one instance per list, each with its own start
+        await Assert.That(instances.Count).IsEqualTo(6);
+        await Assert.That(instances.Select(_ => _.Descendants<StartOverrideNumberingValue>().Single().Val!.Value))
+            .IsEquivalentTo([1, 1, 1, 4, 1, 1], CollectionOrdering.Matching);
+        // and no two lists use the same instance
+        var used = paragraphs
+            .SelectMany(_ => _.Descendants<NumberingId>())
+            .Select(_ => _.Val!.Value)
+            .Distinct()
+            .Count();
+        await Assert.That(used).IsEqualTo(6);
+    }
 }

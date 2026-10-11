@@ -456,6 +456,7 @@ static partial class WordContentBuilder
             Settings = parentCtx.Settings,
             StyleMap = parentCtx.StyleMap,
             BulletAbstractNumId = parentCtx.BulletAbstractNumId,
+            OrderedAbstractNumIds = parentCtx.OrderedAbstractNumIds,
             NextNumId = parentCtx.NextNumId,
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
