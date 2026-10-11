@@ -173,6 +173,43 @@ public class WordEdgeCaseTests
                 </w:p>
                 """);
 
+    const string resolvableImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+
+    // Where the output cannot hold an image, its alt text stands in for it. That used to happen
+    // only when the image failed to resolve: one that resolved and then had nowhere to go left
+    // nothing behind.
+    [Test]
+    public async Task AltTextStandsInWhereThereIsNoDocumentInElements()
+    {
+        var elements = WordHtmlConverter.ToElements($"""<p>before <img src="{resolvableImage}" alt="Logo"> after</p>""");
+
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).Contains("Logo");
+    }
+
+    [Test]
+    public async Task AltTextStandsInWhereThereIsNoDocumentInSegments()
+    {
+        var paragraphs = WordHtmlConverter.ToParagraphs($"""<p>before <img src="{resolvableImage}" alt="Logo"> after</p>""");
+
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("before Logo after");
+    }
+
+    [Test]
+    public async Task AltTextStandsInForAnImageInACell()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString($"""before <img src="{resolvableImage}" alt="Logo"> after""");
+
+        await Assert.That(inline.InnerText).IsEqualTo("before Logo after");
+    }
+
+    [Test]
+    public async Task ImageWithoutAltLeavesNothingInACell()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString($"""before<img src="{resolvableImage}">after""");
+
+        await Assert.That(inline.InnerText).IsEqualTo("beforeafter");
+    }
+
     // The element path only moved its fold state for text nodes, so a run written any other way
     // left it stale and the next text node folded against the wrong neighbour. The segment path
     // reads the last segment and always had these right; the two are compared so they stay agreed.
