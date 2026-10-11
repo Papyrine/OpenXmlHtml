@@ -210,6 +210,90 @@ public class WordEdgeCaseTests
         await Assert.That(inline.InnerText).IsEqualTo("beforeafter");
     }
 
+    // Nesting a few hundred elements deep used to run the thread out of stack, which cannot be
+    // caught and takes the process down. Both paths, since each recurses on its own. The text has
+    // to survive; the markup past the point the stack runs short does not.
+    [Test]
+    public async Task DeepNestingKeepsTextInElements()
+    {
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+
+        var elements = WordHtmlConverter.ToElements(DeeplyNested(), null, settings);
+
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).IsEqualTo("deep");
+        await Assert.That(reported.Count).IsEqualTo(1);
+        await Assert.That(reported[0].Kind).IsEqualTo(HtmlDiagnosticKind.UnsupportedElement);
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSegments()
+    {
+        var paragraphs = WordHtmlConverter.ToParagraphs(DeeplyNested());
+
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("deep");
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSpreadsheet()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString(DeeplyNested());
+
+        await Assert.That(inline.InnerText).IsEqualTo("deep");
+    }
+
+    static string DeeplyNested()
+    {
+        const int depth = 20_000;
+        var builder = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("<span>");
+        }
+
+        builder.Append("deep");
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("</span>");
+        }
+
+        return builder.ToString();
+    }
+
+    // The element path only moved its fold state for text nodes, so a run written any other way
+    // left it stale and the next text node folded against the wrong neighbour. The segment path
+    // reads the last segment and always had these right; the two are compared so they stay agreed.
+    [Test]
+    [Arguments("""see <img src="https://example.com/chart.png" alt="the chart"> below""", "see the chart below")]
+    [Arguments("""<p><input type="checkbox" checked> Done</p>""", "☑ Done")]
+    [Arguments("<ul>\n<li>\n item</li>\n</ul>", "● item")]
+    [Arguments("""a <q> b</q> c""", "a “ b” c")]
+    public async Task FoldStateFollowsEveryRun(string html, string expected)
+    {
+        var elements = string.Concat(WordHtmlConverter.ToElements(html).Select(_ => _.InnerText));
+        var segments = string.Concat(WordHtmlConverter.ToParagraphs(html).Select(_ => _.InnerText));
+
+        await Assert.That(elements).IsEqualTo(expected);
+        await Assert.That(segments).IsEqualTo(expected);
+    }
+
+    // An image is content: the space after it is not a second space to fold into the one before.
+    [Test]
+    public async Task SpaceAfterImageIsKept()
+    {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        var paragraph = WordHtmlConverter.ToElements($"""<p>a <img src="data:image/png;base64,{png}" width="2" height="2"> b</p>""", main).Single();
+
+        await Assert.That(paragraph.InnerText).IsEqualTo("a  b");
+    }
+
     // A <br> that ends a block is the block's end. The segment path took it for the paragraph
     // break and ran the next block on into the same paragraph; the element path kept it, which Word
     // draws as an empty line a browser does not. Both paths, and compared, so they stay agreed.
