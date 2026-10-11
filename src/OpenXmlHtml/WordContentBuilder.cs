@@ -585,6 +585,23 @@
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
         context.LastWasSpace = false;
+
+        // A <br> that ends a block is that block's end, not a line of its own. Left in, Word draws
+        // an empty line after it, where a browser draws nothing. A paragraph that held only the
+        // break is still a paragraph: <p><br></p> is how an editor writes a blank line.
+        if (context.CurrentRuns.Count > 0 &&
+            context.CurrentRuns[^1] is Run { LastChild: Break { Type: null } } closing &&
+            closing.ChildElements.All(_ => _ is RunProperties or Break))
+        {
+            closing.LastChild!.Remove();
+            if (closing.ChildElements.All(_ => _ is RunProperties))
+            {
+                context.CurrentRuns.RemoveAt(context.CurrentRuns.Count - 1);
+            }
+
+            emitEmpty = true;
+        }
+
         if (context.CurrentRuns.Count == 0 && !emitEmpty)
         {
             context.HeadingLevel = 0;
