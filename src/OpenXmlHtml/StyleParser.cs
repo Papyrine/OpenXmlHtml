@@ -38,6 +38,46 @@ static class StyleParser
         return result;
     }
 
+    // The point size html's seven font sizes stand for, 3 being the default.
+    static readonly double[] htmlFontSizes = [7.5, 10, 12, 13.5, 18, 24, 36];
+
+    // <font size> is a step on a scale of 1 to 7, or a signed step away from 3. Read as points, the
+    // sizes real html carries came out unreadable: size="4" was 4pt and size="+1" was 1pt. A value
+    // past 7 has no meaning on that scale, so it keeps the reading it has always had here, a size
+    // in points, which is what callers passing size="14" expect.
+    internal static double? ParseFontSizeAttribute(string value)
+    {
+        var span = value.AsSpan().Trim();
+        if (span.IsEmpty)
+        {
+            return null;
+        }
+
+        var relative = span[0] is '+' or '-';
+        if (!double.TryParse(span, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            return null;
+        }
+
+        if (relative)
+        {
+            return htmlFontSizes[(int)Math.Clamp(3 + number, 1, 7) - 1];
+        }
+
+        if (number is >= 1 and <= 7 &&
+            number == Math.Floor(number))
+        {
+            return htmlFontSizes[(int)number - 1];
+        }
+
+        if (number <= 0)
+        {
+            return null;
+        }
+
+        return number;
+    }
+
     internal static double? ParseFontSize(string value)
     {
         var span = value.AsSpan().Trim();

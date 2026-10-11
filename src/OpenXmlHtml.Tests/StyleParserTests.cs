@@ -105,4 +105,34 @@ public class StyleParserTests
         await Assert.That(result.Color).IsEqualTo("FF0000");
         await Assert.That(result.SizeEighths).IsEqualTo(6);
     }
+
+    // <font size> is html's 1 to 7 scale, or a signed step from 3. Past 7 it stays a point size.
+    [Test]
+    [Arguments("1", 7.5)]
+    [Arguments("3", 12d)]
+    [Arguments("4", 13.5)]
+    [Arguments("7", 36d)]
+    [Arguments("+1", 13.5)]
+    [Arguments("-1", 10d)]
+    [Arguments("+9", 36d)]
+    [Arguments("-9", 7.5)]
+    [Arguments("14", 14d)]
+    [Arguments("10.5", 10.5)]
+    public async Task ParseFontSizeAttributeReadsTheHtmlScale(string value, double expected) =>
+        await Assert.That(StyleParser.ParseFontSizeAttribute(value)).IsEqualTo(expected);
+
+    [Test]
+    [Arguments("0")]
+    [Arguments("")]
+    [Arguments("big")]
+    public async Task ParseFontSizeAttributeRejectsWhatIsNotASize(string value) =>
+        await Assert.That(StyleParser.ParseFontSizeAttribute(value)).IsNull();
+
+    [Test]
+    public async Task FontSizeAttributeFourIsNotFourPoints()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<font size="4">text</font>""").Single();
+
+        await Assert.That(paragraph.Descendants<WFontSize>().Single().Val!.Value).IsEqualTo("27");
+    }
 }
