@@ -89,9 +89,17 @@ public static class SpreadsheetHtmlConverter
 
         foreach (var segment in segments)
         {
-            if (segment.Format.Image != null)
+            // A cell cannot hold an image, so its alt text stands in for it.
+            var text = segment.Text;
+            if (segment.Format.Image is { } image)
             {
-                continue;
+                if (string.IsNullOrEmpty(image.AltText))
+                {
+                    continue;
+                }
+
+                // ReSharper disable once RedundantSuppressNullableWarningExpression
+                text = image.AltText!;
             }
 
             var run = new SpreadsheetRun();
@@ -102,7 +110,7 @@ public static class SpreadsheetHtmlConverter
             }
 
             run.Append(
-                new SpreadsheetText(WXmlChars.Strip(segment.Text))
+                new SpreadsheetText(WXmlChars.Strip(text))
                 {
                     Space = SpaceProcessingModeValues.Preserve
                 });

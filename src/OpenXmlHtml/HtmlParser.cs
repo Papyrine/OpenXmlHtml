@@ -83,7 +83,10 @@ static class HtmlSegmentParser
                 if (imageData != null)
                 {
                     var imageFormat = format;
-                    imageFormat.Image = imageData;
+                    imageFormat.Image = imageData with
+                    {
+                        AltText = element.GetAttribute("alt")
+                    };
                     segments.Add(new("\uFFFC", imageFormat));
                 }
                 else
