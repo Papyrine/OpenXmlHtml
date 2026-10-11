@@ -73,6 +73,22 @@
 
     static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
+        if (!HtmlSegmentParser.HasStackToRecurse())
+        {
+            HtmlSegmentParser.ReportTooDeep(node, ctx.Settings);
+            foreach (var textNode in HtmlSegmentParser.TextNodes(node))
+            {
+                var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
+                if (text.Length > 0)
+                {
+                    AddTextRun(text, format, ctx);
+                    ctx.LastWasSpace = !inPre && text[^1] == ' ';
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {

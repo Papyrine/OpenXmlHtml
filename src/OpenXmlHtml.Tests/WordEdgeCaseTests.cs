@@ -173,4 +173,56 @@ public class WordEdgeCaseTests
                 </w:p>
                 """);
 
+    // Nesting a few hundred elements deep used to run the thread out of stack, which cannot be
+    // caught and takes the process down. Both paths, since each recurses on its own. The text has
+    // to survive; the markup past the point the stack runs short does not.
+    [Test]
+    public async Task DeepNestingKeepsTextInElements()
+    {
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+
+        var elements = WordHtmlConverter.ToElements(DeeplyNested(), null, settings);
+
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).IsEqualTo("deep");
+        await Assert.That(reported.Count).IsEqualTo(1);
+        await Assert.That(reported[0].Kind).IsEqualTo(HtmlDiagnosticKind.UnsupportedElement);
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSegments()
+    {
+        var paragraphs = WordHtmlConverter.ToParagraphs(DeeplyNested());
+
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("deep");
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSpreadsheet()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString(DeeplyNested());
+
+        await Assert.That(inline.InnerText).IsEqualTo("deep");
+    }
+
+    static string DeeplyNested()
+    {
+        const int depth = 20_000;
+        var builder = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("<span>");
+        }
+
+        builder.Append("deep");
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("</span>");
+        }
+
+        return builder.ToString();
+    }
 }
