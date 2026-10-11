@@ -83,7 +83,10 @@ static class HtmlSegmentParser
                 if (imageData != null)
                 {
                     var imageFormat = format;
-                    imageFormat.Image = imageData;
+                    imageFormat.Image = imageData with
+                    {
+                        AltText = element.GetAttribute("alt")
+                    };
                     segments.Add(new("\uFFFC", imageFormat));
                 }
                 else
@@ -247,6 +250,12 @@ static class HtmlSegmentParser
 
     internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, out Dictionary<string, string>? declarations)
     {
+        // What reached this element from outside it, before its own tag adds anything. That is what
+        // text-decoration:none falls back to: it cannot cancel a decoration an ancestor drew, but
+        // it does cancel the one this element's own tag would have drawn.
+        var inheritedUnderline = format.UnderlineStyle;
+        var inheritedStrikethrough = format.Strikethrough;
+
         switch (tag)
         {
             case "b" or "strong" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "th" or "caption" or "dt" or "legend":
@@ -262,8 +271,14 @@ static class HtmlSegmentParser
                 format.Strikethrough = true;
                 break;
             case "a":
-                format.UnderlineStyle ??= UnderlineValues.Single;
-                format.Color ??= "0563C1";
+                // Only an <a> with an href is a link. Without one it is a named anchor or a
+                // placeholder, which a browser draws as ordinary text.
+                if (element.HasAttribute("href"))
+                {
+                    format.UnderlineStyle ??= UnderlineValues.Single;
+                    format.Color ??= "0563C1";
+                }
+
                 format.LinkUrl = element.GetAttribute("href");
                 format.LinkTitle = element.GetAttribute("title");
                 break;
@@ -325,7 +340,7 @@ static class HtmlSegmentParser
             }
         }
 
-        ApplyInlineStyle(element, ref format, out declarations);
+        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough);
 
         if (tag == "fieldset")
         {
@@ -334,7 +349,12 @@ static class HtmlSegmentParser
         }
     }
 
-    static void ApplyInlineStyle(IElement element, ref FormatState format, out Dictionary<string, string>? declarations)
+    static void ApplyInlineStyle(
+        IElement element,
+        ref FormatState format,
+        out Dictionary<string, string>? declarations,
+        UnderlineValues? inheritedUnderline,
+        bool inheritedStrikethrough)
     {
         var style = element.GetAttribute("style");
         if (style == null)
@@ -406,6 +426,11 @@ static class HtmlSegmentParser
                 else if (token.Equals("line-through", StringComparison.OrdinalIgnoreCase))
                 {
                     format.Strikethrough = true;
+                }
+                else if (token.Equals("none", StringComparison.OrdinalIgnoreCase))
+                {
+                    format.UnderlineStyle = inheritedUnderline;
+                    format.Strikethrough = inheritedStrikethrough;
                 }
             }
         }

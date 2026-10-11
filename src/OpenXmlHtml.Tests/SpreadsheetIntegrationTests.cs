@@ -319,6 +319,72 @@ public class SpreadsheetIntegrationTests
         return Verify(cell);
     }
 
+    // The first cell format that wrapped was reused whatever else it carried, so a multi-line cell
+    // could pick up a bold header's font, and a cell lost the format it already had.
+    [Test]
+    public async Task WrapTextKeepsTheCellsOwnFormat()
+    {
+        using var stream = new MemoryStream();
+        using var document = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
+        var workbookPart = document.AddWorkbookPart();
+        workbookPart.Workbook = new();
+        var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+        var plain = new SpreadsheetCell
+        {
+            CellReference = "A1"
+        };
+        var dated = new SpreadsheetCell
+        {
+            CellReference = "A2",
+            StyleIndex = 2
+        };
+        var alsoPlain = new SpreadsheetCell
+        {
+            CellReference = "A3"
+        };
+        worksheetPart.Worksheet = new(new SheetData(new Row(plain), new Row(dated), new Row(alsoPlain)));
+
+        var stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+        stylesPart.Stylesheet = new(
+            new DocumentFormat.OpenXml.Spreadsheet.Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font(), new DocumentFormat.OpenXml.Spreadsheet.Font(new SpreadsheetBold())),
+            new Fills(new Fill()),
+            new Borders(new DocumentFormat.OpenXml.Spreadsheet.Border()),
+            new CellFormats(
+                new CellFormat(),
+                // A bold header that happens to wrap.
+                new CellFormat(
+                    new Alignment
+                    {
+                        WrapText = true
+                    })
+                {
+                    FontId = 1,
+                    ApplyFont = true,
+                    ApplyAlignment = true
+                },
+                new CellFormat
+                {
+                    NumberFormatId = 14,
+                    ApplyNumberFormat = true
+                }));
+
+        SpreadsheetHtmlConverter.SetCellHtml(plain, "one<br>two", worksheetPart);
+        SpreadsheetHtmlConverter.SetCellHtml(dated, "one<br>two", worksheetPart);
+        SpreadsheetHtmlConverter.SetCellHtml(alsoPlain, "one<br>two", worksheetPart);
+
+        var formats = stylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ToList();
+        var plainFormat = formats[(int)plain.StyleIndex!.Value];
+        var datedFormat = formats[(int)dated.StyleIndex!.Value];
+
+        await Assert.That(plainFormat.FontId).IsNull();
+        await Assert.That(plainFormat.Alignment!.WrapText!.Value).IsTrue();
+        await Assert.That(datedFormat.NumberFormatId!.Value).IsEqualTo(14u);
+        await Assert.That(datedFormat.Alignment!.WrapText!.Value).IsTrue();
+        // The same request is answered with the same format rather than a new one each time.
+        await Assert.That(alsoPlain.StyleIndex!.Value).IsEqualTo(plain.StyleIndex.Value);
+        await Assert.That(formats.Count).IsEqualTo(5);
+    }
+
     // hyperlinks was inserted straight after sheetData, ahead of the merged cells and everything
     // else the schema puts between the two. Excel reports a sheet ordered like that as damaged.
     [Test]

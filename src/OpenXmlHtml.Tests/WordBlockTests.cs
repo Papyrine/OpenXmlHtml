@@ -179,4 +179,68 @@ public class WordBlockTests
     public Task PageBreakOnDiv() =>
         Verify(WordHtmlConverter.ToElements(
             """<div>First section</div><div style="page-break-before: always">Second section</div>"""));
+
+    // <pre>, <li> and a cited <blockquote> each returned ahead of the ordinary block handling, so
+    // none of what a block is given there reached them.
+    [Test]
+    public async Task PreAndCitedBlockquoteMapTheirClass()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        main.AddNewPart<StyleDefinitionsPart>().Styles = new(
+            new Style
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "Code"
+            },
+            new Style
+            {
+                Type = StyleValues.Paragraph,
+                StyleId = "Quote"
+            });
+
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<pre class="Code">x</pre><blockquote class="Quote" cite="https://example.com">q</blockquote>""",
+            main);
+
+        var styles = paragraphs.Select(_ => ((Paragraph)_).ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "none");
+
+        await Assert.That(styles).IsEquivalentTo(["Code", "Quote"], CollectionOrdering.Matching);
+        await Assert.That(paragraphs[1].Descendants<FootnoteReference>().Count()).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task PreKeepsItsParagraphFormattingAndBookmark()
+    {
+        var paragraph = (Paragraph)WordHtmlConverter.ToElements(
+            """<pre id="listing" style="margin-left: 20pt; text-align: center">a  b</pre>""").Single();
+
+        await Assert.That(paragraph.ParagraphProperties!.Indentation!.Left!.Value).IsEqualTo("400");
+        await Assert.That(paragraph.ParagraphProperties.Justification).IsNotNull();
+        await Assert.That(paragraph.Descendants<BookmarkStart>().Single().Name!.Value).IsEqualTo("listing");
+        await Assert.That(paragraph.InnerText).IsEqualTo("a  b");
+    }
+
+    [Test]
+    public async Task ListItemKeepsItsParagraphFormatting()
+    {
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<ul><li style="text-align: center">a</li><li>b</li></ul>""");
+
+        var alignments = paragraphs.Select(_ => ((Paragraph)_).ParagraphProperties?.Justification != null);
+
+        await Assert.That(alignments).IsEquivalentTo([true, false], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ListItemPageBreakBeforeIsHonoured()
+    {
+        var paragraphs = WordHtmlConverter.ToElements(
+            """<ul><li>a</li><li style="page-break-before: always">b</li></ul>""");
+
+        var breaks = paragraphs.Select(_ => ((Paragraph)_).ParagraphProperties?.PageBreakBefore != null);
+
+        await Assert.That(breaks).IsEquivalentTo([false, true], CollectionOrdering.Matching);
+    }
 }
