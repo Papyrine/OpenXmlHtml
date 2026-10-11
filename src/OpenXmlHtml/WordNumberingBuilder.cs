@@ -148,7 +148,10 @@ static class WordNumberingBuilder
         return abstractNumId;
     }
 
-    internal static int AddNumberingInstance(Numbering numbering, int numId, int abstractNumId, int? startOverride = null)
+    // level is the list level the instance's paragraphs sit at, which is the one a start override
+    // has to name. A nested list is at level 1 or deeper, and with the override always written for
+    // level 0 its start attribute changed a level nothing in it used.
+    internal static int AddNumberingInstance(Numbering numbering, int numId, int abstractNumId, int? startOverride = null, int level = 0)
     {
         var instance = new NumberingInstance(
             new AbstractNumId
@@ -168,7 +171,7 @@ static class WordNumberingBuilder
                         Val = startOverride.Value
                     })
                 {
-                    LevelIndex = 0
+                    LevelIndex = level
                 });
         }
 

@@ -171,3 +171,7 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 - **Strong naming**: Uses `key.snk` via ProjectDefaults. `InternalsVisibleTo` in `AssemblyInfo.cs` requires full public key.
 - **Central package management**: All versions in `src/Directory.Packages.props`.
 - **LangVersion preview**: C# preview features are available (raw string literals, collection expressions, etc.).
+
+## Review history
+
+- **2026-10-11**: performance and bug scan of the library (`src/OpenXmlHtml`).

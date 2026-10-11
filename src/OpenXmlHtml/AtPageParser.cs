@@ -2,19 +2,7 @@ static class AtPageParser
 {
     internal static AtPageLayout? Parse(string html)
     {
-        var atIndex = html.IndexOf("@page", StringComparison.OrdinalIgnoreCase);
-        if (atIndex < 0)
-        {
-            return null;
-        }
-
-        var braceStart = html.IndexOf('{', atIndex);
-        if (braceStart < 0)
-        {
-            return null;
-        }
-
-        var body = ExtractBlockBody(html, braceStart);
+        var body = FindPageRule(html);
         if (body == null)
         {
             return null;
@@ -162,6 +150,77 @@ static class AtPageParser
         }
 
         return false;
+    }
+
+    // The declarations of the @page rule that applies to every page, or null when there is none.
+    //
+    // Only stylesheets are searched. The text "@page" anywhere in the html used to count, and the
+    // next brace after it, however far on, was taken for its block: a paragraph mentioning
+    // "@pagerduty" ahead of an unrelated "p { margin: 0 }" set the page margins to zero.
+    static string? FindPageRule(string html)
+    {
+        var position = 0;
+        while (true)
+        {
+            var open = html.IndexOf("<style", position, StringComparison.OrdinalIgnoreCase);
+            if (open < 0)
+            {
+                return null;
+            }
+
+            var start = html.IndexOf('>', open);
+            if (start < 0)
+            {
+                return null;
+            }
+
+            start++;
+            var end = html.IndexOf("</style", start, StringComparison.OrdinalIgnoreCase);
+            if (end < 0)
+            {
+                end = html.Length;
+            }
+
+            if (FindPageRule(html, start, end) is { } body)
+            {
+                return body;
+            }
+
+            position = end;
+        }
+    }
+
+    static string? FindPageRule(string html, int start, int end)
+    {
+        var position = start;
+        while (position < end)
+        {
+            var at = html.IndexOf("@page", position, end - position, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                return null;
+            }
+
+            var selectorStart = at + "@page".Length;
+            var brace = html.IndexOf('{', selectorStart, end - selectorStart);
+            if (brace < 0)
+            {
+                return null;
+            }
+
+            // A rule with a selector is for some pages only: "@page :first" for the first, a named
+            // page for those that ask for it. A document here has one page setup, so the rule that
+            // counts is the one with nothing between @page and its block. Taking whichever came
+            // first gave every page the first page's margins.
+            if (html.AsSpan(selectorStart, brace - selectorStart).Trim().IsEmpty)
+            {
+                return ExtractBlockBody(html, brace);
+            }
+
+            position = selectorStart;
+        }
+
+        return null;
     }
 
     static bool TryParseNamedSize(ReadOnlySpan<char> name, out int width, out int height)
