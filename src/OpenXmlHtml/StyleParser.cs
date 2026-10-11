@@ -28,7 +28,7 @@ static class StyleParser
             }
 
             var property = declaration[..colonIndex].Trim();
-            var value = declaration[(colonIndex + 1)..].Trim();
+            var value = StripImportant(declaration[(colonIndex + 1)..].Trim());
             if (!property.IsEmpty && !value.IsEmpty)
             {
                 result[property.ToString()] = value.ToString();
@@ -37,6 +37,117 @@ static class StyleParser
 
         return result;
     }
+
+    // !important says how a declaration ranks against others, and nothing about its value. Left on,
+    // it made every value unreadable to the parsers downstream — "red !important" is not a colour —
+    // so the declaration was dropped whole. Inline styles written for email clients carry it on
+    // nearly everything.
+    static ReadOnlySpan<char> StripImportant(ReadOnlySpan<char> value)
+    {
+        var bang = value.LastIndexOf('!');
+        if (bang < 0 ||
+            !value[(bang + 1)..].Trim().Equals("important", StringComparison.OrdinalIgnoreCase))
+        {
+            return value;
+        }
+
+        return value[..bang].TrimEnd();
+    }
+
+    // font-family is a list of fallbacks, and a Word run names one font. Handed the whole list,
+    // Word looked for a font literally called "Arial, Helvetica, sans-serif", found none and
+    // substituted its own. The first family is the one the author wanted, so that is the one named.
+    // A generic keyword is not a font: monospace has an obvious stand-in, and the rest say nothing
+    // Word's own default does not already say.
+    internal static string? ParseFontFamily(string value)
+    {
+        var span = value.AsSpan();
+        var comma = span.IndexOf(',');
+        if (comma >= 0)
+        {
+            span = span[..comma];
+        }
+
+        span = span.Trim().Trim('\'').Trim('"').Trim();
+        if (span.IsEmpty)
+        {
+            return null;
+        }
+
+        if (span.Equals("monospace", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Courier New";
+        }
+
+        if (span.Equals("serif", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("sans-serif", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("cursive", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("fantasy", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("system-ui", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("inherit", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("initial", StringComparison.OrdinalIgnoreCase) ||
+            span.Equals("unset", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return span.ToString();
+    }
+
+    // The point size html's seven font sizes stand for, 3 being the default.
+    static readonly double[] htmlFontSizes = [7.5, 10, 12, 13.5, 18, 24, 36];
+
+    // <font size> is a step on a scale of 1 to 7, or a signed step away from 3. Read as points, the
+    // sizes real html carries came out unreadable: size="4" was 4pt and size="+1" was 1pt. A value
+    // past 7 has no meaning on that scale, so it keeps the reading it has always had here, a size
+    // in points, which is what callers passing size="14" expect.
+    internal static double? ParseFontSizeAttribute(string value)
+    {
+        var span = value.AsSpan().Trim();
+        if (span.IsEmpty)
+        {
+            return null;
+        }
+
+        var relative = span[0] is '+' or '-';
+        if (!double.TryParse(span, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            return null;
+        }
+
+        if (relative)
+        {
+            return htmlFontSizes[(int)Math.Clamp(3 + number, 1, 7) - 1];
+        }
+
+        if (number is >= 1 and <= 7 &&
+            number == Math.Floor(number))
+        {
+            return htmlFontSizes[(int)number - 1];
+        }
+
+        if (number <= 0)
+        {
+            return null;
+        }
+
+        return number;
+    }
+
+    // The limits Word's schema puts on the measures css can reach. A css length is unbounded and may
+    // be negative, and written through as it stood it produced attributes the schema rejects:
+    // w:before="-150" from a negative margin, w:sz="-7" from a negative font size, a row height
+    // wrapped round to four billion by a cast to unsigned.
+    internal const double MaxFontSizePt = 1638;
+    internal const int MaxTwips = 31680;
+
+    internal static int ClampSignedTwips(int twips) =>
+        Math.Clamp(twips, -MaxTwips, MaxTwips);
+
+    // For a measure that cannot be negative. css allows a negative margin to pull content back;
+    // Word has no such thing, and the nearest it can say is none at all.
+    internal static int ClampUnsignedTwips(int twips) =>
+        Math.Clamp(twips, 0, MaxTwips);
 
     internal static double? ParseFontSize(string value)
     {
