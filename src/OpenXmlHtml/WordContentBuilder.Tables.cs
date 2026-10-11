@@ -182,6 +182,7 @@ static partial class WordContentBuilder
             };
         }
 
+        NormaliseProperties(tblPr, tablePropertyOrder);
         table.Append(tblPr);
 
         var grid = new TableGrid();
@@ -401,7 +402,7 @@ static partial class WordContentBuilder
 
         if (cellProperties != null)
         {
-            ReorderCellProperties(cellProperties);
+            NormaliseProperties(cellProperties, cellPropertyOrder);
             tc.Append(cellProperties);
         }
 
@@ -842,14 +843,33 @@ static partial class WordContentBuilder
         typeof(TableCellVerticalAlignment)
     ];
 
-    // The various cell-style sources append in a convenient order; CT_TcPr requires a fixed
-    // schema sequence, so normalise the children before emitting the cell.
-    static void ReorderCellProperties(TableCellProperties tcPr)
+    // CT_TblPrBase, for the children this builder writes. bidiVisual sits ahead of the width, which
+    // is the one that was wrong for every table under dir="rtl"; shd, tblLayout and tblCellMar all
+    // come before tblLook, which a class-styled table writes early.
+    static readonly Type[] tablePropertyOrder =
+    [
+        typeof(TableStyle),
+        typeof(BiDiVisual),
+        typeof(TableWidth),
+        typeof(TableBorders),
+        typeof(Shading),
+        typeof(TableLayout),
+        typeof(TableCellMarginDefault),
+        typeof(TableLook)
+    ];
+
+    // The various style sources append in a convenient order, and more than one of them can supply
+    // the same property: css and the presentational attribute it replaced, a background and a
+    // bgcolor, a padding and a cellpadding. CT_TcPr and CT_TblPr each require a fixed sequence and
+    // allow one of each child, so the children are put in schema order and a repeat is dropped.
+    // css is read first throughout and the sort is stable, so the one kept is the css one, which
+    // is the one that outranks an attribute.
+    static void NormaliseProperties(OpenXmlCompositeElement properties, Type[] order)
     {
-        var sorted = tcPr.ChildElements
+        var sorted = properties.ChildElements
             .OrderBy(_ =>
             {
-                var index = Array.IndexOf(cellPropertyOrder, _.GetType());
+                var index = Array.IndexOf(order, _.GetType());
                 if (index < 0)
                 {
                     return int.MaxValue;
@@ -858,10 +878,19 @@ static partial class WordContentBuilder
                 return index;
             })
             .ToList();
-        tcPr.RemoveAllChildren();
+        properties.RemoveAllChildren();
+        Type? previous = null;
         foreach (var child in sorted)
         {
-            tcPr.Append(child);
+            var type = child.GetType();
+            if (type == previous &&
+                Array.IndexOf(order, type) >= 0)
+            {
+                continue;
+            }
+
+            properties.Append(child);
+            previous = type;
         }
     }
 }

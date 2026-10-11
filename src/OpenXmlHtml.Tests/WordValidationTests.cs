@@ -61,4 +61,61 @@ public class WordValidationTests
         var errors = validator.Validate(document).ToList();
         await Assert.That(errors).IsEmpty().Because(string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
     }
+
+    // tblPr and tcPr each fix the order of their children and allow one of each. Appended as the
+    // html supplied them, these came out of order or twice, which Word repairs and a validator
+    // does not.
+    [Test]
+    [Arguments("""<table dir="rtl"><tr><td>x</td></tr></table>""")]
+    [Arguments("""<div dir="rtl"><table style="width: 300px; background-color: #eee"><tr><td>x</td></tr></table></div>""")]
+    [Arguments("""<table cellpadding="4" style="padding: 4px"><tr><td>x</td></tr></table>""")]
+    [Arguments("""<table cellpadding="4" style="background-color: #eee; width: 50%"><tr><td>x</td></tr></table>""")]
+    [Arguments("""<table><tr><td bgcolor="#ffffff" style="background-color: #ffffff">x</td></tr></table>""")]
+    public async Task TableAndCellPropertiesFollowTheSchema(string html)
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(html, stream);
+
+        stream.Position = 0;
+        using var document = WordprocessingDocument.Open(stream, false);
+        var errors = new OpenXmlValidator().Validate(document)
+            .Select(_ => $"{_.Description} ({_.Path?.XPath})")
+            .ToList();
+
+        await Assert.That(errors).IsEmpty().Because(string.Join('\n', errors));
+    }
+
+    // Where css and the attribute it replaced both speak, css is the one kept.
+    [Test]
+    public async Task CssOutranksTheAttributeWhereBothAreGiven()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """<table cellpadding="10" style="padding: 4px"><tr><td bgcolor="#ff0000" style="background-color: #00ff00">x</td></tr></table>""").Single();
+
+        await Assert.That(table.Descendants<TableCellMarginDefault>().Single().Descendants<TopMargin>().Single().Width!.Value).IsEqualTo("60");
+        await Assert.That(table.Descendants<TableCellProperties>().Single().Descendants<DocumentFormat.OpenXml.Wordprocessing.Shading>().Single().Fill!.Value).IsEqualTo("00FF00");
+    }
+
+    // A class-styled table writes tblLook, which closes the sequence.
+    [Test]
+    public async Task StyledTablePropertiesFollowTheSchema()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        main.AddNewPart<StyleDefinitionsPart>().Styles = new(
+            new Style
+            {
+                Type = StyleValues.Table,
+                StyleId = "Grid"
+            });
+
+        var table = WordHtmlConverter.ToElements(
+            """<table class="Grid" dir="rtl" cellpadding="3" style="background-color: #eee; width: 300px"><tr><td>x</td></tr></table>""",
+            main).Single();
+
+        var names = table.GetFirstChild<TableProperties>()!.ChildElements.Select(_ => _.LocalName);
+
+        await Assert.That(names).IsEquivalentTo(["tblStyle", "bidiVisual", "tblW", "shd", "tblLayout", "tblCellMar", "tblLook"], CollectionOrdering.Matching);
+    }
 }
