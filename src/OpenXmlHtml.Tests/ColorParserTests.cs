@@ -61,4 +61,23 @@ public class ColorParserTests
     [Test]
     public async Task RgbClamping() =>
         await Assert.That(ColorParser.Parse("rgb(300, -10, 128)")).IsEqualTo("FF0080");
+
+    // Malformed css is not a reason to throw: a value that cannot be read is no colour.
+    [Test]
+    [Arguments("rgb)1,2,3(")]
+    [Arguments("rgb)(")]
+    [Arguments("rgb()")]
+    [Arguments("rgb(")]
+    [Arguments("rgb(1,2")]
+    [Arguments("rgba")]
+    public async Task MalformedRgbIsNoColour(string value) =>
+        await Assert.That(ColorParser.Parse(value)).IsNull();
+
+    [Test]
+    public async Task MalformedRgbDoesNotStopTheConversion()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<span style="color: rgb)1,2,3(">text</span>""").Single();
+
+        await Assert.That(paragraph.InnerText).IsEqualTo("text");
+    }
 }
