@@ -293,4 +293,49 @@ public class WordEdgeCaseTests
 
         await Assert.That(paragraph.InnerText).IsEqualTo("a  b");
     }
+
+    // A <br> that ends a block is the block's end. The segment path took it for the paragraph
+    // break and ran the next block on into the same paragraph; the element path kept it, which Word
+    // draws as an empty line a browser does not. Both paths, and compared, so they stay agreed.
+    [Test]
+    [Arguments("<p>a<br></p><p>b</p>", "a|b")]
+    [Arguments("<p>a</p><p><br></p><p>b</p>", "a||b")]
+    [Arguments("<div>a<br></div><div>b</div>", "a|b")]
+    [Arguments("a<br><p>b</p>", "a|b")]
+    [Arguments("<p>a<br><br></p><p>b</p>", "a↵|b")]
+    [Arguments("<p>a<br>b</p>", "a↵b")]
+    public async Task BreakEndingABlockIsNotALine(string html, string expected)
+    {
+        await Assert.That(Flatten(WordHtmlConverter.ToElements(html))).IsEqualTo(expected);
+        await Assert.That(Flatten(WordHtmlConverter.ToParagraphs(html))).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task BreakEndingABlockIsNotALineInSpreadsheet()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString("<p>a<br></p><p>b</p>");
+
+        await Assert.That(inline.InnerText).IsEqualTo("a\nb");
+    }
+
+    // Paragraphs joined with "|", line breaks shown as "↵".
+    static string Flatten(IEnumerable<OpenXmlElement> paragraphs) =>
+        string.Join(
+            "|",
+            paragraphs.Select(paragraph => string.Concat(
+                paragraph.Descendants()
+                    .Select(_ =>
+                    {
+                        if (_ is DocumentFormat.OpenXml.Wordprocessing.Break)
+                        {
+                            return "↵";
+                        }
+
+                        if (_ is DocumentFormat.OpenXml.Wordprocessing.Text text)
+                        {
+                            return text.Text;
+                        }
+
+                        return "";
+                    }))));
 }

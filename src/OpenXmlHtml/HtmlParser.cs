@@ -805,7 +805,17 @@ static class HtmlSegmentParser
         }
 
         var last = segments[^1];
-        if (!last.Text.EndsWith('\n'))
+
+        // A <br> that ends a block is that block's end, not a line of its own: a browser draws
+        // nothing extra for it. Its text is "\n" too, so it used to pass for the paragraph break
+        // and the next block was run on into the same paragraph. It becomes the break instead.
+        if (last.IsLineBreak)
+        {
+            segments[^1] = new("\n", format);
+            return;
+        }
+
+        if (last.Text != "\n")
         {
             segments.Add(new("\n", format));
         }
