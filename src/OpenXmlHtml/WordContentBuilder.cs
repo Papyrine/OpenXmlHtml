@@ -21,7 +21,15 @@
         };
         if (main?.NumberingDefinitionsPart?.Numbering is { } existingNumbering)
         {
-            context.NextNumId = WordNumberingBuilder.GetNextId(existingNumbering);
+            if (settings?.NumberingSession is { LastNumberingElement: { } last } known &&
+                last == existingNumbering.LastChild)
+            {
+                context.NextNumId = known.NextNumId;
+            }
+            else
+            {
+                context.NextNumId = WordNumberingBuilder.GetNextId(existingNumbering);
+            }
         }
         else
         {
@@ -64,6 +72,8 @@
         if (settings?.NumberingSession is { } session2)
         {
             session2.BulletAbstractNumId = context.BulletAbstractNumId;
+            session2.NextNumId = context.NextNumId;
+            session2.LastNumberingElement = main?.NumberingDefinitionsPart?.Numbering?.LastChild;
         }
 
         if (elements.Count == 0)

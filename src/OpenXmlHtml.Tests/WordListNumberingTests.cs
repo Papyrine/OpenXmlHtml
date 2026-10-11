@@ -212,4 +212,36 @@ public class WordListNumberingTests
             stream);
         return stream.ToArray();
     }
+
+    // A session remembers the next free numbering id between calls instead of recounting. The ids
+    // it hands out still have to be unique, including after something else has added to the
+    // numbering part behind its back.
+    [Test]
+    public async Task SessionKeepsNumberingIdsUniqueAcrossCalls()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        var settings = new HtmlConvertSettings
+        {
+            NumberingSession = new()
+        };
+
+        WordHtmlConverter.ToElements("<ul><li>a</li></ul><ol><li>b</li></ol>", main, settings);
+        WordHtmlConverter.ToElements("<ol><li>c</li></ol>", main, settings);
+
+        // Added without the session knowing.
+        WordHtmlConverter.ToElements("<ol><li>outside</li></ol><ul><li>outside</li></ul>", main);
+
+        WordHtmlConverter.ToElements("<ul><li>d</li></ul><ol><li>e</li></ol>", main, settings);
+
+        var numbering = main.NumberingDefinitionsPart!.Numbering!;
+        var instanceIds = numbering.Elements<NumberingInstance>().Select(_ => _.NumberID!.Value).ToList();
+        var abstractIds = numbering.Elements<AbstractNum>().Select(_ => _.AbstractNumberId!.Value).ToList();
+
+        await Assert.That(instanceIds).HasDistinctItems();
+        await Assert.That(abstractIds).HasDistinctItems();
+        await Assert.That(instanceIds.Count).IsEqualTo(7);
+        await Assert.That(instanceIds.Intersect(abstractIds)).IsEmpty();
+    }
 }
