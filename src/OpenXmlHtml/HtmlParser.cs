@@ -35,6 +35,11 @@ static class HtmlSegmentParser
             return;
         }
 
+        // Whether this node's element children are all blocks, worked out the first time a
+        // whitespace-only text node asks and then kept. It is a property of the parent, and asking
+        // again for every such node walked all of the parent's children each time: quadratic in
+        // the number of siblings, which is what a long pretty-printed document is made of.
+        bool? onlyBlockChildren = null;
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -52,7 +57,7 @@ static class HtmlSegmentParser
                     var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
-                          IsInterBlockWhitespace(textNode)))
+                          (onlyBlockChildren ??= IsInterBlockWhitespace(textNode))))
                     {
                         segments.Add(new(text, format));
                     }
