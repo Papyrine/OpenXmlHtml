@@ -48,4 +48,46 @@ public class WordImageSizingTests
     [Test]
     public Task PercentageWidthIgnoredBecauseExtentHasNoPercentForm() =>
         Verify(Build($"""<p><img src="data:image/png;base64,{png}" style="width: 50%" width="150"></p>"""));
+
+    // The decode goes through a pooled buffer now. The bytes that reach the document have to be
+    // exactly the image, whatever its length does to the padding and however the text is wrapped.
+    [Test]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    [Arguments(4)]
+    [Arguments(1000)]
+    [Arguments(100_001)]
+    public async Task DataUriBytesSurviveDecoding(int length)
+    {
+        var expected = new byte[length];
+        new Random(length).NextBytes(expected);
+        var base64 = Convert.ToBase64String(expected, Base64FormattingOptions.InsertLineBreaks);
+
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        WordHtmlConverter.ToElements($"""<img src="data:image/png;base64,{base64}" width="1" height="1">""", main);
+
+        using var partStream = main.ImageParts.Single().GetStream();
+        using var actual = new MemoryStream();
+        partStream.CopyTo(actual);
+
+        await Assert.That(actual.ToArray().SequenceEqual(expected)).IsTrue();
+    }
+
+    [Test]
+    public async Task UndecodableDataUriIsStillReported()
+    {
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+
+        var paragraphs = WordHtmlConverter.ToParagraphs("""<img src="data:image/png;base64,not*base64" alt="fallback">""", null, settings);
+
+        await Assert.That(paragraphs.Single().InnerText).IsEqualTo("fallback");
+        await Assert.That(reported.Count).IsEqualTo(1);
+    }
 }
