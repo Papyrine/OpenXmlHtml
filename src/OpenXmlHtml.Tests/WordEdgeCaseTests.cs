@@ -173,4 +173,169 @@ public class WordEdgeCaseTests
                 </w:p>
                 """);
 
+    const string resolvableImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+
+    // Where the output cannot hold an image, its alt text stands in for it. That used to happen
+    // only when the image failed to resolve: one that resolved and then had nowhere to go left
+    // nothing behind.
+    [Test]
+    public async Task AltTextStandsInWhereThereIsNoDocumentInElements()
+    {
+        var elements = WordHtmlConverter.ToElements($"""<p>before <img src="{resolvableImage}" alt="Logo"> after</p>""");
+
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).Contains("Logo");
+    }
+
+    [Test]
+    public async Task AltTextStandsInWhereThereIsNoDocumentInSegments()
+    {
+        var paragraphs = WordHtmlConverter.ToParagraphs($"""<p>before <img src="{resolvableImage}" alt="Logo"> after</p>""");
+
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("before Logo after");
+    }
+
+    [Test]
+    public async Task AltTextStandsInForAnImageInACell()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString($"""before <img src="{resolvableImage}" alt="Logo"> after""");
+
+        await Assert.That(inline.InnerText).IsEqualTo("before Logo after");
+    }
+
+    [Test]
+    public async Task ImageWithoutAltLeavesNothingInACell()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString($"""before<img src="{resolvableImage}">after""");
+
+        await Assert.That(inline.InnerText).IsEqualTo("beforeafter");
+    }
+
+    // Nesting a few hundred elements deep used to run the thread out of stack, which cannot be
+    // caught and takes the process down. Both paths, since each recurses on its own. The text has
+    // to survive; the markup past the point the stack runs short does not.
+    [Test]
+    public async Task DeepNestingKeepsTextInElements()
+    {
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+
+        var elements = WordHtmlConverter.ToElements(DeeplyNested(), null, settings);
+
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).IsEqualTo("deep");
+        await Assert.That(reported.Count).IsEqualTo(1);
+        await Assert.That(reported[0].Kind).IsEqualTo(HtmlDiagnosticKind.UnsupportedElement);
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSegments()
+    {
+        var paragraphs = WordHtmlConverter.ToParagraphs(DeeplyNested());
+
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("deep");
+    }
+
+    [Test]
+    public async Task DeepNestingKeepsTextInSpreadsheet()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString(DeeplyNested());
+
+        await Assert.That(inline.InnerText).IsEqualTo("deep");
+    }
+
+    static string DeeplyNested()
+    {
+        const int depth = 20_000;
+        var builder = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("<span>");
+        }
+
+        builder.Append("deep");
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("</span>");
+        }
+
+        return builder.ToString();
+    }
+
+    // The element path only moved its fold state for text nodes, so a run written any other way
+    // left it stale and the next text node folded against the wrong neighbour. The segment path
+    // reads the last segment and always had these right; the two are compared so they stay agreed.
+    [Test]
+    [Arguments("""see <img src="https://example.com/chart.png" alt="the chart"> below""", "see the chart below")]
+    [Arguments("""<p><input type="checkbox" checked> Done</p>""", "☑ Done")]
+    [Arguments("<ul>\n<li>\n item</li>\n</ul>", "● item")]
+    [Arguments("""a <q> b</q> c""", "a “ b” c")]
+    public async Task FoldStateFollowsEveryRun(string html, string expected)
+    {
+        var elements = string.Concat(WordHtmlConverter.ToElements(html).Select(_ => _.InnerText));
+        var segments = string.Concat(WordHtmlConverter.ToParagraphs(html).Select(_ => _.InnerText));
+
+        await Assert.That(elements).IsEqualTo(expected);
+        await Assert.That(segments).IsEqualTo(expected);
+    }
+
+    // An image is content: the space after it is not a second space to fold into the one before.
+    [Test]
+    public async Task SpaceAfterImageIsKept()
+    {
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        var paragraph = WordHtmlConverter.ToElements($"""<p>a <img src="data:image/png;base64,{png}" width="2" height="2"> b</p>""", main).Single();
+
+        await Assert.That(paragraph.InnerText).IsEqualTo("a  b");
+    }
+
+    // A <br> that ends a block is the block's end. The segment path took it for the paragraph
+    // break and ran the next block on into the same paragraph; the element path kept it, which Word
+    // draws as an empty line a browser does not. Both paths, and compared, so they stay agreed.
+    [Test]
+    [Arguments("<p>a<br></p><p>b</p>", "a|b")]
+    [Arguments("<p>a</p><p><br></p><p>b</p>", "a||b")]
+    [Arguments("<div>a<br></div><div>b</div>", "a|b")]
+    [Arguments("a<br><p>b</p>", "a|b")]
+    [Arguments("<p>a<br><br></p><p>b</p>", "a↵|b")]
+    [Arguments("<p>a<br>b</p>", "a↵b")]
+    public async Task BreakEndingABlockIsNotALine(string html, string expected)
+    {
+        await Assert.That(Flatten(WordHtmlConverter.ToElements(html))).IsEqualTo(expected);
+        await Assert.That(Flatten(WordHtmlConverter.ToParagraphs(html))).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task BreakEndingABlockIsNotALineInSpreadsheet()
+    {
+        var inline = SpreadsheetHtmlConverter.ToInlineString("<p>a<br></p><p>b</p>");
+
+        await Assert.That(inline.InnerText).IsEqualTo("a\nb");
+    }
+
+    // Paragraphs joined with "|", line breaks shown as "↵".
+    static string Flatten(IEnumerable<OpenXmlElement> paragraphs) =>
+        string.Join(
+            "|",
+            paragraphs.Select(paragraph => string.Concat(
+                paragraph.Descendants()
+                    .Select(_ =>
+                    {
+                        if (_ is DocumentFormat.OpenXml.Wordprocessing.Break)
+                        {
+                            return "↵";
+                        }
+
+                        if (_ is DocumentFormat.OpenXml.Wordprocessing.Text text)
+                        {
+                            return text.Text;
+                        }
+
+                        return "";
+                    }))));
 }

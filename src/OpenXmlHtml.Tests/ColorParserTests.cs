@@ -14,7 +14,7 @@ public class ColorParserTests
     [Arguments("rgb(0, 0, 255)", "0000FF")]
     [Arguments("rgba(255, 0, 0, 0.5)", "FF0000")]
     [Arguments("rgba(0, 128, 0, 1)", "008000")]
-    [Arguments("rgba(0,0,255,0)", "0000FF")]
+    [Arguments("rgba(0,0,255,0.25)", "0000FF")]
     [Arguments("rgba(100, 200, 50, 0.8)", "64C832")]
     [Arguments("rgb(100%, 0%, 0%)", "FF0000")]
     [Arguments("rgb(0%, 100%, 0%)", "00FF00")]
@@ -61,4 +61,50 @@ public class ColorParserTests
     [Test]
     public async Task RgbClamping() =>
         await Assert.That(ColorParser.Parse("rgb(300, -10, 128)")).IsEqualTo("FF0080");
+
+    // Fully transparent is no colour. With the alpha dropped it became the opaque colour under it.
+    [Test]
+    [Arguments("rgba(0, 0, 0, 0)")]
+    [Arguments("rgba(255,255,255,0.0)")]
+    [Arguments("rgba(0, 0, 0, 0%)")]
+    [Arguments("#00000000")]
+    [Arguments("#FF000000")]
+    public async Task FullyTransparentIsNoColour(string value) =>
+        await Assert.That(ColorParser.Parse(value)).IsNull();
+
+    // A partial alpha still gives the colour: Word has nothing translucent to map it to.
+    [Test]
+    [Arguments("rgba(255, 0, 0, 0.5)", "FF0000")]
+    [Arguments("rgba(0, 0, 0, 0.87)", "000000")]
+    [Arguments("#FF000080", "FF0000")]
+    [Arguments("#000", "000000")]
+    public async Task PartialAlphaKeepsTheColour(string value, string expected) =>
+        await Assert.That(ColorParser.Parse(value)).IsEqualTo(expected);
+
+    [Test]
+    public async Task TransparentBackgroundIsNotBlack()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<span style="background-color: rgba(0, 0, 0, 0)">text</span>""").Single();
+
+        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Shading>().Count()).IsEqualTo(0);
+    }
+
+    // Malformed css is not a reason to throw: a value that cannot be read is no colour.
+    [Test]
+    [Arguments("rgb)1,2,3(")]
+    [Arguments("rgb)(")]
+    [Arguments("rgb()")]
+    [Arguments("rgb(")]
+    [Arguments("rgb(1,2")]
+    [Arguments("rgba")]
+    public async Task MalformedRgbIsNoColour(string value) =>
+        await Assert.That(ColorParser.Parse(value)).IsNull();
+
+    [Test]
+    public async Task MalformedRgbDoesNotStopTheConversion()
+    {
+        var paragraph = WordHtmlConverter.ToElements("""<span style="color: rgb)1,2,3(">text</span>""").Single();
+
+        await Assert.That(paragraph.InnerText).IsEqualTo("text");
+    }
 }

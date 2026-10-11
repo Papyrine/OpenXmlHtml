@@ -72,7 +72,7 @@ A markup language. See docs.
 CSS
 Style sheets for visual presentation.
 Paragraph Styling Combos
-Indented, justified, 1.8 line-height with bold , italic , and navy Georgia span inside a bordered background div.
+Indented, justified, 1.8 line-height with bold, italic, and navy Georgia span inside a bordered background div.
 Styled Table
 Centered bold With small text below	1. List inside styled cell 2. Link in list in cell
 Nested Table With Formatting

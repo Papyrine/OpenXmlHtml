@@ -14,6 +14,7 @@
         var context = new WordBuildContext
         {
             MainPart = main,
+            ImageIndex = WordHtmlConverter.LastImageIndex(main),
             Settings = settings,
             StyleMap = WordStyleLookup.BuildStyleMap(main)
         };
@@ -73,6 +74,22 @@
 
     static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
+        if (!HtmlSegmentParser.HasStackToRecurse())
+        {
+            HtmlSegmentParser.ReportTooDeep(node, ctx.Settings);
+            foreach (var textNode in HtmlSegmentParser.TextNodes(node))
+            {
+                var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
+                if (text.Length > 0)
+                {
+                    AddTextRun(text, format, ctx);
+                    ctx.LastWasSpace = !inPre && text[^1] == ' ';
+                }
+            }
+
+            return;
+        }
+
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -113,6 +130,14 @@
 
         inPre = HtmlSegmentParser.ApplyWhiteSpace(styleDeclarations, ref newFormat, inPre);
 
+        // <pre> is an ordinary block whose text happens to be preformatted. It used to return from
+        // the switch below, ahead of everything a block is given further down: its class was never
+        // looked up in the style map, and its margins, page breaks and id were dropped.
+        if (tag == "pre")
+        {
+            inPre = true;
+        }
+
         switch (tag)
         {
             case "br":
@@ -140,12 +165,21 @@
                 }
                 else if (context.MainPart == null)
                 {
+                    // Nowhere to put the image, so its alt text stands in for it.
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                    var alt = element.GetAttribute("alt");
+                    if (!string.IsNullOrEmpty(alt))
+                    {
+                        // ReSharper disable once RedundantSuppressNullableWarningExpression
+                        AddTextRun(alt!, format, context);
+                    }
                 }
                 else
                 {
                     context.ImageIndex++;
                     context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    // An image is content, so a space after it does not fold into one before it.
+                    context.LastWasSpace = false;
                 }
 
                 return;
@@ -161,6 +195,7 @@
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
                 context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
+                context.LastWasSpace = false;
                 return;
             }
             case "col":
@@ -186,6 +221,15 @@
                     elements.Add(new Paragraph(new ParagraphProperties(new PageBreakBefore())));
                 }
 
+                // Word reads two tables with nothing between them as one table: it joins the rows
+                // and lays them out on a single grid. An empty paragraph is what keeps them apart,
+                // and is what Word itself puts there.
+                if (elements.Count > 0 &&
+                    elements[^1] is Table)
+                {
+                    elements.Add(new Paragraph());
+                }
+
                 BuildTable(element, format, elements, context);
                 return;
             // Lists dispatch before the block handling below, so their class mapping is applied here
@@ -202,7 +246,7 @@
             case "li":
             {
                 var ambient = ApplyAmbientParagraphStyle(element, context);
-                BuildListItem(element, newFormat, elements, context, inPre, listIndex);
+                BuildListItem(element, newFormat, elements, context, inPre, listIndex, styleDeclarations);
                 RestoreAmbientParagraphStyle(context, ambient);
                 return;
             }
@@ -214,13 +258,6 @@
                 AddTextRun("\u201C", format, context);
                 ProcessChildren(element, newFormat, elements, context, inPre);
                 AddTextRun("\u201D", format, context);
-                return;
-            }
-            case "pre":
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, true);
-                FlushParagraph(elements, context);
                 return;
             }
             case "rt":
@@ -249,31 +286,22 @@
             }
         }
 
-        // Handle blockquote with cite attribute as footnote
-        if (tag == "blockquote")
-        {
-            var cite = element.GetAttribute("cite");
-            if (!string.IsNullOrEmpty(cite) &&
-                context.MainPart != null)
-            {
-                FlushParagraph(elements, context);
-                ProcessChildren(element, newFormat, elements, context, inPre);
-                // ReSharper disable once RedundantSuppressNullableWarningExpression
-                context.CurrentRuns.Add(BuildFootnoteRun(context, cite!));
-                FlushParagraph(elements, context);
-                return;
-            }
-        }
-
         var isBlock = HtmlSegmentParser.IsBlockElement(tag);
         var pageBreakBefore = false;
         var pageBreakAfter = false;
         // What an enclosing block owed before this one, restored once its children are done so a
         // sibling does not inherit it — see AmbientParagraphStyleId.
         var ambientParagraphStyleId = context.AmbientParagraphStyleId;
+        var ambientParagraphFormat = context.AmbientParagraphFormat;
 
         if (isBlock)
         {
+            // A block's border belongs to its paragraph, which ParagraphFormatState draws as pBdr.
+            // Left on the run format as well it was drawn a second time around the text itself, a
+            // box inside the box, and handed down to every block nested inside. css does not
+            // inherit border, so the runs go back to whatever an enclosing inline element set.
+            newFormat.Border = format.Border;
+
             ParagraphFormatState? pendingFormat = null;
             if (styleDeclarations != null)
             {
@@ -298,9 +326,13 @@
                 FlushParagraph(elements, context);
             }
 
+            // Over what the enclosing block owes, and owed in turn to the blocks inside this one.
+            // Restored on the way out, below.
+            pendingFormat = ParagraphFormatState.Combine(ambientParagraphFormat, pendingFormat);
             if (pendingFormat != null)
             {
                 context.ParagraphFormat = pendingFormat;
+                context.AmbientParagraphFormat = pendingFormat.ForDescendants();
             }
 
             if (newFormat.RightToLeft)
@@ -366,6 +398,16 @@
         var elementCountBeforeChildren = elements.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);
 
+        // A blockquote's cite becomes a footnote at its end. It is still a block like any other, so
+        // this sits inside the ordinary handling rather than returning ahead of it, which is what
+        // cost a cited blockquote its class, its margins and its id.
+        if (tag == "blockquote" &&
+            context.MainPart != null &&
+            element.GetAttribute("cite") is { Length: > 0 } cite)
+        {
+            context.CurrentRuns.Add(BuildFootnoteRun(context, cite));
+        }
+
         if (bookmarkId != null)
         {
             context.CurrentRuns.Add(
@@ -392,6 +434,12 @@
             {
                 context.AmbientParagraphStyleId = ambientParagraphStyleId;
                 context.ParagraphStyleId = ambientParagraphStyleId;
+            }
+
+            if (context.AmbientParagraphFormat != ambientParagraphFormat)
+            {
+                context.AmbientParagraphFormat = ambientParagraphFormat;
+                context.ParagraphFormat = ambientParagraphFormat;
             }
 
             if (pageBreakAfter)
@@ -469,6 +517,14 @@
         {
             run.Append(WordHtmlConverter.BuildWordRunProperties(format));
         }
+
+        // Every run that reaches the paragraph moves the fold state, not only the ones that came
+        // from a text node. Alt text, a checkbox glyph and a list marker are written here too, and
+        // while they left the state alone the next text node folded against whatever came before
+        // them: "see <img alt="x"> below" lost the space after the alt text, and "☑ " kept a
+        // second space ahead of its label. The segment path reads the last segment, so it never
+        // had this.
+        ctx.LastWasSpace = text.Length > 0 && text[^1] == ' ';
 
         var transformed = ApplyTextTransform(text, format);
         if (transformed.IndexOf('\t') < 0)
@@ -585,6 +641,23 @@
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
         context.LastWasSpace = false;
+
+        // A <br> that ends a block is that block's end, not a line of its own. Left in, Word draws
+        // an empty line after it, where a browser draws nothing. A paragraph that held only the
+        // break is still a paragraph: <p><br></p> is how an editor writes a blank line.
+        if (context.CurrentRuns.Count > 0 &&
+            context.CurrentRuns[^1] is Run { LastChild: Break { Type: null } } closing &&
+            closing.ChildElements.All(_ => _ is RunProperties or Break))
+        {
+            closing.LastChild!.Remove();
+            if (closing.ChildElements.All(_ => _ is RunProperties))
+            {
+                context.CurrentRuns.RemoveAt(context.CurrentRuns.Count - 1);
+            }
+
+            emitEmpty = true;
+        }
+
         if (context.CurrentRuns.Count == 0 && !emitEmpty)
         {
             context.HeadingLevel = 0;
@@ -592,7 +665,7 @@
             // AmbientParagraphStyleId. This is the flush that used to discard it, since entering a
             // block child flushes before any of that child's text has arrived.
             context.ParagraphStyleId = context.AmbientParagraphStyleId;
-            context.ParagraphFormat = null;
+            context.ParagraphFormat = context.AmbientParagraphFormat;
             context.ParagraphRightToLeft = false;
             if (context.ListItemDepth == 0)
             {
@@ -687,7 +760,7 @@
         // The next paragraph inside the same block is owed the same style, so this returns to the
         // enclosing block's rather than clearing outright — see AmbientParagraphStyleId.
         context.ParagraphStyleId = context.AmbientParagraphStyleId;
-        context.ParagraphFormat = null;
+        context.ParagraphFormat = context.AmbientParagraphFormat;
         context.ParagraphRightToLeft = false;
         context.ListNumId = null;
         context.ListIlvl = null;
@@ -872,9 +945,9 @@
         }
 
         if (!string.IsNullOrEmpty(href) && context.MainPart != null &&
-            Uri.TryCreate(href, UriKind.Absolute, out var uri))
+            LinkTarget.TryParseAbsolute(href, out var uri))
         {
-            var rel = context.MainPart.AddHyperlinkRelationship(uri, true);
+            var rel = context.MainPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(context.MainPart, "rLink"));
             WrapChildrenInHyperlink(
                 element,
                 newFormat,
