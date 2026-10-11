@@ -109,4 +109,76 @@ public class WordHeaderFooterTests
                 footer
             });
     }
+
+    const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+
+    // An r:embed or r:id is resolved against the part holding the xml. The header's image and link
+    // were registered on the main part, so in the header they pointed at nothing.
+    [Test]
+    public async Task HeaderImageAndLinkBelongToTheHeaderPart()
+    {
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            var body = new Body();
+            main.Document = new(body);
+            WordHtmlConverter.AppendHtml(body, "<p>Body</p>", main);
+            WordHtmlConverter.SetHeader(main, $"""<p><img src="data:image/png;base64,{png}" width="2" height="2"> <a href="https://example.com">home</a></p>""");
+        }
+
+        stream.Position = 0;
+        using var reopened = WordprocessingDocument.Open(stream, false);
+        var header = reopened.MainDocumentPart!.HeaderParts.Single();
+
+        await Assert.That(header.ImageParts.Count()).IsEqualTo(1);
+        await Assert.That(header.HyperlinkRelationships.Count()).IsEqualTo(1);
+        await Assert.That(reopened.MainDocumentPart.ImageParts.Count()).IsEqualTo(0);
+        await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
+    }
+
+    [Test]
+    public async Task FooterImageAndLinkBelongToTheFooterPart()
+    {
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            var body = new Body();
+            main.Document = new(body);
+            WordHtmlConverter.AppendHtml(body, "<p>Body</p>", main);
+            WordHtmlConverter.SetFooter(main, $"""<p><img src="data:image/png;base64,{png}" width="2" height="2"> <a href="https://example.com">home</a></p>""");
+        }
+
+        stream.Position = 0;
+        using var reopened = WordprocessingDocument.Open(stream, false);
+        var footer = reopened.MainDocumentPart!.FooterParts.Single();
+
+        await Assert.That(footer.ImageParts.Count()).IsEqualTo(1);
+        await Assert.That(footer.HyperlinkRelationships.Count()).IsEqualTo(1);
+        await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
+    }
+
+    // A header cannot hold a footnote reference, so the title is left out there.
+    [Test]
+    public async Task HeaderAbbreviationWritesNoFootnote()
+    {
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            var body = new Body();
+            main.Document = new(body);
+            WordHtmlConverter.AppendHtml(body, "<p>Body</p>", main);
+            WordHtmlConverter.SetHeader(main, """<p><abbr title="World Health Organization">WHO</abbr></p>""");
+        }
+
+        stream.Position = 0;
+        using var reopened = WordprocessingDocument.Open(stream, false);
+        var header = reopened.MainDocumentPart!.HeaderParts.Single().Header!;
+
+        await Assert.That(header.InnerText).IsEqualTo("WHO");
+        await Assert.That(header.Descendants<FootnoteReference>().Count()).IsEqualTo(0);
+        await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
+    }
 }

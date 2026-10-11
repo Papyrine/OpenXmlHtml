@@ -6,7 +6,7 @@
     // without one resolves the image and then has nowhere to put it, so it disappears.
     internal const string NoMainPartForImages = "an image part requires a MainDocumentPart";
 
-    internal static List<OpenXmlElement> Build(string html, MainDocumentPart? main, HtmlConvertSettings? settings = null)
+    internal static List<OpenXmlElement> Build(string html, MainDocumentPart? main, HtmlConvertSettings? settings = null, OpenXmlPart? relationshipPart = null)
     {
         var document = parser.ParseDocument(string.Concat("<body>", html, "</body>"));
         var body = document.Body!;
@@ -14,7 +14,8 @@
         var context = new WordBuildContext
         {
             MainPart = main,
-            ImageIndex = WordHtmlConverter.LastImageIndex(main),
+            RelationshipPart = relationshipPart ?? main,
+            ImageIndex = WordHtmlConverter.LastImageIndex(relationshipPart ?? main),
             Settings = settings,
             StyleMap = WordStyleLookup.BuildStyleMap(main)
         };
@@ -165,7 +166,7 @@
                         AddTextRun(alt!, format, context);
                     }
                 }
-                else if (context.MainPart == null)
+                else if (context.RelationshipPart == null)
                 {
                     // Nowhere to put the image, so its alt text stands in for it.
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
@@ -179,7 +180,7 @@
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, imageData, context.ImageIndex));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex));
                     // An image is content, so a space after it does not fold into one before it.
                     context.LastWasSpace = false;
                 }
@@ -188,7 +189,7 @@
             }
             case "svg":
             {
-                if (context.MainPart == null)
+                if (context.RelationshipPart == null)
                 {
                     Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
                     return;
@@ -196,7 +197,7 @@
 
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
-                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.MainPart, svgData, context.ImageIndex));
+                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex));
                 context.LastWasSpace = false;
                 return;
             }
@@ -283,7 +284,7 @@
                 ProcessChildren(element, newFormat, elements, context, inPre);
                 var title = element.GetAttribute("title");
                 if (!string.IsNullOrEmpty(title) &&
-                    context.MainPart != null)
+                    CanHoldFootnotes(context))
                 {
                     // ReSharper disable once RedundantSuppressNullableWarningExpression
                     context.CurrentRuns.Add(BuildFootnoteRun(context, title!));
@@ -416,7 +417,7 @@
         // this sits inside the ordinary handling rather than returning ahead of it, which is what
         // cost a cited blockquote its class, its margins and its id.
         if (tag == "blockquote" &&
-            context.MainPart != null &&
+            CanHoldFootnotes(context) &&
             element.GetAttribute("cite") is { Length: > 0 } cite)
         {
             context.CurrentRuns.Add(BuildFootnoteRun(context, cite));
@@ -620,6 +621,12 @@
             format.RightToLeft = false;
         }
     }
+
+    // A footnote reference is only valid in the document body. A header or footer cannot hold one,
+    // so there the title or cite is left out rather than written as a reference Word rejects.
+    static bool CanHoldFootnotes(WordBuildContext context) =>
+        context.MainPart != null &&
+        context.RelationshipPart == context.MainPart;
 
     static bool IsPageBreak(Dictionary<string, string> declarations, string key) =>
         declarations.TryGetValue(key, out var value) &&
@@ -1095,10 +1102,10 @@
             return;
         }
 
-        if (!string.IsNullOrEmpty(href) && context.MainPart != null &&
+        if (!string.IsNullOrEmpty(href) && context.RelationshipPart != null &&
             LinkTarget.TryParseAbsolute(href, out var uri))
         {
-            var rel = context.MainPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(context.MainPart, "rLink"));
+            var rel = context.RelationshipPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(context.RelationshipPart, "rLink"));
             WrapChildrenInHyperlink(
                 element,
                 newFormat,
