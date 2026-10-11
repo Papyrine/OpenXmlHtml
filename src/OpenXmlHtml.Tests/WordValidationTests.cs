@@ -61,4 +61,37 @@ public class WordValidationTests
         var errors = validator.Validate(document).ToList();
         await Assert.That(errors).IsEmpty().Because(string.Join("\n", errors.Select(_ => $"{_.Description} ({_.Path?.XPath})")));
     }
+
+    // The same html has to give the same document. A link, a footnote and a header each took a
+    // random relationship id, so every run differed.
+    [Test]
+    public async Task LinksFootnotesAndHeadersAreReproducible()
+    {
+        var first = RelationshipIds();
+        var second = RelationshipIds();
+
+        await Assert.That(first).IsEquivalentTo(second, CollectionOrdering.Matching);
+        await Assert.That(first).IsEquivalentTo(["rFooter", "rFootnotes", "rHeader", "rLink", "rLink1"]);
+    }
+
+    static List<string> RelationshipIds()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        var body = new Body();
+        main.Document = new(body);
+
+        WordHtmlConverter.AppendHtml(
+            body,
+            """<p><a href="https://example.com/a">a</a> <a href="https://example.com/b">b</a> <abbr title="World Health Organization">WHO</abbr></p>""",
+            main);
+        WordHtmlConverter.SetHeader(main, "<p>header</p>");
+        WordHtmlConverter.SetFooter(main, "<p>footer</p>");
+
+        return main.Parts.Select(_ => _.RelationshipId)
+            .Concat(main.HyperlinkRelationships.Select(_ => _.Id))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+    }
 }
