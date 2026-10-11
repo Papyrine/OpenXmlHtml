@@ -410,7 +410,8 @@ static class HtmlSegmentParser
             }
 
             var fontSize = element.GetAttribute("size");
-            if (fontSize != null && double.TryParse(fontSize, CultureInfo.InvariantCulture, out var size))
+            if (fontSize != null &&
+                StyleParser.ParseFontSizeAttribute(fontSize) is { } size)
             {
                 format.FontSizePt = size;
             }
