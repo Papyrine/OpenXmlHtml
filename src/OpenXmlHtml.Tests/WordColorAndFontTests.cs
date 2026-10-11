@@ -134,6 +134,22 @@ public class WordColorAndFontTests
                 </w:p>
                 """);
 
+    // Word sizes are whole half-points. The nearest one, not the one below: a browser serialises
+    // 10pt as 13.3333px, which truncated to 9.5pt.
+    [Test]
+    [Arguments("13.3333px", "20")]
+    [Arguments("21.3333px", "32")]
+    [Arguments("9.33333px", "14")]
+    [Arguments("14.6667px", "22")]
+    [Arguments("10.5pt", "21")]
+    [Arguments("12pt", "24")]
+    public async Task FontSizeRoundsToTheNearestHalfPoint(string size, string expected)
+    {
+        var paragraph = WordHtmlConverter.ToElements($"""<span style="font-size: {size}">text</span>""").Single();
+
+        await Assert.That(paragraph.Descendants<WFontSize>().Single().Val!.Value).IsEqualTo(expected);
+    }
+
     // A tag's default is the browser's own rule for that element, and outranks a value the element
     // would otherwise inherit. Each of these lost its default to an ancestor's declaration.
     [Test]
