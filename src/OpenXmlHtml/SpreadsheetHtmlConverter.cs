@@ -160,7 +160,7 @@ public static class SpreadsheetHtmlConverter
             return;
         }
 
-        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true);
+        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(worksheetPart, "rLink"));
 
         var worksheet = worksheetPart.Worksheet!;
         var hyperlinks = worksheet.GetFirstChild<Hyperlinks>();
