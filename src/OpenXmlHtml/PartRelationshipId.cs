@@ -1,9 +1,9 @@
 namespace OpenXmlHtml;
 
 /// <summary>
-/// Mints an explicit, deterministic relationship id for a document-level part. <c>AddNewPart</c>'s
-/// default id is random, which breaks deterministic packaging for consumers relying on reproducible
-/// output.
+/// Mints an explicit, deterministic relationship id for a part or an external link. The default id
+/// <c>AddNewPart</c> and <c>AddHyperlinkRelationship</c> assign is random, which breaks deterministic
+/// packaging for consumers relying on reproducible output.
 /// </summary>
 static class PartRelationshipId
 {
@@ -11,7 +11,7 @@ static class PartRelationshipId
     /// Prefers the bare <paramref name="baseName" /> (e.g. <c>rNumbering</c>, <c>rStyles</c>), falling back
     /// to <c>{baseName}1</c>, <c>{baseName}2</c>, ... only if it is already taken.
     /// </summary>
-    internal static string Next(MainDocumentPart main, string baseName)
+    internal static string Next(OpenXmlPartContainer main, string baseName)
     {
         var used = new HashSet<string>(StringComparer.Ordinal);
         foreach (var pair in main.Parts)

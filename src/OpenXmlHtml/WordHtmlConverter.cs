@@ -50,11 +50,11 @@ public static class WordHtmlConverter
         }
 
         if (main != null &&
-            Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            LinkTarget.TryParseAbsolute(url, out var uri))
         {
             hyperlink = new()
             {
-                Id = main.AddHyperlinkRelationship(uri, true).Id
+                Id = main.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(main, "rLink")).Id
             };
             return true;
         }
@@ -67,7 +67,7 @@ public static class WordHtmlConverter
     {
         var paragraphs = new List<Paragraph>();
         var currentRuns = new List<OpenXmlElement>();
-        var imageIndex = 0;
+        var imageIndex = LastImageIndex(main);
         var listDepth = 0;
         var linkedLastSegment = false;
         string? openLinkUrl = null;
@@ -90,22 +90,27 @@ public static class WordHtmlConverter
                 continue;
             }
 
+            var text = segment.Text;
             if (segment.Format.Image is { } image)
             {
-                if (main == null)
-                {
-                    Diagnostic.UnsupportedElement(settings, image.SourceTag, WordContentBuilder.NoMainPartForImages);
-                }
-                else
+                if (main != null)
                 {
                     imageIndex++;
                     currentRuns.Add(BuildImageRun(main, image, imageIndex));
+                    continue;
                 }
 
-                continue;
+                // Nowhere to put the image, so its alt text stands in for it.
+                Diagnostic.UnsupportedElement(settings, image.SourceTag, WordContentBuilder.NoMainPartForImages);
+                if (string.IsNullOrEmpty(image.AltText))
+                {
+                    continue;
+                }
+
+                // ReSharper disable once RedundantSuppressNullableWarningExpression
+                text = image.AltText!;
             }
 
-            var text = segment.Text;
             if (segment.Format.ListDepth > 0)
             {
                 listDepth = segment.Format.ListDepth;
@@ -301,7 +306,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetHeader(MainDocumentPart main, string html)
     {
-        var headerPart = main.AddNewPart<HeaderPart>();
+        var headerPart = main.AddNewPart<HeaderPart>(PartRelationshipId.Next(main, "rHeader"));
         var header = new Header();
         foreach (var element in WordContentBuilder.Build(html, main))
         {
@@ -323,7 +328,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetHeader(MainDocumentPart main, string html, HtmlConvertSettings settings)
     {
-        var headerPart = main.AddNewPart<HeaderPart>();
+        var headerPart = main.AddNewPart<HeaderPart>(PartRelationshipId.Next(main, "rHeader"));
         var header = new Header();
         foreach (var element in WordContentBuilder.Build(html, main, settings))
         {
@@ -345,7 +350,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetFooter(MainDocumentPart main, string html)
     {
-        var footerPart = main.AddNewPart<FooterPart>();
+        var footerPart = main.AddNewPart<FooterPart>(PartRelationshipId.Next(main, "rFooter"));
         var footer = new Footer();
         foreach (var element in WordContentBuilder.Build(html, main))
         {
@@ -367,7 +372,7 @@ public static class WordHtmlConverter
     /// </summary>
     public static void SetFooter(MainDocumentPart main, string html, HtmlConvertSettings settings)
     {
-        var footerPart = main.AddNewPart<FooterPart>();
+        var footerPart = main.AddNewPart<FooterPart>(PartRelationshipId.Next(main, "rFooter"));
         var footer = new Footer();
         foreach (var element in WordContentBuilder.Build(html, main, settings))
         {
@@ -602,7 +607,9 @@ public static class WordHtmlConverter
 
         if (format.FontSizePt != null)
         {
-            var halfPoints = (int) (format.FontSizePt.Value * 2);
+            // Rounded, not truncated. A browser writes 10pt as 13.3333px, which is 19.99995
+            // half-points: cut off, that is 9.5pt, and 16pt (21.3333px) came out as 15.5pt.
+            var halfPoints = (int) Math.Round(format.FontSizePt.Value * 2, MidpointRounding.AwayFromZero);
             props.Append(
                 new FontSize
                 {
@@ -676,6 +683,38 @@ public static class WordHtmlConverter
     static readonly byte[] fallbackPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==");
 
+    // Image relationship ids are rImage{n}, so a second conversion against the same document has
+    // to carry on from the highest one already there. Restarting at 1 reused rImage1: the package
+    // kept the first call's picture for both drawings and wrote the second as an orphan part.
+    internal static int LastImageIndex(MainDocumentPart? main)
+    {
+        if (main == null)
+        {
+            return 0;
+        }
+
+        const string prefix = "rImage";
+        var last = 0;
+        foreach (var pair in main.Parts)
+        {
+            var id = pair.RelationshipId;
+            if (!id.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // The svg half of an svg image is rImage{n}s.
+            var digits = id.AsSpan(prefix.Length).TrimEnd('s');
+            if (int.TryParse(digits, NumberStyles.None, CultureInfo.InvariantCulture, out var index) &&
+                index > last)
+            {
+                last = index;
+            }
+        }
+
+        return last;
+    }
+
     internal static Run BuildImageRun(MainDocumentPart main, ImageData image, int imageIndex)
     {
         if (image.ContentType == "image/svg+xml")
@@ -701,7 +740,8 @@ public static class WordHtmlConverter
             },
             widthEmu,
             heightEmu,
-            image.Float);
+            image.Float,
+            imageIndex);
 
         var run = new Run();
         run.Append(drawing);
@@ -743,14 +783,16 @@ public static class WordHtmlConverter
         extList.Append(ext);
         blip.Append(extList);
 
-        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float);
+        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float, imageIndex);
 
         var run = new Run();
         run.Append(drawing);
         return run;
     }
 
-    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide)
+    // imageIndex doubles as the drawing's wp:docPr id, which has to be unique in the document.
+    // Every image used to carry id 1, which the validator reports as soon as there are two.
+    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide, int imageIndex)
     {
         var graphic = new A.Graphic(
             new A.GraphicData(
@@ -796,7 +838,7 @@ public static class WordHtmlConverter
                     },
                     new DW.DocProperties
                     {
-                        Id = 1U,
+                        Id = (uint) imageIndex,
                         Name = "Image"
                     },
                     graphic)
@@ -844,7 +886,7 @@ public static class WordHtmlConverter
                 },
                 new DW.DocProperties
                 {
-                    Id = 1U,
+                    Id = (uint) imageIndex,
                     Name = "Image"
                 },
                 new DW.NonVisualGraphicFrameDrawingProperties(),

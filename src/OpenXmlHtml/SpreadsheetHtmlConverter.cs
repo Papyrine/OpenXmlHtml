@@ -35,7 +35,7 @@ public static class SpreadsheetHtmlConverter
 
         if (HasNewlines(cell.InlineString))
         {
-            cell.StyleIndex = EnsureWrapTextStyle(workbookPart);
+            cell.StyleIndex = EnsureWrapTextStyle(workbookPart, cell.StyleIndex?.Value);
         }
 
         var link = GetSingleLink(segments);
@@ -73,7 +73,7 @@ public static class SpreadsheetHtmlConverter
 
         if (HasNewlines(cell.InlineString))
         {
-            cell.StyleIndex = EnsureWrapTextStyle(workbookPart);
+            cell.StyleIndex = EnsureWrapTextStyle(workbookPart, cell.StyleIndex?.Value);
         }
 
         var link = GetSingleLink(segments);
@@ -89,9 +89,17 @@ public static class SpreadsheetHtmlConverter
 
         foreach (var segment in segments)
         {
-            if (segment.Format.Image != null)
+            // A cell cannot hold an image, so its alt text stands in for it.
+            var text = segment.Text;
+            if (segment.Format.Image is { } image)
             {
-                continue;
+                if (string.IsNullOrEmpty(image.AltText))
+                {
+                    continue;
+                }
+
+                // ReSharper disable once RedundantSuppressNullableWarningExpression
+                text = image.AltText!;
             }
 
             var run = new SpreadsheetRun();
@@ -102,7 +110,7 @@ public static class SpreadsheetHtmlConverter
             }
 
             run.Append(
-                new SpreadsheetText(WXmlChars.Strip(segment.Text))
+                new SpreadsheetText(WXmlChars.Strip(text))
                 {
                     Space = SpaceProcessingModeValues.Preserve
                 });
@@ -147,20 +155,19 @@ public static class SpreadsheetHtmlConverter
 
     static void ApplyHyperlink(WorksheetPart worksheetPart, string cellReference, LinkInfo link)
     {
-        if (!Uri.TryCreate(link.Url, UriKind.Absolute, out var uri))
+        if (!LinkTarget.TryParseAbsolute(link.Url, out var uri))
         {
             return;
         }
 
-        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true);
+        var relationship = worksheetPart.AddHyperlinkRelationship(uri, true, PartRelationshipId.Next(worksheetPart, "rLink"));
 
         var worksheet = worksheetPart.Worksheet!;
         var hyperlinks = worksheet.GetFirstChild<Hyperlinks>();
         if (hyperlinks == null)
         {
             hyperlinks = new();
-            var sheetData = worksheet.GetFirstChild<SheetData>()!;
-            worksheet.InsertAfter(hyperlinks, sheetData);
+            InsertHyperlinks(worksheet, hyperlinks);
         }
 
         var hyperlink = new DocumentFormat.OpenXml.Spreadsheet.Hyperlink
@@ -177,6 +184,42 @@ public static class SpreadsheetHtmlConverter
         hyperlinks.Append(hyperlink);
     }
 
+    // CT_Worksheet fixes the order of its children, and hyperlinks comes well after sheetData: merged
+    // cells, an auto filter, conditional formatting and data validations all sit between the two.
+    // Put straight after sheetData it landed ahead of any of those the sheet had, and Excel does not
+    // repair a worksheet whose children are out of order — it reports the workbook as damaged.
+    static void InsertHyperlinks(Worksheet worksheet, Hyperlinks hyperlinks)
+    {
+        var last = worksheet.ChildElements.LastOrDefault(PrecedesHyperlinks);
+        if (last == null)
+        {
+            worksheet.InsertAt(hyperlinks, 0);
+            return;
+        }
+
+        worksheet.InsertAfter(hyperlinks, last);
+    }
+
+    static bool PrecedesHyperlinks(OpenXmlElement element) =>
+        element is SheetProperties or
+            SheetDimension or
+            SheetViews or
+            SheetFormatProperties or
+            DocumentFormat.OpenXml.Spreadsheet.Columns or
+            SheetData or
+            SheetCalculationProperties or
+            SheetProtection or
+            ProtectedRanges or
+            Scenarios or
+            AutoFilter or
+            SortState or
+            DataConsolidate or
+            CustomSheetViews or
+            MergeCells or
+            PhoneticProperties or
+            ConditionalFormatting or
+            DataValidations;
+
     static bool HasNewlines(InlineString inlineString)
     {
         foreach (var text in inlineString.Descendants<SpreadsheetText>())
@@ -190,7 +233,11 @@ public static class SpreadsheetHtmlConverter
         return false;
     }
 
-    static uint EnsureWrapTextStyle(WorkbookPart workbookPart)
+    // The cell format the cell already has, with wrapping turned on. Taking the first format in the
+    // sheet that happened to wrap gave a multi-line cell whatever else that format carried, a bold
+    // header's font and fill included, and assigning it threw away the cell's own number format and
+    // borders.
+    static uint EnsureWrapTextStyle(WorkbookPart workbookPart, uint? current)
     {
         var stylesPart = workbookPart.WorkbookStylesPart
                          ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -235,28 +282,31 @@ public static class SpreadsheetHtmlConverter
                 Count = 1
             };
 
-        uint index = 0;
-        foreach (var cf in stylesheet.CellFormats.Elements<CellFormat>())
-        {
-            if (cf.GetFirstChild<Alignment>()?.WrapText?.Value == true)
-            {
-                return index;
-            }
+        var formats = stylesheet.CellFormats.Elements<CellFormat>().ToList();
 
-            index++;
+        var wrapped = new CellFormat();
+        if (current is { } currentIndex &&
+            currentIndex < formats.Count)
+        {
+            wrapped = (CellFormat)formats[(int)currentIndex].CloneNode(true);
         }
 
-        stylesheet.CellFormats.Append(
-            new CellFormat(
-                new Alignment
-                {
-                    WrapText = true
-                })
+        wrapped.Alignment ??= new();
+        wrapped.Alignment.WrapText = true;
+        wrapped.ApplyAlignment = true;
+
+        var wrappedXml = wrapped.OuterXml;
+        for (var index = 0; index < formats.Count; index++)
+        {
+            if (formats[index].OuterXml == wrappedXml)
             {
-                ApplyAlignment = true
-            });
-        stylesheet.CellFormats.Count = index + 1;
-        return index;
+                return (uint)index;
+            }
+        }
+
+        stylesheet.CellFormats.Append(wrapped);
+        stylesheet.CellFormats.Count = (uint)formats.Count + 1;
+        return (uint)formats.Count;
     }
 
     static SpreadsheetRunProperties BuildSpreadsheetRunProperties(FormatState format)
