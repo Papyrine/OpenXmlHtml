@@ -50,7 +50,7 @@ public static class WordHtmlConverter
         }
 
         if (main != null &&
-            Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            LinkTarget.TryParseAbsolute(url, out var uri))
         {
             hyperlink = new()
             {
