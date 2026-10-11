@@ -133,4 +133,48 @@ public class WordColorAndFontTests
                   </w:r>
                 </w:p>
                 """);
+
+    // A tag's default is the browser's own rule for that element, and outranks a value the element
+    // would otherwise inherit. Each of these lost its default to an ancestor's declaration.
+    [Test]
+    public async Task CodeIsMonospaceInsideAFontFamily()
+    {
+        var runs = Runs("""<p style="font-family: Arial">use <code>foo()</code></p>""");
+
+        await Assert.That(runs[0].RunProperties!.RunFonts!.Ascii!.Value).IsEqualTo("Arial");
+        await Assert.That(runs[1].RunProperties!.RunFonts!.Ascii!.Value).IsEqualTo("Courier New");
+    }
+
+    [Test]
+    public async Task LinkIsBlueInsideColouredText()
+    {
+        var runs = Runs("""<p style="color: #333333">see <a href="#x">link</a></p>""");
+
+        await Assert.That(runs[0].RunProperties!.Color!.Val!.Value).IsEqualTo("333333");
+        await Assert.That(runs[1].RunProperties!.Color!.Val!.Value).IsEqualTo("0563C1");
+    }
+
+    [Test]
+    public async Task MarkIsYellowInsideABackground()
+    {
+        var runs = Runs("""<span style="background-color: #eeeeee">some <mark>marked</mark></span>""");
+
+        await Assert.That(runs[0].RunProperties!.Shading!.Fill!.Value).IsEqualTo("EEEEEE");
+        await Assert.That(runs[1].RunProperties!.Shading!.Fill!.Value).IsEqualTo("FFFF00");
+    }
+
+    // The element's own style is applied after the default, so it still decides.
+    [Test]
+    public async Task OwnStyleStillOutranksTheTagDefault()
+    {
+        var runs = Runs("""<a href="#x" style="color: green">link</a> <code style="font-family: Consolas">c</code>""");
+
+        await Assert.That(runs[0].RunProperties!.Color!.Val!.Value).IsEqualTo("008000");
+        await Assert.That(runs[^1].RunProperties!.RunFonts!.Ascii!.Value).IsEqualTo("Consolas");
+    }
+
+    static List<WRun> Runs(string html) =>
+        WordHtmlConverter.ToElements(html)
+            .SelectMany(_ => _.Descendants<WRun>())
+            .ToList();
 }
