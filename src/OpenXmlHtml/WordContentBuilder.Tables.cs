@@ -871,6 +871,24 @@ static partial class WordContentBuilder
                 maxCols = Math.Max(maxCols, colIndex + 1);
                 colIndex += colspan;
             }
+
+            // A row with fewer cells than the grid stops short of the columns to its right, and a
+            // rowspan running down one of those still passes through this row. The render loop
+            // visits every column and counts it off there; this one only walks as far as the row's
+            // own cells, so the span was left a row too long and pushed a cell in a later row out
+            // into a column that does not exist.
+            foreach (var column in rowspanTracker.Keys.Where(_ => _ >= colIndex).ToList())
+            {
+                var (remaining, span) = rowspanTracker[column];
+                if (remaining <= 1)
+                {
+                    rowspanTracker.Remove(column);
+                }
+                else
+                {
+                    rowspanTracker[column] = (remaining - 1, span);
+                }
+            }
         }
 
         return Math.Max(1, maxCols);

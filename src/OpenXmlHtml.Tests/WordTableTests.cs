@@ -330,4 +330,24 @@ public class WordTableTests
 
         await Assert.That(elements.Select(_ => _.LocalName)).IsEquivalentTo(["tbl", "p", "tbl"], CollectionOrdering.Matching);
     }
+
+    // A short row under a rowspan it never reaches. The column count kept that span alive a row
+    // too long, which pushed the last row's third cell into a fourth column.
+    [Test]
+    public async Task ShortRowUnderRowspanAddsNoColumn()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """
+            <table>
+              <tr><td>a</td><td>b</td><td rowspan="2">c</td></tr>
+              <tr><td>d</td></tr>
+              <tr><td>e</td><td>f</td><td>g</td></tr>
+            </table>
+            """).Single();
+
+        var cellsPerRow = table.Elements<TableRow>().Select(_ => _.Elements<TableCell>().Count());
+
+        await Assert.That(table.Descendants<GridColumn>().Count()).IsEqualTo(3);
+        await Assert.That(cellsPerRow).IsEquivalentTo([3, 3, 3], CollectionOrdering.Matching);
+    }
 }
