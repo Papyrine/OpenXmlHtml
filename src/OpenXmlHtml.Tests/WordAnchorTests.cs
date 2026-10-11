@@ -126,4 +126,34 @@ public class WordAnchorTests
         stream.Position = 0;
         return Verify(stream, "docx");
     }
+
+    // A block that holds other blocks has no paragraph of its own. Its bookmark used to be flushed
+    // out as one: an empty paragraph holding the start, and another holding the end.
+    [Test]
+    public Task BookmarkOnContainerAddsNoParagraphs() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<div id="content"><p>a</p><p>b</p></div><p>c</p>"""));
+
+    [Test]
+    public async Task BookmarkOnContainerOfTableLandsInItsFirstCell()
+    {
+        var elements = WordHtmlConverter.ToElements(
+            """<section id="data"><table><tr><td>a</td><td>b</td></tr></table></section>""");
+
+        await Assert.That(elements.Count).IsEqualTo(1);
+        var firstCell = elements[0].Descendants<TableCell>().First();
+        await Assert.That(firstCell.Descendants<BookmarkStart>().Single().Name!.Value).IsEqualTo("data");
+        await Assert.That(elements[0].Descendants<BookmarkEnd>().Count()).IsEqualTo(1);
+    }
+
+    // The classic named anchor. It was never bookmarked, so a link to it went nowhere.
+    [Test]
+    public Task NamedAnchorIsBookmarked() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<p><a name="top"></a>Top</p><p><a href="#top">Back to top</a></p>"""));
+
+    [Test]
+    public Task InlineIdIsBookmarked() =>
+        Verify(WordHtmlConverter.ToElements(
+            """<p>See <span id="term">the term</span> here.</p>"""));
 }

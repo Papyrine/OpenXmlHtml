@@ -419,6 +419,7 @@ static partial class WordContentBuilder
             NextNumId = parentCtx.NextNumId,
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
+            PendingBookmarks = parentCtx.PendingBookmarks,
             ParagraphRightToLeft = cellFormat.RightToLeft
         };
         ProcessChildren(cellElement, cellFormat, cellElements, cellCtx, false);

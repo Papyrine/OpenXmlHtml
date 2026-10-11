@@ -6,6 +6,14 @@
     internal int HeadingLevel;
     internal int FootnoteIndex;
     internal int BookmarkId;
+
+    // Bookmark markers waiting for a paragraph to sit in. A block's bookmark opens before its
+    // content, but a block that holds other blocks has no paragraph of its own: written straight
+    // into CurrentRuns the marker was flushed out as a paragraph by itself when the first child
+    // block arrived, and the closing one the same way on the way out. Held here instead, they go
+    // at the head of the next paragraph that is actually built. Shared with table cells, so a
+    // bookmark opened just ahead of a table lands in its first cell.
+    internal List<OpenXmlElement> PendingBookmarks = [];
     internal MainDocumentPart? MainPart;
     internal HtmlConvertSettings? Settings;
     internal Dictionary<string, StyleType>? StyleMap;
