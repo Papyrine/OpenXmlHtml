@@ -232,6 +232,19 @@ public class WordTableTests
         await Assert.That(Grid("""<table><tr><td style="width:35%">a</td><td style="width:65%">b</td></tr></table>"""))
             .IsEquivalentTo(new string?[] {null, null}, CollectionOrdering.Matching);
 
+    // A table is drawn head, body, foot, whatever order the sections were written in. html 4 put
+    // <tfoot> ahead of <tbody>, and read in source order the footer landed in the middle.
+    [Test]
+    [Arguments("<table><thead><tr><th>H</th></tr></thead><tfoot><tr><td>F</td></tr></tfoot><tbody><tr><td>B</td></tr></tbody></table>", "H,B,F")]
+    [Arguments("<table><tfoot><tr><td>F</td></tr></tfoot><tbody><tr><td>B1</td></tr></tbody><thead><tr><th>H</th></tr></thead><tbody><tr><td>B2</td></tr></tbody></table>", "H,B1,B2,F")]
+    [Arguments("<table><thead><tr><th>H</th></tr></thead><tbody><tr><td>B</td></tr></tbody><tfoot><tr><td>F</td></tr></tfoot></table>", "H,B,F")]
+    public async Task TableSectionsAreDrawnHeadBodyFoot(string html, string expected)
+    {
+        var table = WordHtmlConverter.ToElements(html).Single();
+
+        await Assert.That(string.Join(",", table.Elements<TableRow>().Select(_ => _.InnerText))).IsEqualTo(expected);
+    }
+
     // colspan="100" is a common way to say "span every column". The columns it names past the last
     // one a cell starts in are not real, and used to be padded out with empty cells on every row.
     [Test]

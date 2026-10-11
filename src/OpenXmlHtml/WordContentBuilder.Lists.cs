@@ -88,17 +88,35 @@ static partial class WordContentBuilder
         }
 
         var numId = context.NextNumId++;
-        WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride);
         var ilvl = context.ListStack.Count > 0 ? Math.Min(context.ListStack.Peek().Ilvl + 1, 8) : 0;
+        WordNumberingBuilder.AddNumberingInstance(numbering, numId, abstractNumId, startOverride, ilvl);
         var parentInside = context.ListStack.Count > 0 && context.ListStack.Peek().Inside;
         context.ListStack.Push((numId, ilvl, isOrdered, inside || parentInside, false));
         ProcessChildren(element, newFormat, elements, context, inPre);
         context.ListStack.Pop();
     }
 
-    static void BuildListItem(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex)
+    static void BuildListItem(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex, Dictionary<string, string>? declarations)
     {
         FlushParagraph(elements, context);
+
+        // The item's own paragraph formatting and page break. Lists dispatch ahead of the ordinary
+        // block handling, so nothing else reads them: text-align or a margin on an <li> was dropped.
+        if (declarations != null)
+        {
+            var itemFormat = ParagraphFormatState.ParseFrom(declarations);
+            if (itemFormat.HasProperties)
+            {
+                context.ParagraphFormat = itemFormat;
+            }
+
+            if (IsPageBreak(declarations, "page-break-before") ||
+                IsPageBreak(declarations, "break-before"))
+            {
+                context.PendingPageBreak = true;
+            }
+        }
+
         if (context.ListStack.Count > 0)
         {
             var (numId, ilvl, _, inside, noMarker) = context.ListStack.Peek();
