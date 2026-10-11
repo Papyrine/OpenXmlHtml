@@ -264,9 +264,16 @@
         // What an enclosing block owed before this one, restored once its children are done so a
         // sibling does not inherit it — see AmbientParagraphStyleId.
         var ambientParagraphStyleId = context.AmbientParagraphStyleId;
+        var ambientParagraphFormat = context.AmbientParagraphFormat;
 
         if (isBlock)
         {
+            // A block's border belongs to its paragraph, which ParagraphFormatState draws as pBdr.
+            // Left on the run format as well it was drawn a second time around the text itself, a
+            // box inside the box, and handed down to every block nested inside. css does not
+            // inherit border, so the runs go back to whatever an enclosing inline element set.
+            newFormat.Border = format.Border;
+
             ParagraphFormatState? pendingFormat = null;
             if (styleDeclarations != null)
             {
@@ -291,9 +298,13 @@
                 FlushParagraph(elements, context);
             }
 
+            // Over what the enclosing block owes, and owed in turn to the blocks inside this one.
+            // Restored on the way out, below.
+            pendingFormat = ParagraphFormatState.Combine(ambientParagraphFormat, pendingFormat);
             if (pendingFormat != null)
             {
                 context.ParagraphFormat = pendingFormat;
+                context.AmbientParagraphFormat = pendingFormat.ForDescendants();
             }
 
             if (newFormat.RightToLeft)
@@ -395,6 +406,12 @@
             {
                 context.AmbientParagraphStyleId = ambientParagraphStyleId;
                 context.ParagraphStyleId = ambientParagraphStyleId;
+            }
+
+            if (context.AmbientParagraphFormat != ambientParagraphFormat)
+            {
+                context.AmbientParagraphFormat = ambientParagraphFormat;
+                context.ParagraphFormat = ambientParagraphFormat;
             }
 
             if (pageBreakAfter)
@@ -595,7 +612,7 @@
             // AmbientParagraphStyleId. This is the flush that used to discard it, since entering a
             // block child flushes before any of that child's text has arrived.
             context.ParagraphStyleId = context.AmbientParagraphStyleId;
-            context.ParagraphFormat = null;
+            context.ParagraphFormat = context.AmbientParagraphFormat;
             context.ParagraphRightToLeft = false;
             if (context.ListItemDepth == 0)
             {
@@ -690,7 +707,7 @@
         // The next paragraph inside the same block is owed the same style, so this returns to the
         // enclosing block's rather than clearing outright — see AmbientParagraphStyleId.
         context.ParagraphStyleId = context.AmbientParagraphStyleId;
-        context.ParagraphFormat = null;
+        context.ParagraphFormat = context.AmbientParagraphFormat;
         context.ParagraphRightToLeft = false;
         context.ListNumId = null;
         context.ListIlvl = null;
