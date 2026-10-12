@@ -11,6 +11,11 @@
     internal int FootnoteIndex;
     internal int BookmarkId;
 
+    // Whether BookmarkId has been moved past the bookmark ids already in use. That means reading
+    // every bookmark in the document, so it waits until the html actually asks for one: most
+    // fragments carry no id at all.
+    internal bool BookmarkIdSeeded;
+
     // Bookmark markers waiting for a paragraph to sit in. A block's bookmark opens before its
     // content, but a block that holds other blocks has no paragraph of its own: written straight
     // into CurrentRuns the marker was flushed out as a paragraph by itself when the first child

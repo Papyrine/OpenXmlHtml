@@ -74,6 +74,10 @@
             session2.BulletAbstractNumId = context.BulletAbstractNumId;
             session2.NextNumId = context.NextNumId;
             session2.LastNumberingElement = main?.NumberingDefinitionsPart?.Numbering?.LastChild;
+            if (context.BookmarkIdSeeded)
+            {
+                session2.LastBookmarkId = context.BookmarkId;
+            }
         }
 
         if (elements.Count == 0)
@@ -473,8 +477,35 @@
         }
     }
 
+    // A bookmark id has to be unique in the document. Counting from 1 on every call repeated the
+    // ids of an earlier call, and of any bookmark a template already held. The count now starts
+    // past the highest id in the document, and past whatever the session has handed out.
+    static void SeedBookmarkId(WordBuildContext context)
+    {
+        context.BookmarkIdSeeded = true;
+        var highest = context.Settings?.NumberingSession?.LastBookmarkId ?? 0;
+        if (context.MainPart?.Document is { } document)
+        {
+            foreach (var bookmark in document.Descendants<BookmarkStart>())
+            {
+                if (int.TryParse(bookmark.Id?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) &&
+                    id > highest)
+                {
+                    highest = id;
+                }
+            }
+        }
+
+        context.BookmarkId = Math.Max(context.BookmarkId, highest);
+    }
+
     static BookmarkStart NewBookmarkStart(string name, WordBuildContext context)
     {
+        if (!context.BookmarkIdSeeded)
+        {
+            SeedBookmarkId(context);
+        }
+
         context.BookmarkId++;
         return new()
         {
