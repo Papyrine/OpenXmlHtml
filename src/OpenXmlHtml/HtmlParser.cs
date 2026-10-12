@@ -35,6 +35,11 @@ static class HtmlSegmentParser
             return;
         }
 
+        // Whether this node's element children are all blocks, worked out the first time a
+        // whitespace-only text node asks and then kept. It is a property of the parent, and asking
+        // again for every such node walked all of the parent's children each time: quadratic in
+        // the number of siblings, which is what a long pretty-printed document is made of.
+        bool? onlyBlockChildren = null;
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -52,7 +57,7 @@ static class HtmlSegmentParser
                     var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
-                          IsInterBlockWhitespace(textNode)))
+                          (onlyBlockChildren ??= IsInterBlockWhitespace(textNode))))
                     {
                         segments.Add(new(text, format));
                     }
@@ -306,6 +311,12 @@ static class HtmlSegmentParser
     internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format) =>
         ApplyElementFormatting(element, tag, ref format, out _);
 
+    // For a caller that has already parsed the element's style attribute for its own purposes, so
+    // the formatting does not parse it a second time. A table cell does: its style decides the
+    // cell's properties first.
+    internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, Dictionary<string, string>? parsedStyle) =>
+        ApplyElementFormatting(element, tag, ref format, out _, parsedStyle);
+
     internal static bool ApplyWhiteSpace(Dictionary<string, string>? declarations, ref FormatState format, bool inPre)
     {
         if (declarations == null ||
@@ -330,7 +341,12 @@ static class HtmlSegmentParser
         return inPre;
     }
 
-    internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, out Dictionary<string, string>? declarations)
+    internal static void ApplyElementFormatting(
+        IElement element,
+        string tag,
+        ref FormatState format,
+        out Dictionary<string, string>? declarations,
+        Dictionary<string, string>? parsedStyle = null)
     {
         // What reached this element from outside it, before its own tag adds anything. That is what
         // text-decoration:none falls back to: it cannot cancel a decoration an ancestor drew, but
@@ -429,7 +445,7 @@ static class HtmlSegmentParser
             }
         }
 
-        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough);
+        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough, parsedStyle);
 
         if (tag == "fieldset")
         {
@@ -443,16 +459,22 @@ static class HtmlSegmentParser
         ref FormatState format,
         out Dictionary<string, string>? declarations,
         UnderlineValues? inheritedUnderline,
-        bool inheritedStrikethrough)
+        bool inheritedStrikethrough,
+        Dictionary<string, string>? parsedStyle)
     {
-        var style = element.GetAttribute("style");
-        if (style == null)
+        if (parsedStyle == null)
         {
-            declarations = null;
-            return;
+            var style = element.GetAttribute("style");
+            if (style == null)
+            {
+                declarations = null;
+                return;
+            }
+
+            parsedStyle = StyleParser.Parse(style);
         }
 
-        declarations = StyleParser.Parse(style);
+        declarations = parsedStyle;
 
         if (declarations.TryGetValue("font-weight", out var fontWeight))
         {
@@ -938,14 +960,26 @@ static class HtmlSegmentParser
             return null;
         }
 #else
-        var bytes = new byte[base64.Length];
-        if (!Convert.TryFromBase64Chars(base64, bytes, out var bytesWritten))
+        // Decoded into a rented buffer and copied out at its exact length, so the only array
+        // allocated is the one the image keeps. The buffer used to be allocated at the length of
+        // the base64 text, a third larger than the image, and then resized, which allocated the
+        // image a second time. Three bytes for every four characters is the most it can decode to.
+        byte[] bytes;
+        var rented = System.Buffers.ArrayPool<byte>.Shared.Rent(base64.Length / 4 * 3 + 3);
+        try
         {
-            Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
-            return null;
-        }
+            if (!Convert.TryFromBase64Chars(base64, rented, out var bytesWritten))
+            {
+                Diagnostic.IgnoredAttribute(settings, "src", src, dataUriUndecodable);
+                return null;
+            }
 
-        Array.Resize(ref bytes, bytesWritten);
+            bytes = rented.AsSpan(0, bytesWritten).ToArray();
+        }
+        finally
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(rented);
+        }
 #endif
 
         var (width, height) = ImageResolver.ParseImageDimensions(element, settings);

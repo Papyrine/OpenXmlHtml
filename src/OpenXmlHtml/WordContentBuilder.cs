@@ -102,6 +102,8 @@
             return;
         }
 
+        // See HtmlSegmentParser.ProcessNode: asked once per parent, not once per whitespace node.
+        bool? onlyBlockChildren = null;
         var orderedIndex = 0;
         foreach (var child in node.ChildNodes)
         {
@@ -112,7 +114,7 @@
                     var text = inPre ? textNode.Data : HtmlSegmentParser.CollapseWhitespace(textNode.Data, ctx.LastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
-                          HtmlSegmentParser.IsInterBlockWhitespace(textNode)))
+                          (onlyBlockChildren ??= HtmlSegmentParser.IsInterBlockWhitespace(textNode))))
                     {
                         AddTextRun(text, format, ctx);
                         ctx.LastWasSpace = !inPre && text[^1] == ' ';
@@ -190,7 +192,7 @@
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex, context.StoredImages));
                     // An image is content, so a space after it does not fold into one before it.
                     context.LastWasSpace = false;
                 }
@@ -207,7 +209,7 @@
 
                 var svgData = HtmlSegmentParser.ParseSvgElement(element);
                 context.ImageIndex++;
-                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex));
+                context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, svgData, context.ImageIndex, context.StoredImages));
                 context.LastWasSpace = false;
                 return;
             }

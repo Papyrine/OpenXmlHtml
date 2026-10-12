@@ -109,4 +109,114 @@ public class WordIntegrationTests
             .Select(_ => main.GetPartById(_.Embed!.Value!).ContentType)
             .ToList();
     }
+
+    const string repeatedPng = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==";
+    const string otherGif = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+    // An image used several times is stored once, and every drawing still resolves to the right
+    // picture after a save and reopen. Both paths.
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task RepeatedImageIsStoredOnce(bool elements)
+    {
+        var html =
+            $"""
+             <p><img src="data:image/png;base64,{repeatedPng}" width="2" height="2"></p>
+             <p><img src="data:image/gif;base64,{otherGif}" width="1" height="1"></p>
+             <table><tr><td><img src="data:image/png;base64,{repeatedPng}" width="2" height="2"></td></tr></table>
+             <p><img src="data:image/png;base64,{repeatedPng}" width="4" height="4"></p>
+             """;
+
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            var body = new Body();
+            if (elements)
+            {
+                body.Append(WordHtmlConverter.ToElements(html, main));
+            }
+            else
+            {
+                body.Append(WordHtmlConverter.ToParagraphs(html, main));
+            }
+
+            main.Document = new(body);
+        }
+
+        stream.Position = 0;
+        using var reopened = WordprocessingDocument.Open(stream, false);
+        var reopenedMain = reopened.MainDocumentPart!;
+        var blips = reopenedMain.Document!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().ToList();
+        var embedded = blips.Select(_ => _.Embed!.Value!).ToList();
+
+        var drawingIds = reopenedMain.Document.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()
+            .Select(_ => _.Id!.Value)
+            .ToList();
+
+        await Assert.That(reopenedMain.ImageParts.Count()).IsEqualTo(2);
+        // The three uses of the png share its one relationship; each drawing still has its own id.
+        await Assert.That(embedded.Distinct().Count()).IsEqualTo(2);
+        await Assert.That(drawingIds).HasDistinctItems();
+        await Assert.That(embedded.Select(_ => reopenedMain.GetPartById(_).ContentType))
+            .IsEquivalentTo(["image/png", "image/gif", "image/png", "image/png"], CollectionOrdering.Matching);
+        await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
+    }
+
+    // Every svg carries the same fallback png, which is written once however many svgs there are.
+    [Test]
+    public async Task SvgFallbackIsStoredOnce()
+    {
+        using var stream = new MemoryStream();
+        WordHtmlConverter.ConvertToDocx(
+            """
+            <svg width="10" height="10" xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="4"/></svg>
+            <svg width="10" height="10" xmlns="http://www.w3.org/2000/svg"><rect width="5" height="5"/></svg>
+            """,
+            stream);
+
+        stream.Position = 0;
+        using var document = WordprocessingDocument.Open(stream, false);
+        var parts = document.MainDocumentPart!.ImageParts.Select(_ => _.ContentType).Order().ToList();
+
+        await Assert.That(parts).IsEquivalentTo(["image/png", "image/svg+xml", "image/svg+xml"], CollectionOrdering.Matching);
+    }
+
+    // A repeat adds no relationship, and the next call carries on from the highest one there is.
+    // Its drawing id must not be one that call hands out again.
+    [Test]
+    public async Task RepeatedImageDrawingIdsStayUniqueAcrossCalls()
+    {
+        var twice =
+            $"""
+             <p><img src="data:image/png;base64,{repeatedPng}" width="2" height="2"></p>
+             <p><img src="data:image/png;base64,{repeatedPng}" width="2" height="2"></p>
+             <p><img src="data:image/png;base64,{repeatedPng}" width="2" height="2"></p>
+             """;
+
+        using var stream = new MemoryStream();
+        using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = document.AddMainDocumentPart();
+            var body = new Body();
+            WordHtmlConverter.AppendHtml(body, twice, main);
+            WordHtmlConverter.AppendHtml(body, twice, main);
+            WordHtmlConverter.AppendHtml(body, $"""<p><img src="data:image/gif;base64,{otherGif}" width="1" height="1"></p>""", main);
+            main.Document = new(body);
+        }
+
+        stream.Position = 0;
+        using var reopened = WordprocessingDocument.Open(stream, false);
+        var drawingIds = reopened.MainDocumentPart!.Document!
+            .Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties>()
+            .Select(_ => _.Id!.Value)
+            .ToList();
+
+        await Assert.That(drawingIds.Count).IsEqualTo(7);
+        await Assert.That(drawingIds).HasDistinctItems();
+        // One png per call, since each call stores its own, and the gif.
+        await Assert.That(reopened.MainDocumentPart.ImageParts.Count()).IsEqualTo(3);
+        await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
+    }
 }
