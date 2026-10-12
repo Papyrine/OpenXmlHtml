@@ -84,7 +84,7 @@
         return elements;
     }
 
-    static void ProcessChildren(INode node, FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
+    static void ProcessChildren(INode node, in FormatState format, List<OpenXmlElement> elements, WordBuildContext ctx, bool inPre)
     {
         if (!HtmlSegmentParser.HasStackToRecurse())
         {
@@ -132,7 +132,7 @@
         }
     }
 
-    static void ProcessElement(IElement element, FormatState format, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex = 0)
+    static void ProcessElement(IElement element, in FormatState format, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, int listIndex = 0)
     {
         var tag = element.LocalName;
         var newFormat = format;
@@ -649,7 +649,7 @@
          value.Equals("recto", StringComparison.OrdinalIgnoreCase) ||
          value.Equals("verso", StringComparison.OrdinalIgnoreCase));
 
-    static void AddTextRun(string text, FormatState format, WordBuildContext ctx)
+    static void AddTextRun(string text, in FormatState format, WordBuildContext ctx)
     {
         var run = new Run();
 
@@ -739,7 +739,7 @@
         }
     }
 
-    static void AddBreakRun(FormatState format, WordBuildContext ctx)
+    static void AddBreakRun(in FormatState format, WordBuildContext ctx)
     {
         var run = new Run();
 
@@ -756,7 +756,7 @@
         ctx.LastWasSpace = true;
     }
 
-    internal static string ApplyTextTransform(string text, FormatState format)
+    internal static string ApplyTextTransform(string text, in FormatState format)
     {
         var transformed = format.TextTransform switch
         {
@@ -1093,7 +1093,7 @@
         }
     }
 
-    static void BuildAnchor(IElement element, FormatState format, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
+    static void BuildAnchor(IElement element, in FormatState format, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
     {
         var href = element.GetAttribute("href");
 
@@ -1141,7 +1141,7 @@
         }
     }
 
-    static void WrapChildrenInHyperlink(IElement element, FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, Hyperlink hyperlink)
+    static void WrapChildrenInHyperlink(IElement element, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre, Hyperlink hyperlink)
     {
         var runsBefore = context.CurrentRuns.Count;
         ProcessChildren(element, newFormat, elements, context, inPre);

@@ -339,6 +339,40 @@ public class WordEdgeCaseTests
                         return "";
                     }))));
 
+    // Each nesting level costs a stack frame, and the frame used to hold several copies of the
+    // 152-byte format state. Passed by reference it is small enough that markup this deep keeps its
+    // formatting on a 4 MB stack, where it used to run out of room and be flattened to text at
+    // well under that.
+    [Test]
+    public async Task DeepButReasonableNestingKeepsItsMarkup()
+    {
+        const int depth = 1000;
+        var builder = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("<span>");
+        }
+
+        builder.Append("<b>deep</b>");
+        for (var i = 0; i < depth; i++)
+        {
+            builder.Append("</span>");
+        }
+
+        var reported = new List<HtmlDiagnostic>();
+        var settings = new HtmlConvertSettings
+        {
+            OnDiagnostic = reported.Add
+        };
+        List<OpenXmlElement>? elements = null;
+        var thread = new Thread(() => elements = WordHtmlConverter.ToElements(builder.ToString(), null, settings), 4 * 1024 * 1024);
+        thread.Start();
+        thread.Join();
+
+        await Assert.That(reported).IsEmpty();
+        await Assert.That(elements!.Single().Descendants<WBold>().Count()).IsEqualTo(1);
+    }
+
     // Whether whitespace sits between blocks is asked once per parent now rather than once per
     // whitespace node. The answer must not change: dropped between blocks, kept beside inline
     // content, and each parent judged for itself.
