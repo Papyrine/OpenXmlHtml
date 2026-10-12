@@ -464,6 +464,7 @@ static partial class WordContentBuilder
             NextNumId = parentCtx.NextNumId,
             FootnoteIndex = parentCtx.FootnoteIndex,
             BookmarkId = parentCtx.BookmarkId,
+            BookmarkIdSeeded = parentCtx.BookmarkIdSeeded,
             PendingBookmarks = parentCtx.PendingBookmarks,
             StoredImages = parentCtx.StoredImages,
             ParagraphRightToLeft = cellFormat.RightToLeft,
@@ -477,6 +478,7 @@ static partial class WordContentBuilder
         parentCtx.BulletAbstractNumId = cellCtx.BulletAbstractNumId;
         parentCtx.FootnoteIndex = cellCtx.FootnoteIndex;
         parentCtx.BookmarkId = cellCtx.BookmarkId;
+        parentCtx.BookmarkIdSeeded = cellCtx.BookmarkIdSeeded;
 
         if (cellElements.Count == 0)
         {
