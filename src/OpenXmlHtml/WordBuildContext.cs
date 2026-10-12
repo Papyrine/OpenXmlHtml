@@ -82,5 +82,4 @@
     // Whether the text emitted so far ends in a space, so whitespace spanning an inline boundary
     // folds the way a browser folds it. Cleared whenever a paragraph is flushed.
     internal bool LastWasSpace;
-    internal int? ReversedStart;
 }

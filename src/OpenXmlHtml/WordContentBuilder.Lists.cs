@@ -7,23 +7,8 @@ static partial class WordContentBuilder
 
         if (context.MainPart == null || isReversed)
         {
-            if (isReversed)
-            {
-                var liCount = 0;
-                foreach (var child in element.Children)
-                {
-                    if (child.LocalName == "li")
-                    {
-                        liCount++;
-                    }
-                }
-
-                var startAttr2 = element.GetAttribute("start");
-                context.ReversedStart = startAttr2 != null && int.TryParse(startAttr2, out var s) ? s : liCount;
-            }
-
+            // Text markers: BuildListItem writes each one from the list's own attributes.
             ProcessChildren(element, newFormat, elements, context, inPre);
-            context.ReversedStart = null;
         }
         else
         {
@@ -146,13 +131,7 @@ static partial class WordContentBuilder
 
             if (parent == "ol")
             {
-                var index = listIndex;
-                if (context.ReversedStart != null)
-                {
-                    index = context.ReversedStart.Value - (index - 1);
-                }
-
-                AddTextRun($"{index}. ", newFormat, context);
+                AddTextRun(HtmlSegmentParser.OrderedMarker(element, listIndex), newFormat, context);
             }
             else
             {
