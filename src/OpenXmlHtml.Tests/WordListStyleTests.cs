@@ -180,9 +180,9 @@ public class WordListStyleTests
     // where it starts, which way it counts and in what. Both paths write it from one place, and
     // the spreadsheet rides the segment path, so all three are checked together.
     [Test]
-    [Arguments("""<ol><li>a</li><li>b</li></ol>""", "1. a|2. b")]
+    [Arguments("<ol><li>a</li><li>b</li></ol>", "1. a|2. b")]
     [Arguments("""<ol start="5"><li>a</li><li>b</li></ol>""", "5. a|6. b")]
-    [Arguments("""<ol reversed><li>a</li><li>b</li><li>c</li></ol>""", "3. a|2. b|1. c")]
+    [Arguments("<ol reversed><li>a</li><li>b</li><li>c</li></ol>", "3. a|2. b|1. c")]
     [Arguments("""<ol reversed start="10"><li>a</li><li>b</li></ol>""", "10. a|9. b")]
     [Arguments("""<ol type="a"><li>a</li><li>b</li></ol>""", "a) a|b) b")]
     [Arguments("""<ol type="A" start="26"><li>a</li><li>b</li></ol>""", "Z) a|AA) b")]

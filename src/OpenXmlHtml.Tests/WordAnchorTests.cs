@@ -255,7 +255,7 @@ public class WordAnchorTests
         };
 
         var first = WordHtmlConverter.ToElements("""<h1 id="one">a</h1>""", main, settings);
-        var second = WordHtmlConverter.ToElements("""<p>no bookmark here</p>""", main, settings);
+        var second = WordHtmlConverter.ToElements("<p>no bookmark here</p>", main, settings);
         var third = WordHtmlConverter.ToElements("""<h1 id="two">b</h1><p><span id="three">c</span></p>""", main, settings);
 
         var ids = first.Concat(second).Concat(third)

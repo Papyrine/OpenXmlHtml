@@ -145,7 +145,7 @@ public class WordImageSizingTests
             "<svg xmlns='http://www.w3.org/2000/svg'/>"u8.ToArray(),
             pngHeader.Take(20).ToArray(),
             [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x04, 0x00, 0x00],
-            [(byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 0, 0, 0, 0]
+            "GIF89a\0\0\0\0"u8.ToArray()
         ];
 
         foreach (var bytes in unreadable)
