@@ -213,4 +213,56 @@ public class WordAnchorTests
     public Task InlineIdIsBookmarked() =>
         Verify(WordHtmlConverter.ToElements(
             """<p>See <span id="term">the term</span> here.</p>"""));
+
+    // A bookmark id has to be unique in the document. Each call used to count from 1, repeating
+    // the ids of the call before and of any bookmark the document already held.
+    [Test]
+    public async Task BookmarkIdsContinuePastThoseInTheDocument()
+    {
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+        var body = new Body(
+            new Paragraph(
+                new BookmarkStart
+                {
+                    Id = "7",
+                    Name = "template"
+                },
+                new BookmarkEnd
+                {
+                    Id = "7"
+                }));
+        main.Document = new(body);
+
+        WordHtmlConverter.AppendHtml(body, """<h1 id="one">a</h1><table><tr><td><p id="two">b</p></td></tr></table>""", main);
+        WordHtmlConverter.AppendHtml(body, """<h1 id="three">c</h1>""", main);
+
+        var ids = body.Descendants<BookmarkStart>().Select(_ => _.Id!.Value!).ToList();
+
+        await Assert.That(ids).IsEquivalentTo(["7", "8", "9", "10"], CollectionOrdering.Matching);
+    }
+
+    // The elements a call returns are not in the document until the caller adds them, so a later
+    // call cannot see their bookmarks. A session carries the count across.
+    [Test]
+    public async Task BookmarkIdsContinueAcrossCallsThatShareASession()
+    {
+        var main = NewMainPart();
+        var settings = new HtmlConvertSettings
+        {
+            NumberingSession = new()
+        };
+
+        var first = WordHtmlConverter.ToElements("""<h1 id="one">a</h1>""", main, settings);
+        var second = WordHtmlConverter.ToElements("""<p>no bookmark here</p>""", main, settings);
+        var third = WordHtmlConverter.ToElements("""<h1 id="two">b</h1><p><span id="three">c</span></p>""", main, settings);
+
+        var ids = first.Concat(second).Concat(third)
+            .SelectMany(_ => _.Descendants<BookmarkStart>())
+            .Select(_ => _.Id!.Value!)
+            .ToList();
+
+        await Assert.That(ids).IsEquivalentTo(["1", "2", "3"], CollectionOrdering.Matching);
+    }
 }
