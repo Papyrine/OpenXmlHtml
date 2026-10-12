@@ -804,7 +804,10 @@
 
     static void FlushParagraph(List<OpenXmlElement> elements, WordBuildContext context, bool emitEmpty = false)
     {
-        context.LastWasSpace = false;
+        // The paragraph that follows starts a line, where whitespace folds away. And if this one
+        // ends in a folded space, that space closes a line and is not drawn either.
+        var endsInFoldedSpace = context.LastWasSpace;
+        context.LastWasSpace = true;
 
         // A <br> that ends a block is that block's end, not a line of its own. Left in, Word draws
         // an empty line after it, where a browser draws nothing. A paragraph that held only the
@@ -820,6 +823,11 @@
             }
 
             emitEmpty = true;
+        }
+
+        if (endsInFoldedSpace)
+        {
+            TrimTrailingSpace(context.CurrentRuns, context.ListMarker);
         }
 
         if (context.CurrentRuns.Count == 0 && !emitEmpty)
@@ -935,6 +943,63 @@
         context.ListNumId = null;
         context.ListIlvl = null;
         context.ListInside = false;
+    }
+
+    // Takes the single space off the end of a paragraph's last run of text, looking past the
+    // bookmark markers that may follow it and into a hyperlink that may hold it. A run left with
+    // nothing but its properties goes too. Only called when the paragraph is known to end in a
+    // folded space, so a preformatted one is never touched. A list marker's space is its own.
+    static void TrimTrailingSpace(List<OpenXmlElement> runs, Run? listMarker)
+    {
+        for (var index = runs.Count - 1; index >= 0; index--)
+        {
+            switch (runs[index])
+            {
+                case BookmarkStart or BookmarkEnd:
+                    continue;
+                case Hyperlink hyperlink:
+                    if (hyperlink.LastChild is Run linked &&
+                        TrimTrailingSpace(linked))
+                    {
+                        linked.Remove();
+                        if (!hyperlink.HasChildren)
+                        {
+                            runs.RemoveAt(index);
+                        }
+                    }
+
+                    return;
+                case Run run:
+                    if (run != listMarker &&
+                        TrimTrailingSpace(run))
+                    {
+                        runs.RemoveAt(index);
+                    }
+
+                    return;
+                default:
+                    return;
+            }
+        }
+    }
+
+    // True when the run is left with no content and should be dropped.
+    static bool TrimTrailingSpace(Run run)
+    {
+        if (run.LastChild is not Text text ||
+            !text.Text.EndsWith(' '))
+        {
+            return false;
+        }
+
+        if (text.Text.Length > 1)
+        {
+            text.Text = text.Text[..^1];
+            return false;
+        }
+
+        text.Remove();
+        return run.ChildElements.All(_ => _ is RunProperties);
     }
 
     // CT_PPrBase declares its children in a fixed order, and the order css reaches this builder in

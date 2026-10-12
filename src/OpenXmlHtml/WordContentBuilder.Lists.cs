@@ -153,6 +153,7 @@ static partial class WordContentBuilder
                 }
 
                 AddTextRun($"{index}. ", newFormat, context);
+                context.ListMarker = (Run)context.CurrentRuns[^1];
             }
             else
             {
@@ -163,6 +164,7 @@ static partial class WordContentBuilder
                     _ => "\u25A0"
                 };
                 AddTextRun($"{bullet} ", newFormat, context);
+                context.ListMarker = (Run)context.CurrentRuns[^1];
             }
         }
 
