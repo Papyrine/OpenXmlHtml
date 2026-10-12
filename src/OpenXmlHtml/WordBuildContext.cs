@@ -95,5 +95,4 @@
     // It starts out set, and is set again by every flush: whitespace that opens a paragraph folds
     // away like whitespace after a space, since a browser draws none at the start of a line.
     internal bool LastWasSpace = true;
-    internal int? ReversedStart;
 }

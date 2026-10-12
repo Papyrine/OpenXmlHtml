@@ -261,7 +261,7 @@ static class HtmlSegmentParser
                 bulletFormat.ListDepth = depth;
                 if (parent == "ol")
                 {
-                    segments.Add(new($"{indent}{listIndex}. ", bulletFormat, IsListMarker: true));
+                    segments.Add(new($"{indent}{OrderedMarker(element, listIndex)}", bulletFormat, IsListMarker: true));
                 }
                 else
                 {
@@ -963,6 +963,127 @@ static class HtmlSegmentParser
         {
             segments.Add(new("\n", format));
         }
+    }
+
+    // The text marker for an item of an ordered list, where there is no real numbering to carry it:
+    // a spreadsheet cell, ToParagraphs, and ToElements with no MainDocumentPart or for a reversed
+    // list. Both paths write it from here, so they cannot drift apart again — the element path
+    // used to honour reversed and the segment path did not, and neither read start or type, so a
+    // list that began at 5 or counted in letters came out "1. 2. 3." regardless.
+    //
+    // The punctuation matches what the real numbering writes: "1." for decimal, "a)" otherwise.
+    internal static string OrderedMarker(IElement item, int listIndex)
+    {
+        var list = item.ParentElement!;
+        int? start = null;
+        if (int.TryParse(list.GetAttribute("start"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            start = parsed;
+        }
+
+        int number;
+        if (list.HasAttribute("reversed"))
+        {
+            number = (start ?? CountItems(list)) - (listIndex - 1);
+        }
+        else
+        {
+            number = (start ?? 1) + (listIndex - 1);
+        }
+
+        string? cssType = null;
+        if (list.GetAttribute("style") is { } style)
+        {
+            StyleParser.Parse(style).TryGetValue("list-style-type", out cssType);
+        }
+
+        var format = WordNumberingBuilder.ParseListStyleType(list.GetAttribute("type"), cssType, true);
+        if (format == NumberFormatValues.LowerLetter &&
+            ToLetters(number) is { } lower)
+        {
+            return $"{lower}) ";
+        }
+
+        if (format == NumberFormatValues.UpperLetter &&
+            ToLetters(number) is { } upper)
+        {
+            return $"{upper.ToUpperInvariant()}) ";
+        }
+
+        if (format == NumberFormatValues.LowerRoman &&
+            ToRoman(number) is { } lowerRoman)
+        {
+            return $"{lowerRoman.ToLowerInvariant()}) ";
+        }
+
+        if (format == NumberFormatValues.UpperRoman &&
+            ToRoman(number) is { } upperRoman)
+        {
+            return $"{upperRoman}) ";
+        }
+
+        return $"{number.ToString(CultureInfo.InvariantCulture)}. ";
+    }
+
+    static int CountItems(IElement list)
+    {
+        var count = 0;
+        foreach (var child in list.Children)
+        {
+            if (child.LocalName == "li")
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    // a, b, ... z, aa, ab, ... as a browser counts them. Null below 1, where there is no letter
+    // and a browser falls back to the number.
+    static string? ToLetters(int number)
+    {
+        if (number < 1)
+        {
+            return null;
+        }
+
+        var letters = new StringBuilder();
+        while (number > 0)
+        {
+            number--;
+            letters.Insert(0, (char) ('a' + number % 26));
+            number /= 26;
+        }
+
+        return letters.ToString();
+    }
+
+    static readonly (int Value, string Numeral)[] romanNumerals =
+    [
+        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+        (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+    ];
+
+    // Null outside 1 to 3999, the range roman numerals cover, where a browser falls back too.
+    static string? ToRoman(int number)
+    {
+        if (number is < 1 or > 3999)
+        {
+            return null;
+        }
+
+        var roman = new StringBuilder();
+        foreach (var (value, numeral) in romanNumerals)
+        {
+            while (number >= value)
+            {
+                roman.Append(numeral);
+                number -= value;
+            }
+        }
+
+        return roman.ToString();
     }
 
     internal static int GetListDepth(IElement listItem)
