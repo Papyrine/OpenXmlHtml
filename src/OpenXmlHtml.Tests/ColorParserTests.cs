@@ -86,7 +86,7 @@ public class ColorParserTests
     {
         var paragraph = WordHtmlConverter.ToElements("""<span style="background-color: rgba(0, 0, 0, 0)">text</span>""").Single();
 
-        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Shading>().Count()).IsEqualTo(0);
+        await Assert.That(paragraph.Descendants<Shading>().Count()).IsEqualTo(0);
     }
 
     // Malformed css is not a reason to throw: a value that cannot be read is no colour.

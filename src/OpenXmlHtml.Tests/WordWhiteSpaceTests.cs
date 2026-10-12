@@ -123,7 +123,7 @@ public class WordWhiteSpaceTests
         var paragraph = Convert("<pre>one\ntwo\nthree</pre>", elements).Single();
 
         await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>().Count()).IsEqualTo(2);
-        await Assert.That(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(_ => _.Text)).IsEquivalentTo(["one", "two", "three"], CollectionOrdering.Matching);
+        await Assert.That(paragraph.Descendants<WText>().Select(_ => _.Text)).IsEquivalentTo(["one", "two", "three"], CollectionOrdering.Matching);
     }
 
     // The newline before </pre> closes the last line. It is not a blank line after it, and in the

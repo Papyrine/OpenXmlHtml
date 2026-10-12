@@ -123,7 +123,7 @@ public class WordValidationTests
             """<table cellpadding="10" style="padding: 4px"><tr><td bgcolor="#ff0000" style="background-color: #00ff00">x</td></tr></table>""").Single();
 
         await Assert.That(table.Descendants<TableCellMarginDefault>().Single().Descendants<TopMargin>().Single().Width!.Value).IsEqualTo("60");
-        await Assert.That(table.Descendants<TableCellProperties>().Single().Descendants<DocumentFormat.OpenXml.Wordprocessing.Shading>().Single().Fill!.Value).IsEqualTo("00FF00");
+        await Assert.That(table.Descendants<TableCellProperties>().Single().Descendants<Shading>().Single().Fill!.Value).IsEqualTo("00FF00");
     }
 
     // A class-styled table writes tblLook, which closes the sequence.
@@ -199,7 +199,7 @@ public class WordValidationTests
     [Arguments("""<table><tr height="99999"><td>x</td></tr></table>""")]
     [Arguments("""<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==" width="-5" height="5">""")]
     [Arguments("""<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==" style="width: -5px; height: -5px">""")]
-    [Arguments("""<style>@page { margin: -1in; size: -5in -5in }</style><p>x</p>""")]
+    [Arguments("<style>@page { margin: -1in; size: -5in -5in }</style><p>x</p>")]
     public async Task OutOfRangeLengthsStayWithinTheSchema(string html)
     {
         using var stream = new MemoryStream();

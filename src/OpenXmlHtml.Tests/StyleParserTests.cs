@@ -150,7 +150,7 @@ public class StyleParserTests
             """<p style="font-family: 'Times New Roman', serif">a</p><p><font face="Arial, Helvetica">b</font></p>""");
 
         var fonts = paragraphs
-            .SelectMany(_ => _.Descendants<DocumentFormat.OpenXml.Wordprocessing.RunFonts>())
+            .SelectMany(_ => _.Descendants<RunFonts>())
             .Select(_ => _.Ascii!.Value!);
 
         await Assert.That(fonts).IsEquivalentTo(["Times New Roman", "Arial"], CollectionOrdering.Matching);

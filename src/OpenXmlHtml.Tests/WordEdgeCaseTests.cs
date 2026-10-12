@@ -270,7 +270,7 @@ public class WordEdgeCaseTests
     [Arguments("""see <img src="https://example.com/chart.png" alt="the chart"> below""", "see the chart below")]
     [Arguments("""<p><input type="checkbox" checked> Done</p>""", "☑ Done")]
     [Arguments("<ul>\n<li>\n item</li>\n</ul>", "● item")]
-    [Arguments("""a <q> b</q> c""", "a “ b” c")]
+    [Arguments("a <q> b</q> c", "a “ b” c")]
     public async Task FoldStateFollowsEveryRun(string html, string expected)
     {
         var elements = string.Concat(WordHtmlConverter.ToElements(html).Select(_ => _.InnerText));
@@ -331,7 +331,7 @@ public class WordEdgeCaseTests
                             return "↵";
                         }
 
-                        if (_ is DocumentFormat.OpenXml.Wordprocessing.Text text)
+                        if (_ is WText text)
                         {
                             return text.Text;
                         }
