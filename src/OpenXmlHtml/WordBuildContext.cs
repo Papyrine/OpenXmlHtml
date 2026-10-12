@@ -49,6 +49,14 @@
     internal bool ParagraphRightToLeft;
     internal Stack<(int NumId, int Ilvl, bool IsOrdered, bool Inside, bool NoMarker)> ListStack = new();
     internal int? BulletAbstractNumId;
+
+    // The abstract definition already written for each ordered number format. Every <ol> used to
+    // get one of its own, nine levels each, so that it could restart: a document's numbering.xml
+    // grew by about 1.7 KB per list and ended up several times the size of its body. Lists of one
+    // format now share a definition, and each restarts through the start override on its own
+    // numbering instance, which is how Word itself writes a restarted list. Shared with table
+    // cells by reference.
+    internal Dictionary<NumberFormatValues, int> OrderedAbstractNumIds = [];
     internal int NextNumId;
     internal int? ListNumId;
     internal int? ListIlvl;
