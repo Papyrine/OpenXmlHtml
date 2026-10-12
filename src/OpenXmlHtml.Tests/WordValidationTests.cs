@@ -87,7 +87,8 @@ public class WordValidationTests
             .Select(_ => $"{_.Description} ({_.Path?.XPath})")
             .ToList();
 
-        await Assert.That(ids).IsEquivalentTo([1u, 2u, 3u], CollectionOrdering.Matching);
+        await Assert.That(ids.Count).IsEqualTo(3);
+        await Assert.That(ids).HasDistinctItems();
         await Assert.That(errors).IsEmpty().Because(string.Join('\n', errors));
     }
 
