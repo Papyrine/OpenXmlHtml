@@ -68,6 +68,7 @@ public static class WordHtmlConverter
         var paragraphs = new List<Paragraph>();
         var currentRuns = new List<OpenXmlElement>();
         var imageIndex = LastImageIndex(main);
+        var storedImages = new Dictionary<string, StoredImage>();
         var listDepth = 0;
         var linkedLastSegment = false;
         string? openLinkUrl = null;
@@ -96,7 +97,7 @@ public static class WordHtmlConverter
                 if (main != null)
                 {
                     imageIndex++;
-                    currentRuns.Add(BuildImageRun(main, image, imageIndex));
+                    currentRuns.Add(BuildImageRun(main, image, imageIndex, storedImages));
                     continue;
                 }
 
@@ -711,20 +712,62 @@ public static class WordHtmlConverter
         return last;
     }
 
-    internal static Run BuildImageRun(OpenXmlPart part, ImageData image, int imageIndex)
+    // The most drawings that may share one stored image. Past it the image is simply stored again.
+    const int maxReuses = 1023;
+
+    // Writes an image part under relationshipId, or returns the relationship of one this conversion
+    // already wrote with the same content. The same picture is often used many times in a document
+    // — a logo, an icon, a spacer — and each use wrote the bytes again: fifty uses of a 100 KB image
+    // made a 5 MB file. A part can only be the target of one relationship from the same owner, so a
+    // repeat shares the first one's relationship id rather than getting its own.
+    //
+    // drawingId is the wp:docPr id for the drawing, which has to be unique in the document. A newly
+    // stored image uses its index, as before. A repeat cannot: the next conversion against the
+    // same document carries on from the highest rImage{n}, which a repeat does not add to, so its
+    // index would be handed out again. It takes an id from a range no index reaches, made from the
+    // index of the part it reuses and how many times that part has been reused. Each conversion
+    // writes its own parts, so those stay distinct from one conversion to the next.
+    //
+    // reuseBase is where that range starts. An svg takes a different one from a raster image,
+    // because an svg and its fallback png are written under the same index.
+    static string StoreImage(
+        OpenXmlPart part,
+        string contentType,
+        byte[] bytes,
+        int imageIndex,
+        string relationshipId,
+        Dictionary<string, StoredImage> stored,
+        out uint drawingId,
+        uint reuseBase = 0x40000000u)
+    {
+        var key = contentType + ":" + Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(bytes));
+        if (stored.TryGetValue(key, out var existing) &&
+            existing.Reuses < maxReuses)
+        {
+            existing.Reuses++;
+            drawingId = reuseBase + (uint) (existing.Index % 0x80000) * 1024u + (uint) existing.Reuses;
+            return existing.RelationshipId;
+        }
+
+        var imagePart = part.AddNewPart<ImagePart>(contentType, relationshipId);
+        using (var stream = new MemoryStream(bytes))
+        {
+            imagePart.FeedData(stream);
+        }
+
+        stored[key] = new(relationshipId, imageIndex);
+        drawingId = (uint) imageIndex;
+        return relationshipId;
+    }
+
+    internal static Run BuildImageRun(OpenXmlPart part, ImageData image, int imageIndex, Dictionary<string, StoredImage> stored)
     {
         if (image.ContentType == "image/svg+xml")
         {
-            return BuildSvgImageRun(part, image, imageIndex);
+            return BuildSvgImageRun(part, image, imageIndex, stored);
         }
 
-        var imagePartType = GetImagePartType(image.ContentType);
-        var relationshipId = $"rImage{imageIndex}";
-        var imagePart = part.AddNewPart<ImagePart>(imagePartType, relationshipId);
-        using (var memoryStream = new MemoryStream(image.Bytes))
-        {
-            imagePart.FeedData(memoryStream);
-        }
+        var relationshipId = StoreImage(part, GetImagePartType(image.ContentType), image.Bytes, imageIndex, $"rImage{imageIndex}", stored, out var drawingId);
 
         var widthEmu = (long)(image.WidthPx ?? 100) * 9525;
         var heightEmu = (long)(image.HeightPx ?? 100) * 9525;
@@ -737,30 +780,21 @@ public static class WordHtmlConverter
             widthEmu,
             heightEmu,
             image.Float,
-            imageIndex);
+            drawingId);
 
         var run = new Run();
         run.Append(drawing);
         return run;
     }
 
-    static Run BuildSvgImageRun(OpenXmlPart part, ImageData image, int imageIndex)
+    static Run BuildSvgImageRun(OpenXmlPart part, ImageData image, int imageIndex, Dictionary<string, StoredImage> stored)
     {
-        // Add PNG fallback for older Word versions
-        var pngRelId = $"rImage{imageIndex}";
-        var pngPart = part.AddNewPart<ImagePart>("image/png", pngRelId);
-        using (var ms = new MemoryStream(fallbackPng))
-        {
-            pngPart.FeedData(ms);
-        }
+        // Add PNG fallback for older Word versions. It is the same picture for every svg, so after
+        // the first it is only ever the first one's relationship again.
+        var pngRelId = StoreImage(part, "image/png", fallbackPng, imageIndex, $"rImage{imageIndex}", stored, out _);
 
         // Add SVG image part
-        var svgRelId = $"rImage{imageIndex}s";
-        var svgPart = part.AddNewPart<ImagePart>("image/svg+xml", svgRelId);
-        using (var ms = new MemoryStream(image.Bytes))
-        {
-            svgPart.FeedData(ms);
-        }
+        var svgRelId = StoreImage(part, "image/svg+xml", image.Bytes, imageIndex, $"rImage{imageIndex}s", stored, out var drawingId, 0x60000000u);
 
         var widthEmu = (long)(image.WidthPx ?? 100) * 9525;
         var heightEmu = (long)(image.HeightPx ?? 100) * 9525;
@@ -779,16 +813,16 @@ public static class WordHtmlConverter
         extList.Append(ext);
         blip.Append(extList);
 
-        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float, imageIndex);
+        var drawing = BuildImageDrawing(blip, widthEmu, heightEmu, image.Float, drawingId);
 
         var run = new Run();
         run.Append(drawing);
         return run;
     }
 
-    // imageIndex doubles as the drawing's wp:docPr id, which has to be unique in the document.
-    // Every image used to carry id 1, which the validator reports as soon as there are two.
-    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide, int imageIndex)
+    // drawingId is the drawing's wp:docPr id, which has to be unique in the document — see
+    // StoreImage for where it comes from.
+    static Drawing BuildImageDrawing(A.Blip blip, long widthEmu, long heightEmu, FloatSide floatSide, uint drawingId)
     {
         var graphic = new A.Graphic(
             new A.GraphicData(
@@ -834,7 +868,7 @@ public static class WordHtmlConverter
                     },
                     new DW.DocProperties
                     {
-                        Id = (uint) imageIndex,
+                        Id = drawingId,
                         Name = "Image"
                     },
                     graphic)
@@ -882,7 +916,7 @@ public static class WordHtmlConverter
                 },
                 new DW.DocProperties
                 {
-                    Id = (uint) imageIndex,
+                    Id = drawingId,
                     Name = "Image"
                 },
                 new DW.NonVisualGraphicFrameDrawingProperties(),

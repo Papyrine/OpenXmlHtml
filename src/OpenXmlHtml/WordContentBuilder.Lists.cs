@@ -71,20 +71,25 @@ static partial class WordContentBuilder
 
             abstractNumId = context.BulletAbstractNumId.Value;
         }
-        else
+        else if (!context.OrderedAbstractNumIds.TryGetValue(format, out abstractNumId))
         {
-            // Each ordered list gets its own abstract num (for independent restart/start)
             var id = context.NextNumId++;
             abstractNumId = WordNumberingBuilder.CreateOrderedAbstractNum(numbering, id, format);
+            context.OrderedAbstractNumIds[format] = abstractNumId;
         }
 
+        // An ordered list always says where it starts. Instances that share a definition would
+        // otherwise carry on from one another, so the override is what makes each list its own.
         int? startOverride = null;
-        var startAttr = element.GetAttribute("start");
-        if (startAttr != null &&
-            int.TryParse(startAttr, out var startVal) &&
-            startVal != 1)
+        if (format != NumberFormatValues.Bullet)
         {
-            startOverride = startVal;
+            startOverride = 1;
+            var startAttr = element.GetAttribute("start");
+            if (startAttr != null &&
+                int.TryParse(startAttr, out var startVal))
+            {
+                startOverride = startVal;
+            }
         }
 
         var numId = context.NextNumId++;
