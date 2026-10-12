@@ -144,4 +144,53 @@ public class WordRemoteImageTests
             return Task.FromResult(response);
         }
     }
+
+    // Where the output cannot hold an image, nothing is fetched or decoded for it. The filter is
+    // the witness: it is only consulted when an image is about to be resolved.
+    [Test]
+    public async Task ImagesAreNotResolvedWhereTheyCannotBePlaced()
+    {
+        var asked = new List<string>();
+        var settings = new HtmlConvertSettings
+        {
+            LocalImages = ImagePolicy.Filter(source =>
+            {
+                asked.Add(source);
+                return false;
+            })
+        };
+        const string html = """<p>before <img src="picture.png" alt="Logo"> after</p>""";
+
+        var cell = SpreadsheetHtmlConverter.ToInlineString(html, settings);
+        var paragraphs = WordHtmlConverter.ToParagraphs(html, null, settings);
+        var elements = WordHtmlConverter.ToElements(html, null, settings);
+
+        await Assert.That(asked).IsEmpty();
+        await Assert.That(cell.InnerText).IsEqualTo("before Logo after");
+        await Assert.That(string.Concat(paragraphs.Select(_ => _.InnerText))).IsEqualTo("before Logo after");
+        await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).Contains("Logo");
+    }
+
+    // With a document to put it in, the image is resolved as before.
+    [Test]
+    public async Task ImagesAreStillResolvedWhereTheyCanBePlaced()
+    {
+        var asked = new List<string>();
+        var settings = new HtmlConvertSettings
+        {
+            LocalImages = ImagePolicy.Filter(source =>
+            {
+                asked.Add(source);
+                return false;
+            })
+        };
+        using var stream = new MemoryStream();
+        using var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document);
+        var main = document.AddMainDocumentPart();
+
+        WordHtmlConverter.ToElements("""<img src="one.png">""", main, settings);
+        WordHtmlConverter.ToParagraphs("""<img src="two.png">""", main, settings);
+
+        await Assert.That(asked).IsEquivalentTo(["one.png", "two.png"], CollectionOrdering.Matching);
+    }
 }

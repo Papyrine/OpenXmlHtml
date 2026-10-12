@@ -5,18 +5,26 @@ static class HtmlSegmentParser
     internal static List<TextSegment> Parse(string html) =>
         Parse(html, null);
 
-    internal static List<TextSegment> Parse(string html, HtmlConvertSettings? settings)
+    internal static List<TextSegment> Parse(string html, HtmlConvertSettings? settings) =>
+        Parse(html, settings, true);
+
+    // placeImages is whether the output can hold an image at all. A spreadsheet cell cannot, and
+    // neither can a Word conversion with no MainDocumentPart to put the image part in. Either way
+    // the image used to be resolved first — a data uri decoded, a web image downloaded, an svg
+    // serialised — and then thrown away for its alt text. With this false the work is not done:
+    // the segment carries an image with no bytes, which is all the alt-text fallback reads.
+    internal static List<TextSegment> Parse(string html, HtmlConvertSettings? settings, bool placeImages)
     {
         var document = parser.ParseDocument(string.Concat("<body>", html, "</body>"));
         var body = document.Body!;
         var segments = new List<TextSegment>();
         var format = new FormatState();
-        ProcessNode(body, format, segments, false, settings);
+        ProcessNode(body, format, segments, false, settings, placeImages);
         TrimTrailingNewlines(segments);
         return segments;
     }
 
-    static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings)
+    static void ProcessNode(INode node, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, bool placeImages)
     {
         if (!HasStackToRecurse())
         {
@@ -67,14 +75,14 @@ static class HtmlSegmentParser
                 case IElement element:
                 {
                     var listIndex = element.LocalName == "li" ? ++orderedIndex : 0;
-                    ProcessElement(element, format, segments, inPre, settings, listIndex);
+                    ProcessElement(element, format, segments, inPre, settings, placeImages, listIndex);
                     break;
                 }
             }
         }
     }
 
-    static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, int listIndex = 0)
+    static void ProcessElement(IElement element, FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, bool placeImages, int listIndex = 0)
     {
         var tag = element.LocalName;
         var newFormat = format;
@@ -103,6 +111,17 @@ static class HtmlSegmentParser
                 return;
             case "img":
             {
+                if (!placeImages)
+                {
+                    var unplaced = format;
+                    unplaced.Image = new([], "", null, null)
+                    {
+                        AltText = element.GetAttribute("alt")
+                    };
+                    segments.Add(new("\uFFFC", unplaced));
+                    return;
+                }
+
                 var imageData = ImageResolver.Resolve(element, settings);
                 if (imageData != null)
                 {
@@ -128,7 +147,18 @@ static class HtmlSegmentParser
             case "svg":
             {
                 var imageFormat = format;
-                imageFormat.Image = ParseSvgElement(element);
+                if (placeImages)
+                {
+                    imageFormat.Image = ParseSvgElement(element);
+                }
+                else
+                {
+                    imageFormat.Image = new([], "", null, null)
+                    {
+                        SourceTag = "svg"
+                    };
+                }
+
                 segments.Add(new("\uFFFC", imageFormat));
                 return;
             }
@@ -176,13 +206,13 @@ static class HtmlSegmentParser
                     segments.Add(new($"{indent}{bullet} ", bulletFormat, IsListMarker: true));
                 }
 
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 EnsureNewline(segments, format);
                 return;
             }
             case "a":
             {
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 var href = element.GetAttribute("href");
                 if (!string.IsNullOrEmpty(href))
                 {
@@ -197,7 +227,7 @@ static class HtmlSegmentParser
             case "q":
             {
                 segments.Add(new("\u201C", format));
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 segments.Add(new("\u201D", format));
                 return;
             }
@@ -206,7 +236,7 @@ static class HtmlSegmentParser
                 segments.Add(new("(", format));
                 var rtFormat = newFormat;
                 rtFormat.FontSizePt = Math.Round((rtFormat.FontSizePt ?? 12) * 0.6, 2);
-                ProcessNode(element, rtFormat, segments, inPre, settings);
+                ProcessNode(element, rtFormat, segments, inPre, settings, placeImages);
                 segments.Add(new(")", format));
                 return;
             }
@@ -214,7 +244,7 @@ static class HtmlSegmentParser
                 return;
             case "td" or "th":
             {
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 var nextSibling = element.NextElementSibling;
                 if (nextSibling is { LocalName: "td" or "th" })
                 {
@@ -225,14 +255,14 @@ static class HtmlSegmentParser
             }
             case "tr":
             {
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 EnsureNewline(segments, format);
                 return;
             }
             case "col":
                 return;
             case "pre":
-                ProcessNode(element, newFormat, segments, true, settings);
+                ProcessNode(element, newFormat, segments, true, settings, placeImages);
                 if (!wasPre)
                 {
                     TrimClosingNewline(segments, segmentsBefore);
@@ -240,7 +270,7 @@ static class HtmlSegmentParser
 
                 break;
             default:
-                ProcessNode(element, newFormat, segments, inPre, settings);
+                ProcessNode(element, newFormat, segments, inPre, settings, placeImages);
                 if (inPre && !wasPre)
                 {
                     TrimClosingNewline(segments, segmentsBefore);
