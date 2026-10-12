@@ -21,7 +21,15 @@
         };
         if (main?.NumberingDefinitionsPart?.Numbering is { } existingNumbering)
         {
-            context.NextNumId = WordNumberingBuilder.GetNextId(existingNumbering);
+            if (settings?.NumberingSession is { LastNumberingElement: { } last } known &&
+                last == existingNumbering.LastChild)
+            {
+                context.NextNumId = known.NextNumId;
+            }
+            else
+            {
+                context.NextNumId = WordNumberingBuilder.GetNextId(existingNumbering);
+            }
         }
         else
         {
@@ -64,6 +72,8 @@
         if (settings?.NumberingSession is { } session2)
         {
             session2.BulletAbstractNumId = context.BulletAbstractNumId;
+            session2.NextNumId = context.NextNumId;
+            session2.LastNumberingElement = main?.NumberingDefinitionsPart?.Numbering?.LastChild;
         }
 
         if (elements.Count == 0)
@@ -158,20 +168,20 @@
                 return;
             case "img":
             {
-                var imageData = ImageResolver.Resolve(element, context.Settings);
+                // With nowhere to put an image there is no point fetching or decoding one: its alt
+                // text stands in for it either way, so that is all that is read.
+                ImageData? imageData = null;
+                if (context.RelationshipPart == null)
+                {
+                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
+                }
+                else
+                {
+                    imageData = ImageResolver.Resolve(element, context.Settings);
+                }
+
                 if (imageData == null)
                 {
-                    var alt = element.GetAttribute("alt");
-                    if (!string.IsNullOrEmpty(alt))
-                    {
-                        // ReSharper disable once RedundantSuppressNullableWarningExpression
-                        AddTextRun(alt!, format, context);
-                    }
-                }
-                else if (context.RelationshipPart == null)
-                {
-                    // Nowhere to put the image, so its alt text stands in for it.
-                    Diagnostic.UnsupportedElement(context.Settings, tag, NoMainPartForImages);
                     var alt = element.GetAttribute("alt");
                     if (!string.IsNullOrEmpty(alt))
                     {
@@ -182,7 +192,7 @@
                 else
                 {
                     context.ImageIndex++;
-                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart, imageData, context.ImageIndex, context.StoredImages));
+                    context.CurrentRuns.Add(WordHtmlConverter.BuildImageRun(context.RelationshipPart!, imageData, context.ImageIndex, context.StoredImages));
                     // An image is content, so a space after it does not fold into one before it.
                     context.LastWasSpace = false;
                 }

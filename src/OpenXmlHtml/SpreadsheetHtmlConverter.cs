@@ -11,7 +11,7 @@ public static class SpreadsheetHtmlConverter
     /// Converts an HTML string to an InlineString containing formatted Run elements.
     /// </summary>
     public static InlineString ToInlineString(string html) =>
-        ToInlineString(HtmlSegmentParser.Parse(html));
+        ToInlineString(HtmlSegmentParser.Parse(html, null, false));
 
     /// <summary>
     /// Sets the value of a spreadsheet cell from HTML content.
@@ -27,7 +27,7 @@ public static class SpreadsheetHtmlConverter
     /// </summary>
     public static void SetCellHtml(SpreadsheetCell cell, string html, WorksheetPart worksheetPart)
     {
-        var segments = HtmlSegmentParser.Parse(html);
+        var segments = HtmlSegmentParser.Parse(html, null, false);
         cell.DataType = CellValues.InlineString;
         cell.InlineString = ToInlineString(segments);
 
@@ -49,7 +49,7 @@ public static class SpreadsheetHtmlConverter
     /// Converts an HTML string to an InlineString, with settings controlling remote image resolution.
     /// </summary>
     public static InlineString ToInlineString(string html, HtmlConvertSettings settings) =>
-        ToInlineString(HtmlSegmentParser.Parse(html, settings));
+        ToInlineString(HtmlSegmentParser.Parse(html, settings, false));
 
     /// <summary>
     /// Sets the value of a spreadsheet cell from HTML content, with settings controlling remote image resolution.
@@ -65,7 +65,7 @@ public static class SpreadsheetHtmlConverter
     /// </summary>
     public static void SetCellHtml(SpreadsheetCell cell, string html, WorksheetPart worksheetPart, HtmlConvertSettings settings)
     {
-        var segments = HtmlSegmentParser.Parse(html, settings);
+        var segments = HtmlSegmentParser.Parse(html, settings, false);
         cell.DataType = CellValues.InlineString;
         cell.InlineString = ToInlineString(segments);
 

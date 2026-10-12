@@ -19,13 +19,13 @@ public static class WordHtmlConverter
     /// Converts HTML to a list of Paragraph elements, embedding images into the given MainDocumentPart.
     /// </summary>
     public static List<Paragraph> ToParagraphs(string html, MainDocumentPart? main) =>
-        ToParagraphsCore(HtmlSegmentParser.Parse(html), main, null);
+        ToParagraphsCore(HtmlSegmentParser.Parse(html, null, main != null), main, null);
 
     /// <summary>
     /// Converts HTML to a list of Paragraph elements, with settings controlling remote image resolution.
     /// </summary>
     public static List<Paragraph> ToParagraphs(string html, MainDocumentPart? main, HtmlConvertSettings settings) =>
-        ToParagraphsCore(HtmlSegmentParser.Parse(html, settings), main, settings);
+        ToParagraphsCore(HtmlSegmentParser.Parse(html, settings, main != null), main, settings);
 
     /// <summary>
     /// The hyperlink for an anchor's href, or none when it cannot be expressed.
