@@ -189,13 +189,45 @@ public class WordListNumberingTests
     }
 
     [Test]
-    public async Task ListDocxIsByteReproducible()
+    public async Task ListDocxIsReproducible()
     {
         // Converting the same list HTML twice (into a document with no pre-existing numbering part)
-        // must produce byte-identical packages — guards the numbering relationship id determinism.
-        var first = RenderListDocx();
-        var second = RenderListDocx();
-        await Assert.That(first).IsEquivalentTo(second, CollectionOrdering.Matching);
+        // must produce the same package — guards the numbering relationship id determinism.
+        //
+        // Compared part by part rather than as raw bytes. A zip entry records when it was written,
+        // to a two-second resolution, so two packages built either side of a tick differ in those
+        // fields and nowhere else. Comparing the bytes failed whenever the two renders straddled
+        // one, which had nothing to do with what this is guarding.
+        var first = ReadParts(RenderListDocx());
+        var second = ReadParts(RenderListDocx());
+
+        await Assert.That(first.Select(_ => _.Name)).IsEquivalentTo(second.Select(_ => _.Name), CollectionOrdering.Matching);
+        await Assert.That(first.Select(_ => _.Content)).IsEquivalentTo(second.Select(_ => _.Content), CollectionOrdering.Matching);
+        await Assert.That(first.Select(_ => _.Name)).Contains("/word/numbering.xml as rNumbering");
+    }
+
+    // Every part of the package in a stable order: its uri, the relationship id it is reached by,
+    // and its content. That is everything a conversion decides; the zip container's own
+    // bookkeeping is left out.
+    static List<(string Name, string Content)> ReadParts(byte[] docx)
+    {
+        using var stream = new MemoryStream(docx);
+        using var document = WordprocessingDocument.Open(stream, false);
+        var parts = new List<(string Name, string Content)>();
+        Collect(document, parts);
+        return parts.OrderBy(_ => _.Name, StringComparer.Ordinal).ToList();
+
+        static void Collect(OpenXmlPartContainer container, List<(string Name, string Content)> parts)
+        {
+            foreach (var pair in container.Parts)
+            {
+                using var partStream = pair.OpenXmlPart.GetStream();
+                using var buffer = new MemoryStream();
+                partStream.CopyTo(buffer);
+                parts.Add(($"{pair.OpenXmlPart.Uri} as {pair.RelationshipId}", Convert.ToBase64String(buffer.ToArray())));
+                Collect(pair.OpenXmlPart, parts);
+            }
+        }
     }
 
     static byte[] RenderListDocx()
