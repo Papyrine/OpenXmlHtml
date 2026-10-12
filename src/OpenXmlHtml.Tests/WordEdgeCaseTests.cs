@@ -28,7 +28,7 @@ public class WordEdgeCaseTests
                 """
                 <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:r>
-                    <w:t xml:space="preserve">lots of spaces</w:t>
+                    <w:t xml:space="preserve"> lots of spaces </w:t>
                   </w:r>
                 </w:p>
                 """);
@@ -403,57 +403,5 @@ public class WordEdgeCaseTests
 
         await Assert.That(WordHtmlConverter.ToElements(html).Count).IsEqualTo(count);
         await Assert.That(WordHtmlConverter.ToParagraphs(html).Count).IsEqualTo(count);
-    }
-
-    // A browser draws no space at the start or end of a line, so the whitespace html is indented
-    // with is not content. Each of these used to open or close a paragraph with a space, or leave
-    // a paragraph holding nothing but one. Both paths, and compared, so they stay agreed.
-    [Test]
-    [Arguments("<p>\n  Hello world\n</p>", "Hello world")]
-    [Arguments("  lots   of    spaces  ", "lots of spaces")]
-    [Arguments("<p>a</p> <b>bold</b>", "a|bold")]
-    [Arguments("<div>\n <strong>Title</strong>\n <p>Body</p>\n</div>", "Title|Body")]
-    [Arguments("<b>bold</b>\n<p>para</p>\n<i>it</i>", "bold|para|it")]
-    [Arguments("<p>a <b>b</b> </p><p> c</p>", "a b|c")]
-    [Arguments("<p><a href=\"#x\">link </a></p><p>next</p>", "link|next")]
-    [Arguments("<p>one<br> two </p>", "one↵two")]
-    public async Task WhitespaceAtBlockEdgesIsNotContent(string html, string expected)
-    {
-        await Assert.That(Flatten(WordHtmlConverter.ToElements(html))).IsEqualTo(expected);
-        await Assert.That(Flatten(WordHtmlConverter.ToParagraphs(html))).IsEqualTo(expected);
-    }
-
-    // Space between words survives wherever it sits, including across inline elements.
-    [Test]
-    [Arguments("<p>a <b>b</b> c</p>", "a b c")]
-    [Arguments("<p><b>a </b>b</p>", "a b")]
-    [Arguments("<p>a<b> b</b></p>", "a b")]
-    public async Task WhitespaceBetweenWordsIsKept(string html, string expected)
-    {
-        await Assert.That(Flatten(WordHtmlConverter.ToElements(html))).IsEqualTo(expected);
-        await Assert.That(Flatten(WordHtmlConverter.ToParagraphs(html))).IsEqualTo(expected);
-    }
-
-    // Preformatted space is content at either end, and a list marker's own space is the marker's.
-    [Test]
-    [Arguments("<pre>  a  </pre>", "  a  ")]
-    [Arguments("<div style=\"white-space: pre-wrap\">  a  </div>", "  a  ")]
-    [Arguments("<ul><li><ul><li>x</li></ul></li></ul>", "● |○ x")]
-    public async Task SpaceThatIsContentIsNotTrimmed(string html, string expected)
-    {
-        await Assert.That(Flatten(WordHtmlConverter.ToElements(html))).IsEqualTo(expected);
-        await Assert.That(Flatten(WordHtmlConverter.ToParagraphs(html))).IsEqualTo(expected);
-    }
-
-    [Test]
-    public async Task TableCellEdgesAreTrimmedToo()
-    {
-        const string html = "<table><tr><td>\n  a\n</td><td> b </td></tr></table>";
-
-        var cells = WordHtmlConverter.ToElements(html).Single().Descendants<TableCell>().Select(_ => _.InnerText);
-        var cell = SpreadsheetHtmlConverter.ToInlineString(html);
-
-        await Assert.That(cells).IsEquivalentTo(["a", "b"], CollectionOrdering.Matching);
-        await Assert.That(cell.InnerText).IsEqualTo("a\tb");
     }
 }

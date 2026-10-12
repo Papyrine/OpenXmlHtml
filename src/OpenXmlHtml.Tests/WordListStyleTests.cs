@@ -175,29 +175,4 @@ public class WordListStyleTests
         var starts = numbering.Descendants<StartOverrideNumberingValue>().Select(_ => _.Val!.Value);
         await Assert.That(starts).IsEquivalentTo([3, 5], CollectionOrdering.Matching);
     }
-
-    // Where there is no real numbering the marker is text, and it has to say what the list says:
-    // where it starts, which way it counts and in what. Both paths write it from one place, and
-    // the spreadsheet rides the segment path, so all three are checked together.
-    [Test]
-    [Arguments("""<ol><li>a</li><li>b</li></ol>""", "1. a|2. b")]
-    [Arguments("""<ol start="5"><li>a</li><li>b</li></ol>""", "5. a|6. b")]
-    [Arguments("""<ol reversed><li>a</li><li>b</li><li>c</li></ol>""", "3. a|2. b|1. c")]
-    [Arguments("""<ol reversed start="10"><li>a</li><li>b</li></ol>""", "10. a|9. b")]
-    [Arguments("""<ol type="a"><li>a</li><li>b</li></ol>""", "a) a|b) b")]
-    [Arguments("""<ol type="A" start="26"><li>a</li><li>b</li></ol>""", "Z) a|AA) b")]
-    [Arguments("""<ol type="i" start="3"><li>a</li><li>b</li></ol>""", "iii) a|iv) b")]
-    [Arguments("""<ol type="I" start="9"><li>a</li><li>b</li></ol>""", "IX) a|X) b")]
-    [Arguments("""<ol style="list-style-type: lower-roman"><li>a</li><li>b</li></ol>""", "i) a|ii) b")]
-    [Arguments("""<ol type="a" start="0"><li>a</li><li>b</li></ol>""", "0. a|a) b")]
-    public async Task TextMarkersFollowTheListsAttributes(string html, string expected)
-    {
-        var elements = string.Join("|", WordHtmlConverter.ToElements(html).Select(_ => _.InnerText));
-        var paragraphs = string.Join("|", WordHtmlConverter.ToParagraphs(html).Select(_ => _.InnerText));
-        var cell = SpreadsheetHtmlConverter.ToInlineString(html).InnerText.Replace("\n", "|");
-
-        await Assert.That(elements).IsEqualTo(expected);
-        await Assert.That(paragraphs).IsEqualTo(expected);
-        await Assert.That(cell).IsEqualTo(expected);
-    }
 }

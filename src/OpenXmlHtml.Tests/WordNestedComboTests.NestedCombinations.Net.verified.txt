@@ -10,7 +10,7 @@ Feature	Details
 Languages	C#F#VB.NET
 Steps	Install SDKCreate projectBuild and run
 Table Inside List
-Item with embedded table:
+Item with embedded table: 
 Name	Value
 Alpha	100
 Normal item after table
@@ -30,16 +30,16 @@ Bold cell	Italic cell	Link cell
 Styled span	Code cell	Highlighted
 Bold italic underline	Super/sub	Deleted Inserted
 Deeply Nested Lists
-Level 1 bullet
-Level 2 bullet
+Level 1 bullet 
+Level 2 bullet 
 Level 3 bullet
 Bold level 3
-Level 1 ordered
-Level 2 ordered
+Level 1 ordered 
+Level 2 ordered 
 Level 3 ordered
 Mixed List Types
-Ordered item
-Unordered child
+Ordered item 
+Unordered child 
 Back to ordered
 Formatting Inside Lists
 Bold item with italic and code
@@ -64,7 +64,7 @@ A markup language. See docs.
 CSS
 Style sheets for visual presentation.
 Paragraph Styling Combos
-Indented, justified, 1.8 line-height with bold, italic, and navy Georgia span inside a bordered background div.
+ Indented, justified, 1.8 line-height with bold, italic, and navy Georgia span inside a bordered background div. 
 Styled Table
 Centered boldWith small text below	List inside styled cellLink in list in cell
 Nested Table With Formatting
@@ -81,7 +81,7 @@ Figure 1: A chart showing growth over time
 Section A
 ———
 Section B
-Contact John Doe at john@example.com
+ Contact John Doe at john@example.com 
 Click to expand
 Hidden content with italic and link.
 }

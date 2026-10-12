@@ -27,7 +27,7 @@ public class SpreadsheetEdgeCaseTests
                 """
                 <x:is xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
                   <x:r>
-                    <x:t xml:space="preserve">lots of spaces</x:t>
+                    <x:t xml:space="preserve"> lots of spaces </x:t>
                   </x:r>
                 </x:is>
                 """);

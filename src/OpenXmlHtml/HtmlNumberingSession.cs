@@ -24,9 +24,4 @@ public class HtmlNumberingSession
     // added behind its back. If it ends anywhere else, the call counts again.
     internal int NextNumId { get; set; }
     internal OpenXmlElement? LastNumberingElement { get; set; }
-
-    // The highest bookmark id handed out through this session. The elements a call returns are not
-    // in the document until the caller puts them there, so their bookmarks cannot be found by
-    // looking; this is how the next call knows about them.
-    internal int LastBookmarkId { get; set; }
 }

@@ -21,79 +21,7 @@ static class HtmlSegmentParser
         var format = new FormatState();
         ProcessNode(body, format, segments, false, settings, placeImages);
         TrimTrailingNewlines(segments);
-        TrimTrailingSpace(segments);
         return segments;
-    }
-
-    // Whether whitespace opening the next text node folds away. It does after a space, as ever, and
-    // also wherever a line begins: at the very start, after a paragraph break or a <br>, and at the
-    // start of a table cell. A browser draws no space at the start of a line, so html written as
-    //
-    //     <p>
-    //       Hello
-    //     </p>
-    //
-    // is "Hello" and not " Hello ". Without this every pretty-printed paragraph opened with a
-    // space, and whitespace between an inline element and a block became a paragraph by itself.
-    static bool FoldsLeadingSpace(List<TextSegment> segments)
-    {
-        if (segments.Count == 0)
-        {
-            return true;
-        }
-
-        var last = segments[^1];
-        if (last.IsLineBreak ||
-            last.Text.Length == 0)
-        {
-            return true;
-        }
-
-        return last.Text[^1] is ' ' or '\n' or '\t';
-    }
-
-    // The other end of the same rule: the space that closes a line is not drawn either. Called
-    // where a block, a table cell or the whole fragment ends. A preformatted space is content and
-    // stays, and so does one under white-space:nowrap, which is written as a no-break space. A
-    // list marker keeps its own too: "● " is the marker, whether or not text follows it.
-    static void TrimTrailingSpace(List<TextSegment> segments)
-    {
-        if (segments.Count == 0)
-        {
-            return;
-        }
-
-        // The " (url)" an anchor trails is not part of the line's text: the Word path drops it
-        // once the link is built. The space to trim is the one ahead of it.
-        var index = segments.Count - 1;
-        while (index > 0 &&
-               segments[index].IsLinkUrl)
-        {
-            index--;
-        }
-
-        var last = segments[index];
-        if (last.IsLineBreak ||
-            last.IsLinkUrl ||
-            last.IsListMarker ||
-            last.Preformatted ||
-            last.Format.NoWrap ||
-            last.Format.Image != null ||
-            !last.Text.EndsWith(' '))
-        {
-            return;
-        }
-
-        if (last.Text.Length == 1)
-        {
-            segments.RemoveAt(index);
-            return;
-        }
-
-        segments[index] = last with
-        {
-            Text = last.Text[..^1]
-        };
     }
 
     static void ProcessNode(INode node, in FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, bool placeImages)
@@ -103,10 +31,12 @@ static class HtmlSegmentParser
             ReportTooDeep(node, settings);
             foreach (var textNode in TextNodes(node))
             {
-                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, FoldsLeadingSpace(segments));
+                var lastWasSpace = segments.Count > 0 &&
+                                   (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
+                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                 if (text.Length > 0)
                 {
-                    segments.Add(new(text, format, Preformatted: inPre));
+                    segments.Add(new(text, format));
                 }
             }
 
@@ -130,12 +60,14 @@ static class HtmlSegmentParser
                     // break counts as trailing space: browsers drop the space after a <br>, and the
                     // element path already does this (WordContentBuilder.AddBreakRun). Reading only
                     // EndsWith(' ') left the two paths disagreeing, since a <br> segment is "\n".
-                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, FoldsLeadingSpace(segments));
+                    var lastWasSpace = segments.Count > 0 &&
+                                       (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
+                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
                           (onlyBlockChildren ??= IsInterBlockWhitespace(textNode))))
                     {
-                        segments.Add(new(text, format, Preformatted: inPre));
+                        segments.Add(new(text, format));
                     }
 
                     break;
@@ -261,7 +193,7 @@ static class HtmlSegmentParser
                 bulletFormat.ListDepth = depth;
                 if (parent == "ol")
                 {
-                    segments.Add(new($"{indent}{OrderedMarker(element, listIndex)}", bulletFormat, IsListMarker: true));
+                    segments.Add(new($"{indent}{listIndex}. ", bulletFormat, IsListMarker: true));
                 }
                 else
                 {
@@ -316,7 +248,6 @@ static class HtmlSegmentParser
                 var nextSibling = element.NextElementSibling;
                 if (nextSibling is { LocalName: "td" or "th" })
                 {
-                    TrimTrailingSpace(segments);
                     segments.Add(new("\t", format));
                 }
 
@@ -942,7 +873,6 @@ static class HtmlSegmentParser
 
     static void EnsureNewline(List<TextSegment> segments, in FormatState format)
     {
-        TrimTrailingSpace(segments);
         if (segments.Count == 0)
         {
             return;
@@ -963,127 +893,6 @@ static class HtmlSegmentParser
         {
             segments.Add(new("\n", format));
         }
-    }
-
-    // The text marker for an item of an ordered list, where there is no real numbering to carry it:
-    // a spreadsheet cell, ToParagraphs, and ToElements with no MainDocumentPart or for a reversed
-    // list. Both paths write it from here, so they cannot drift apart again — the element path
-    // used to honour reversed and the segment path did not, and neither read start or type, so a
-    // list that began at 5 or counted in letters came out "1. 2. 3." regardless.
-    //
-    // The punctuation matches what the real numbering writes: "1." for decimal, "a)" otherwise.
-    internal static string OrderedMarker(IElement item, int listIndex)
-    {
-        var list = item.ParentElement!;
-        int? start = null;
-        if (int.TryParse(list.GetAttribute("start"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-        {
-            start = parsed;
-        }
-
-        int number;
-        if (list.HasAttribute("reversed"))
-        {
-            number = (start ?? CountItems(list)) - (listIndex - 1);
-        }
-        else
-        {
-            number = (start ?? 1) + (listIndex - 1);
-        }
-
-        string? cssType = null;
-        if (list.GetAttribute("style") is { } style)
-        {
-            StyleParser.Parse(style).TryGetValue("list-style-type", out cssType);
-        }
-
-        var format = WordNumberingBuilder.ParseListStyleType(list.GetAttribute("type"), cssType, true);
-        if (format == NumberFormatValues.LowerLetter &&
-            ToLetters(number) is { } lower)
-        {
-            return $"{lower}) ";
-        }
-
-        if (format == NumberFormatValues.UpperLetter &&
-            ToLetters(number) is { } upper)
-        {
-            return $"{upper.ToUpperInvariant()}) ";
-        }
-
-        if (format == NumberFormatValues.LowerRoman &&
-            ToRoman(number) is { } lowerRoman)
-        {
-            return $"{lowerRoman.ToLowerInvariant()}) ";
-        }
-
-        if (format == NumberFormatValues.UpperRoman &&
-            ToRoman(number) is { } upperRoman)
-        {
-            return $"{upperRoman}) ";
-        }
-
-        return $"{number.ToString(CultureInfo.InvariantCulture)}. ";
-    }
-
-    static int CountItems(IElement list)
-    {
-        var count = 0;
-        foreach (var child in list.Children)
-        {
-            if (child.LocalName == "li")
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    // a, b, ... z, aa, ab, ... as a browser counts them. Null below 1, where there is no letter
-    // and a browser falls back to the number.
-    static string? ToLetters(int number)
-    {
-        if (number < 1)
-        {
-            return null;
-        }
-
-        var letters = new StringBuilder();
-        while (number > 0)
-        {
-            number--;
-            letters.Insert(0, (char) ('a' + number % 26));
-            number /= 26;
-        }
-
-        return letters.ToString();
-    }
-
-    static readonly (int Value, string Numeral)[] romanNumerals =
-    [
-        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
-        (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
-    ];
-
-    // Null outside 1 to 3999, the range roman numerals cover, where a browser falls back too.
-    static string? ToRoman(int number)
-    {
-        if (number is < 1 or > 3999)
-        {
-            return null;
-        }
-
-        var roman = new StringBuilder();
-        foreach (var (value, numeral) in romanNumerals)
-        {
-            while (number >= value)
-            {
-                roman.Append(numeral);
-                number -= value;
-            }
-        }
-
-        return roman.ToString();
     }
 
     internal static int GetListDepth(IElement listItem)

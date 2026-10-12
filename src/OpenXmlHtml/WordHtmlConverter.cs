@@ -769,9 +769,8 @@ public static class WordHtmlConverter
 
         var relationshipId = StoreImage(part, GetImagePartType(image.ContentType), image.Bytes, imageIndex, $"rImage{imageIndex}", stored, out var drawingId);
 
-        var (widthPx, heightPx) = ImageSize.Resolve(image);
-        var widthEmu = (long)widthPx * 9525;
-        var heightEmu = (long)heightPx * 9525;
+        var widthEmu = (long)(image.WidthPx ?? 100) * 9525;
+        var heightEmu = (long)(image.HeightPx ?? 100) * 9525;
 
         var drawing = BuildImageDrawing(
             new()

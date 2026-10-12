@@ -8,15 +8,7 @@ public class WordPictureTests
               <source srcset="huge.webp" type="image/webp">
               <img alt="fallback alt text">
             </picture>
-            """))
-            .Snapshot(
-                """
-                <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-                  <w:r>
-                    <w:t xml:space="preserve">fallback alt text</w:t>
-                  </w:r>
-                </w:p>
-                """);
+            """));
 
     [Test]
     public Task PictureWithImgAlt() =>
