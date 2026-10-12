@@ -69,6 +69,20 @@ Two code paths exist for Word output:
 
 - **A `pPr` child goes in through `AddParagraphProperty`, never `Append`.** `CT_PPrBase` fixes the order of its children and css arrives in a different one: the background is read after the alignment and the border after both, so appending produced `spacing, ind, jc, shd, bidi, textDirection, pBdr` where the schema wants `pBdr, shd, bidi, spacing, ind, jc, textDirection`. Word repairs a document that gets this wrong, which is why it went unseen until `SchemaValidationTests` swept the snapshots — and why a snapshot alone will not catch the next one, since it only covers the css combinations some test happened to write. Anything new emitted into a `pPr` belongs in `paragraphPropertyOrder`, and `WordValidationTests.ParagraphPropertiesFollowSchemaOrder` pins the sequence. `sectPr` has the same shape: the header and footer references open its sequence, ahead of the page setup, so `EnsureHeaderFooterReference` inserts rather than appends.
 
+- **Whatever an enclosing block owes the paragraphs inside it lives on the context as an "ambient" value, restored on the way out.** Entering a child block flushes first, and that flush clears per-paragraph state before any text has arrived. `AmbientParagraphStyleId` carries a class-mapped style across that flush and `AmbientParagraphFormat` carries alignment, line height, indent, background, border and the side margins: `<div style="text-align:center"><p>x</p></div>` lost the alignment without it. Top and bottom margins are the block's own and are not handed down. A table cell's `text-align` reaches its paragraphs the same way, since Word aligns paragraphs, not cells.
+- **A block's border is its paragraph's (`pBdr`) and a cell's is its `tcBorders`; neither goes on the runs.** `ApplyInlineStyle` reads `border` into `FormatState` for any element, so the block and cell handling put the run border back to what was inherited. Left alone it drew a second box around the text inside the first.
+- **A tag's default formatting is set outright, not with `??=`.** `<code>` is monospace inside a paragraph that names a font, a link is blue inside coloured text, `<mark>` is yellow inside a background: these are the browser's rules for the element and outrank an inherited value. The element's own `style` is applied afterwards and still wins. The underline on `<u>`, `<ins>` and `<a>` keeps `??=` on purpose, to preserve an enclosing dotted or wavy style. Only an `<a>` with an `href` is styled as a link.
+- **Relationships are registered on the part that will hold the xml, `WordBuildContext.RelationshipPart`, not always on the main part.** An `r:embed` or `r:id` is resolved against the part it sits in, so a header's image and link have to be on the header part. Styles, numbering and footnotes stay document-level on `MainPart`, and a header or footer writes no footnote reference because it cannot hold one.
+- **Every id that has to be unique in the document carries on from what is already there.** Several calls against one `MainDocumentPart` is a documented way to build a document. Footnote ids and numbering ids are read from their parts, image indexes from the highest `rImage{n}` relationship (`LastImageIndex`). A counter that restarted at 1 is how the second call's picture came to show the first call's image. `HtmlNumberingSession` remembers the next numbering id between calls so it is not recounted each time, and rechecks whenever the numbering part no longer ends where it left it.
+- **Parts and external links get fixed relationship ids from `PartRelationshipId.Next`** (`rNumbering`, `rStyles`, `rLink`, `rFootnotes`, `rHeader`, `rFooter`, plus `rImage{n}`), so the same html gives the same parts. The package is still not byte-identical from run to run: zip entries record when they were written. A test of reproducibility should compare parts, not bytes.
+- **An image used more than once is stored once (`StoredImage`), and the repeats share the first use's relationship id.** The SDK allows only one relationship from an owner to a given part. A repeat's `wp:docPr` id comes from a range above `0x40000000` rather than from its image index, because the next call seeds from the highest `rImage{n}` and a repeat adds none.
+- **Ordered lists of one number format share an abstract definition, and every `<ol>` carries a start override on its own instance.** The override is what makes each list restart; without it instances sharing a definition would carry on from one another. It names the level the list sits at, not level 0.
+- **`tblPr` and `tcPr` children go through `NormaliseProperties`, which puts them in schema order and drops a repeat.** Same reason as `AddParagraphProperty` below. css is read before the attribute it replaced and the sort is stable, so where both speak (`bgcolor` and `background-color`, `cellpadding` and `padding`) the css one is kept.
+- **Table spans are clamped and the grid is counted by where cells start.** `colspan` and `col span` stop at 1000 and `rowspan` at 65534, html's own limits, and a table at 63 columns, Word's. A column exists where a cell starts, not everywhere a span reaches, so `colspan="100"` for "all of them" does not make a hundred columns. Two tables in a row get an empty paragraph between them, because Word joins adjacent tables into one.
+- **Both walks check the stack before descending (`HasStackToRecurse`) and flatten an over-deep subtree to its text.** html has no nesting limit and a stack overflow cannot be caught. `FormatState` is 152 bytes and is passed as `in` for the same reason: by value, each level cost several copies of it in stack.
+- **`<font size>` is html's 1 to 7 scale, and a value above 7 is points.** The second half is this library's own long-standing reading (`size="14"`), kept because callers rely on it.
+- **A block bookmark waits in `PendingBookmarks` for a paragraph to sit in.** A block that only holds other blocks has no paragraph of its own; written straight into the pending runs its markers were flushed out as two empty paragraphs.
+
 ### Key internal classes
 
 - `HtmlSegmentParser` — Parses HTML via AngleSharp into flat `TextSegment(string Text, FormatState Format)` list. Used by both `ToParagraphs` (flat path) and `SpreadsheetHtmlConverter`.
@@ -76,6 +90,9 @@ Two code paths exist for Word output:
 - `ImageResolver` — Resolves `<img>` sources: `data:` URIs (always allowed), HTTP/HTTPS URLs (checked against `HtmlConvertSettings.WebImages` policy), local files (checked against `LocalImages` policy). Returns `ImageData` or null (alt text fallback).
 - `WordNumberingBuilder` — Creates `NumberingDefinitionsPart` with bullet/decimal abstract numbering definitions. Each `<ul>`/`<ol>` gets its own numbering instance; nested lists increment `ilvl`.
 - `WordStyleLookup` — Reads `StyleDefinitionsPart` to build a map from CSS class names to Word paragraph/character style IDs (case-insensitive).
+- `PartRelationshipId` — Mints deterministic relationship ids for parts and external links.
+- `LinkTarget` — Decides whether an `href` is an absolute url. `Uri.TryCreate` alone accepts `//host/page` on Windows and `/path` on Unix as file paths, so a leading slash is ruled out first.
+- `StoredImage` — An image part already written in this conversion, so a repeat reuses it.
 - `ParagraphFormatState` — Holds paragraph-level CSS properties (margins, text-indent, line-height, text-align) parsed from inline `style` attributes, applied at paragraph flush time.
 
 ### Public API classes
@@ -104,7 +121,7 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `WordColgroupTests` | `<colgroup>`, `<col>`, `col width=` / `col style="width"`, `col span=`, column width propagation to `tblGrid` and cells |
 | `WordImageSizingTests` | CSS `width`/`height` on `<img>` (px, pt, em, in), precedence over HTML `width=`/`height=` attributes, percentage fallthrough |
 | `WordImageFloatTests` | CSS `float: left`/`float: right` on `<img>` and `<svg>` → anchored drawing with text wrap |
-| `WordAnchorTests` | `a` (hyperlinks, internal `#id` links), `id` attribute bookmarks |
+| `WordAnchorTests` | `a` (hyperlinks, internal `#id` links), `id` attribute bookmarks on blocks, inline elements and named anchors, relative `href`s |
 | `WordNestedTests` | Deeply nested formatting combinations |
 | `WordEdgeCaseTests` | Whitespace collapsing, malformed HTML, unclosed tags, unknown tags, image alt fallback |
 | `WordParagraphSpacingTests` | `margin`, `text-indent`, `text-align`, `line-height` |
@@ -144,7 +161,17 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 | `WordConvertToDocxTests` | Full docx output: images, SVG, footnotes, page breaks, CSS styles, lists, tables |
 | `WordHeaderFooterTests` | `SetHeader`/`SetFooter` with plain and formatted HTML, tables in headers |
 | `WordConvertFileTests` | `ConvertFileToDocx` file I/O |
-| `WordIntegrationTests` | `AppendHtml`, `ToParagraphs` rich document scenarios |
+| `WordIntegrationTests` | `AppendHtml`, `ToParagraphs` rich document scenarios, images across several calls, repeated images stored once |
+| `WordValidationTests` | Schema validity of generated documents: property order in `pPr`/`tblPr`/`tcPr`, out-of-range css lengths, unique drawing ids, reproducible relationship ids |
+| `WordFootnoteIdTests` | Footnote ids unique across table cells and across calls |
+| `WordBookmarkIdTests` | Bookmark ids unique across table cells |
+| `WordImageFallbackTests` | Alt-text fallback when an image cannot be decoded, downloaded or read |
+| `WordListBulletGlyphTests` | Bullet glyph fonts per level, list items with block children |
+| `WordListNumberingSessionTests` | `HtmlNumberingSession` sharing a bullet definition across calls |
+| `WordNumberingTests` | `WordNumbering.EnsureListDefinitions` |
+| `WordStylesTests` | `WordStyles.EnsureStyleDefinitions` |
+| `WordRowspanTests` | Rowspans that would otherwise drop trailing cells |
+| `WordNestedComboTests` | Single large docx of nested feature combinations |
 | `WordStyleComboTests` | Single large docx exercising all features together |
 | `ImagePolicyTests` | `ImagePolicy` unit tests (Deny/AllowAll/SafeDomains/SafeDirectories/Filter) |
 | `StyleParserTests` | CSS parsing, `ParseFontSize`, `ParseLengthToTwips` |
@@ -175,3 +202,4 @@ Tests are organized by feature area. Each supported HTML element and CSS propert
 ## Review history
 
 - **2026-10-11**: performance and bug scan of the library (`src/OpenXmlHtml`).
+- **2026-10-12**: the bugs and performance problems that scan found were fixed, one PR each (#54 to #94). The design decisions above that came out of it are written up there.
