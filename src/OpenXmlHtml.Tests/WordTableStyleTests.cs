@@ -277,4 +277,40 @@ public class WordTableStyleTests
         await Assert.That(paragraphProperties.ChildElements.Count).IsEqualTo(1);
         await Assert.That(paragraphProperties.Justification).IsNotNull();
     }
+
+    // A cell's style is parsed once and shared between its cell properties and its run formatting.
+    // Both still have to see every declaration.
+    [Test]
+    public async Task CellStyleStillReachesCellAndRuns()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """<table><tr><td style="background-color: #eeeeee; color: red; font-weight: bold; padding: 4px">x</td></tr></table>""").Single();
+
+        var cell = table.Descendants<TableCell>().Single();
+        var run = cell.Descendants<WRun>().Single();
+
+        await Assert.That(cell.TableCellProperties!.Shading!.Fill!.Value).IsEqualTo("EEEEEE");
+        await Assert.That(cell.TableCellProperties.TableCellMargin).IsNotNull();
+        await Assert.That(run.RunProperties!.Color!.Val!.Value).IsEqualTo("FF0000");
+        await Assert.That(run.RunProperties.Bold).IsNotNull();
+    }
+
+    // The grid is filled from the first row whose cells all give a width. The search skips a style
+    // that mentions none and gives up on a row at its first cell without one; it must still find
+    // the row that qualifies.
+    [Test]
+    public async Task GridWidthsStillComeFromTheFirstFullRow()
+    {
+        var table = WordHtmlConverter.ToElements(
+            """
+            <table>
+              <tr><td style="color: red">a</td><td style="width: 100px">b</td></tr>
+              <tr><td style="WIDTH: 100px">c</td><td width="200">d</td></tr>
+            </table>
+            """).Single();
+
+        var widths = table.Descendants<GridColumn>().Select(_ => _.Width!.Value!);
+
+        await Assert.That(widths).IsEquivalentTo(["1500", "3000"], CollectionOrdering.Matching);
+    }
 }

@@ -311,6 +311,12 @@ static class HtmlSegmentParser
     internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format) =>
         ApplyElementFormatting(element, tag, ref format, out _);
 
+    // For a caller that has already parsed the element's style attribute for its own purposes, so
+    // the formatting does not parse it a second time. A table cell does: its style decides the
+    // cell's properties first.
+    internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, Dictionary<string, string>? parsedStyle) =>
+        ApplyElementFormatting(element, tag, ref format, out _, parsedStyle);
+
     internal static bool ApplyWhiteSpace(Dictionary<string, string>? declarations, ref FormatState format, bool inPre)
     {
         if (declarations == null ||
@@ -335,7 +341,12 @@ static class HtmlSegmentParser
         return inPre;
     }
 
-    internal static void ApplyElementFormatting(IElement element, string tag, ref FormatState format, out Dictionary<string, string>? declarations)
+    internal static void ApplyElementFormatting(
+        IElement element,
+        string tag,
+        ref FormatState format,
+        out Dictionary<string, string>? declarations,
+        Dictionary<string, string>? parsedStyle = null)
     {
         // What reached this element from outside it, before its own tag adds anything. That is what
         // text-decoration:none falls back to: it cannot cancel a decoration an ancestor drew, but
@@ -434,7 +445,7 @@ static class HtmlSegmentParser
             }
         }
 
-        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough);
+        ApplyInlineStyle(element, ref format, out declarations, inheritedUnderline, inheritedStrikethrough, parsedStyle);
 
         if (tag == "fieldset")
         {
@@ -448,16 +459,22 @@ static class HtmlSegmentParser
         ref FormatState format,
         out Dictionary<string, string>? declarations,
         UnderlineValues? inheritedUnderline,
-        bool inheritedStrikethrough)
+        bool inheritedStrikethrough,
+        Dictionary<string, string>? parsedStyle)
     {
-        var style = element.GetAttribute("style");
-        if (style == null)
+        if (parsedStyle == null)
         {
-            declarations = null;
-            return;
+            var style = element.GetAttribute("style");
+            if (style == null)
+            {
+                declarations = null;
+                return;
+            }
+
+            parsedStyle = StyleParser.Parse(style);
         }
 
-        declarations = StyleParser.Parse(style);
+        declarations = parsedStyle;
 
         if (declarations.TryGetValue("font-weight", out var fontWeight))
         {
