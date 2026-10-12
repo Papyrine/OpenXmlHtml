@@ -21,7 +21,79 @@ static class HtmlSegmentParser
         var format = new FormatState();
         ProcessNode(body, format, segments, false, settings, placeImages);
         TrimTrailingNewlines(segments);
+        TrimTrailingSpace(segments);
         return segments;
+    }
+
+    // Whether whitespace opening the next text node folds away. It does after a space, as ever, and
+    // also wherever a line begins: at the very start, after a paragraph break or a <br>, and at the
+    // start of a table cell. A browser draws no space at the start of a line, so html written as
+    //
+    //     <p>
+    //       Hello
+    //     </p>
+    //
+    // is "Hello" and not " Hello ". Without this every pretty-printed paragraph opened with a
+    // space, and whitespace between an inline element and a block became a paragraph by itself.
+    static bool FoldsLeadingSpace(List<TextSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return true;
+        }
+
+        var last = segments[^1];
+        if (last.IsLineBreak ||
+            last.Text.Length == 0)
+        {
+            return true;
+        }
+
+        return last.Text[^1] is ' ' or '\n' or '\t';
+    }
+
+    // The other end of the same rule: the space that closes a line is not drawn either. Called
+    // where a block, a table cell or the whole fragment ends. A preformatted space is content and
+    // stays, and so does one under white-space:nowrap, which is written as a no-break space. A
+    // list marker keeps its own too: "● " is the marker, whether or not text follows it.
+    static void TrimTrailingSpace(List<TextSegment> segments)
+    {
+        if (segments.Count == 0)
+        {
+            return;
+        }
+
+        // The " (url)" an anchor trails is not part of the line's text: the Word path drops it
+        // once the link is built. The space to trim is the one ahead of it.
+        var index = segments.Count - 1;
+        while (index > 0 &&
+               segments[index].IsLinkUrl)
+        {
+            index--;
+        }
+
+        var last = segments[index];
+        if (last.IsLineBreak ||
+            last.IsLinkUrl ||
+            last.IsListMarker ||
+            last.Preformatted ||
+            last.Format.NoWrap ||
+            last.Format.Image != null ||
+            !last.Text.EndsWith(' '))
+        {
+            return;
+        }
+
+        if (last.Text.Length == 1)
+        {
+            segments.RemoveAt(index);
+            return;
+        }
+
+        segments[index] = last with
+        {
+            Text = last.Text[..^1]
+        };
     }
 
     static void ProcessNode(INode node, in FormatState format, List<TextSegment> segments, bool inPre, HtmlConvertSettings? settings, bool placeImages)
@@ -31,12 +103,10 @@ static class HtmlSegmentParser
             ReportTooDeep(node, settings);
             foreach (var textNode in TextNodes(node))
             {
-                var lastWasSpace = segments.Count > 0 &&
-                                   (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
-                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
+                var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, FoldsLeadingSpace(segments));
                 if (text.Length > 0)
                 {
-                    segments.Add(new(text, format));
+                    segments.Add(new(text, format, Preformatted: inPre));
                 }
             }
 
@@ -60,14 +130,12 @@ static class HtmlSegmentParser
                     // break counts as trailing space: browsers drop the space after a <br>, and the
                     // element path already does this (WordContentBuilder.AddBreakRun). Reading only
                     // EndsWith(' ') left the two paths disagreeing, since a <br> segment is "\n".
-                    var lastWasSpace = segments.Count > 0 &&
-                                       (segments[^1].IsLineBreak || segments[^1].Text.EndsWith(' '));
-                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, lastWasSpace);
+                    var text = inPre ? textNode.Data : CollapseWhitespace(textNode.Data, FoldsLeadingSpace(segments));
                     if (text.Length > 0 &&
                         !(string.IsNullOrWhiteSpace(text) &&
                           (onlyBlockChildren ??= IsInterBlockWhitespace(textNode))))
                     {
-                        segments.Add(new(text, format));
+                        segments.Add(new(text, format, Preformatted: inPre));
                     }
 
                     break;
@@ -248,6 +316,7 @@ static class HtmlSegmentParser
                 var nextSibling = element.NextElementSibling;
                 if (nextSibling is { LocalName: "td" or "th" })
                 {
+                    TrimTrailingSpace(segments);
                     segments.Add(new("\t", format));
                 }
 
@@ -873,6 +942,7 @@ static class HtmlSegmentParser
 
     static void EnsureNewline(List<TextSegment> segments, in FormatState format)
     {
+        TrimTrailingSpace(segments);
         if (segments.Count == 0)
         {
             return;

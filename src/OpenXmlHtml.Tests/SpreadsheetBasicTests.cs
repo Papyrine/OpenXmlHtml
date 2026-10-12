@@ -160,14 +160,7 @@ public class SpreadsheetBasicTests
     [Test]
     public Task WhitespaceOnly() =>
         Verify(SpreadsheetHtmlConverter.ToInlineString("   "))
-            .Snapshot(
-                """
-                <x:is xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-                  <x:r>
-                    <x:t xml:space="preserve"> </x:t>
-                  </x:r>
-                </x:is>
-                """);
+            .Snapshot("<x:is xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" />");
 
     [Test]
     public Task HtmlEntities() =>

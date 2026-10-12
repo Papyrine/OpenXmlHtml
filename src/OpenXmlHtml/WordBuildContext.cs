@@ -11,6 +11,11 @@
     internal int FootnoteIndex;
     internal int BookmarkId;
 
+    // Whether BookmarkId has been moved past the bookmark ids already in use. That means reading
+    // every bookmark in the document, so it waits until the html actually asks for one: most
+    // fragments carry no id at all.
+    internal bool BookmarkIdSeeded;
+
     // Bookmark markers waiting for a paragraph to sit in. A block's bookmark opens before its
     // content, but a block that holds other blocks has no paragraph of its own: written straight
     // into CurrentRuns the marker was flushed out as a paragraph by itself when the first child
@@ -73,6 +78,11 @@
     // paragraph instead of leaving it stranded. Saved and restored around nested items.
     internal int ListItemContentFloor;
 
+    // The run holding the text marker ("● " or "1. ") of the list item being built, when the list
+    // has no real numbering. Its trailing space is part of the marker and is not trimmed where the
+    // paragraph ends, as a folded space is.
+    internal Run? ListMarker;
+
     // A page break owed to a paragraph that has not been built yet. Word has no "break after", so
     // page-break-before and page-break-after both become a pageBreakBefore on a paragraph: its own
     // for the former, the following one for the latter. An empty flush leaves this pending, so a
@@ -81,5 +91,8 @@
 
     // Whether the text emitted so far ends in a space, so whitespace spanning an inline boundary
     // folds the way a browser folds it. Cleared whenever a paragraph is flushed.
-    internal bool LastWasSpace;
+    //
+    // It starts out set, and is set again by every flush: whitespace that opens a paragraph folds
+    // away like whitespace after a space, since a browser draws none at the start of a line.
+    internal bool LastWasSpace = true;
 }

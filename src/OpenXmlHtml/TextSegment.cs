@@ -9,4 +9,7 @@
 //
 // IsListMarker marks the bullet or number an <li> opens with. A block that is the first thing in
 // the item (<li><p>x</p></li>) reads it to stay on the marker's line instead of breaking after it.
-record TextSegment(string Text, FormatState Format, bool IsLineBreak = false, bool IsLinkUrl = false, bool IsListMarker = false);
+//
+// Preformatted marks text taken as written, under <pre> or white-space:pre. Its spaces are content,
+// so the trailing one is not trimmed where a block ends the way a folded one is.
+record TextSegment(string Text, FormatState Format, bool IsLineBreak = false, bool IsLinkUrl = false, bool IsListMarker = false, bool Preformatted = false);

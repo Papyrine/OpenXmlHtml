@@ -132,6 +132,7 @@ static partial class WordContentBuilder
             if (parent == "ol")
             {
                 AddTextRun(HtmlSegmentParser.OrderedMarker(element, listIndex), newFormat, context);
+                context.ListMarker = (Run)context.CurrentRuns[^1];
             }
             else
             {
@@ -142,6 +143,7 @@ static partial class WordContentBuilder
                     _ => "\u25A0"
                 };
                 AddTextRun($"{bullet} ", newFormat, context);
+                context.ListMarker = (Run)context.CurrentRuns[^1];
             }
         }
 

@@ -49,7 +49,7 @@ public class WordWhiteSpaceTests
                 """
                 <w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:r>
-                    <w:t xml:space="preserve"> collapsed spaces </w:t>
+                    <w:t xml:space="preserve">collapsed spaces</w:t>
                   </w:r>
                 </w:p>
                 """);
