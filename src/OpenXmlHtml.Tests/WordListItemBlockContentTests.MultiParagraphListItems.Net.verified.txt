@@ -1,0 +1,19 @@
+﻿{
+  Text:
+Bulleted list, each item two paragraphs:
+First bullet
+Continuation of the first bullet
+Second bullet
+Continuation of the second bullet
+Ordered list, the second item holding a nested list and a table:
+Item one
+Continuation of item one
+Item two
+Nested bullet
+Continuation of the nested bullet
+Second nested bullet
+Item two again, after the nested list
+A table in item two
+Item three
+After the lists
+}

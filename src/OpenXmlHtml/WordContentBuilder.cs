@@ -239,7 +239,7 @@
                 return;
             }
             case "table":
-                FlushParagraph(elements, context);
+                FlushBeforeBlockWithoutParagraph(elements, context);
                 // A table carries no pageBreakBefore of its own, so a break owed at this point has
                 // to be spent on an empty paragraph ahead of it. That is what Word itself writes.
                 if (context.PendingPageBreak)
@@ -895,6 +895,11 @@
             context.PendingBookmarks.Clear();
         }
 
+        // A paragraph of a list item after its first: no numbering, and indented under the item's
+        // text instead.
+        var continuesListItem = context.ListNumId == null &&
+                                context.ListDepth == 0 &&
+                                context.ListItemIndent > 0;
         var paragraph = WordHtmlConverter.BuildParagraph(context.CurrentRuns, context.ListNumId != null ? 0 : context.ListDepth);
 
         if (context.PendingPageBreak)
@@ -961,6 +966,12 @@
         {
             paragraph.ParagraphProperties ??= new();
             ApplyParagraphFormat(paragraph.ParagraphProperties, context.ParagraphFormat);
+        }
+
+        if (continuesListItem)
+        {
+            paragraph.ParagraphProperties ??= new();
+            IndentBy(paragraph.ParagraphProperties, context.ListItemIndent);
         }
 
         if (context.ParagraphRightToLeft &&
@@ -1077,6 +1088,26 @@
         {
             follower.InsertBeforeSelf(property);
         }
+    }
+
+    // Moves a paragraph right by a list item's indent, on top of any left margin of its own: a css
+    // margin inside an item is measured from the item's text, not from the page.
+    static void IndentBy(ParagraphProperties props, int twips)
+    {
+        var indent = props.GetFirstChild<Indentation>();
+        if (indent == null)
+        {
+            indent = new();
+            AddParagraphProperty(props, indent);
+        }
+
+        if (indent.Left?.Value is { } own &&
+            int.TryParse(own, out var ownTwips))
+        {
+            twips += ownTwips;
+        }
+
+        indent.Left = twips.ToString();
     }
 
     static void ApplyParagraphFormat(ParagraphProperties props, ParagraphFormatState pf)

@@ -78,6 +78,13 @@
     // paragraph instead of leaving it stranded. Saved and restored around nested items.
     internal int ListItemContentFloor;
 
+    // The left indent, in twips, of the text of the list item being built: its level's indent in
+    // the numbering definition. A paragraph of the item after its first carries no numbering, so
+    // it takes this instead and lines up under the item's text, and a table in the item takes it
+    // too. Zero outside an item, and for a text marker, which is indented as text. Saved and
+    // restored around nested items.
+    internal int ListItemIndent;
+
     // The run holding the text marker ("● " or "1. ") of the list item being built, when the list
     // has no real numbering. Its trailing space is part of the marker and is not trimmed where the
     // paragraph ends, as a folded space is.
