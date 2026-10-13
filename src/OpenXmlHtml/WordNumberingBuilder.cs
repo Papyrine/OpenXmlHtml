@@ -175,7 +175,7 @@ static class WordNumberingBuilder
                 });
         }
 
-        numbering.Append(instance);
+        AppendInSequence(numbering, instance);
         return numId;
     }
 
@@ -225,13 +225,38 @@ static class WordNumberingBuilder
     static void InsertAbstractNum(Numbering numbering, AbstractNum abstractNum)
     {
         var firstInstance = numbering.GetFirstChild<NumberingInstance>();
-        if (firstInstance == null)
-        {
-            numbering.Append(abstractNum);
-        }
-        else
+        if (firstInstance != null)
         {
             numbering.InsertBefore(abstractNum, firstInstance);
+            return;
         }
+
+        AppendInSequence(numbering, abstractNum);
+    }
+
+    // The last definition or instance, which is what a new instance is added after.
+    internal static OpenXmlElement? LastInSequence(Numbering numbering)
+    {
+        var last = numbering.LastChild;
+        if (last is NumberingIdMacAtCleanup)
+        {
+            return last.PreviousSibling();
+        }
+
+        return last;
+    }
+
+    // w:numbering is a sequence: every w:numPicBullet, then every w:abstractNum, then every w:num,
+    // then w:numIdMacAtCleanup, which a numbering part saved by Word for Mac ends with. Whatever is
+    // added last among the definitions or the instances still goes in ahead of that element.
+    static void AppendInSequence(Numbering numbering, OpenXmlElement element)
+    {
+        if (numbering.LastChild is NumberingIdMacAtCleanup cleanup)
+        {
+            numbering.InsertBefore(element, cleanup);
+            return;
+        }
+
+        numbering.Append(element);
     }
 }

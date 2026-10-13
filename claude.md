@@ -62,6 +62,7 @@ Two code paths produce Word output:
 
 - **A `pPr` child goes in through `AddParagraphProperty`, never `Append`.** `CT_PPrBase` fixes the order of its children and css arrives in a different one. Word repairs a wrong order silently, so a snapshot will not catch it. Anything new belongs in `paragraphPropertyOrder`. `sectPr` is the same: `EnsureHeaderFooterReference` inserts rather than appends.
 - **`tblPr` and `tcPr` children go through `NormaliseProperties`**, which orders them and drops a repeat. css is read before the attribute it replaced, so where both speak (`bgcolor` and `background-color`, `cellpadding` and `padding`) css is kept.
+- **A `w:numbering` child goes in through `WordNumberingBuilder`, never `Append`.** The part is a sequence: `numPicBullet`, `abstractNum`, `num`, then the `numIdMacAtCleanup` a part saved by Word for Mac ends with. `HtmlNumberingSession` watches the last definition or instance (`LastInSequence`), not `LastChild`, which is that closing element whatever is added ahead of it.
 
 **Tables and lists**
 

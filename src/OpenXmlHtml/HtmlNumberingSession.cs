@@ -19,9 +19,11 @@ public class HtmlNumberingSession
     //
     // Without these every call finds the next id by reading every definition and instance already
     // in the document, so converting N fragments that each hold a list reads 1 + 2 + ... + N of
-    // them. The last element is the check that the answer still holds: every instance is appended
-    // at the end, so if the numbering part still ends where this session left it, nothing has been
-    // added behind its back. If it ends anywhere else, the call counts again.
+    // them. The last element is the check that the answer still holds: every instance is added
+    // after the ones already there, so if the instances still end where this session left them,
+    // nothing has been added behind its back. If they end anywhere else, the call counts again.
+    // The w:numIdMacAtCleanup that closes some numbering parts is not that element: an instance
+    // goes in ahead of it, so it is last whatever has been added.
     internal int NextNumId { get; set; }
     internal OpenXmlElement? LastNumberingElement { get; set; }
 

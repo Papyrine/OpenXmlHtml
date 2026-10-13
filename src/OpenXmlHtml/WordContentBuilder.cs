@@ -22,7 +22,7 @@
         if (main?.NumberingDefinitionsPart?.Numbering is { } existingNumbering)
         {
             if (settings?.NumberingSession is { LastNumberingElement: { } last } known &&
-                last == existingNumbering.LastChild)
+                last == WordNumberingBuilder.LastInSequence(existingNumbering))
             {
                 context.NextNumId = known.NextNumId;
             }
@@ -73,7 +73,15 @@
         {
             session2.BulletAbstractNumId = context.BulletAbstractNumId;
             session2.NextNumId = context.NextNumId;
-            session2.LastNumberingElement = main?.NumberingDefinitionsPart?.Numbering?.LastChild;
+            if (main?.NumberingDefinitionsPart?.Numbering is { } sessionNumbering)
+            {
+                session2.LastNumberingElement = WordNumberingBuilder.LastInSequence(sessionNumbering);
+            }
+            else
+            {
+                session2.LastNumberingElement = null;
+            }
+
             if (context.BookmarkIdSeeded)
             {
                 session2.LastBookmarkId = context.BookmarkId;
