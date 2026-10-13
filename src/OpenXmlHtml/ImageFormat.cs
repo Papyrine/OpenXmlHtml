@@ -21,7 +21,7 @@ static class ImageFormat
 
     // The media types an image part is declared with, then the other spellings in use for them.
     // Pcx and jpeg 2000 are not detected from their bytes, and are stored as declared.
-    static readonly Dictionary<string, string> mediaTypes = new(StringComparer.OrdinalIgnoreCase)
+    static Dictionary<string, string> mediaTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         [Png] = Png,
         [Jpeg] = Jpeg,
@@ -52,8 +52,8 @@ static class ImageFormat
 
     static ReadOnlySpan<byte> PngSignature => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
     static ReadOnlySpan<byte> JpegSignature => [0xFF, 0xD8, 0xFF];
-    static ReadOnlySpan<byte> TiffLittleEndian => [0x49, 0x49, 0x2A, 0x00];
-    static ReadOnlySpan<byte> TiffBigEndian => [0x4D, 0x4D, 0x00, 0x2A];
+    static ReadOnlySpan<byte> TiffLittleEndian => "II*\0"u8;
+    static ReadOnlySpan<byte> TiffBigEndian => "MM\0*"u8;
     static ReadOnlySpan<byte> PlaceableWmf => [0xD7, 0xCD, 0xC6, 0x9A];
     static ReadOnlySpan<byte> IconSignature => [0x00, 0x00, 0x01, 0x00];
     static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
@@ -81,12 +81,7 @@ static class ImageFormat
             declared = declared[..parameters];
         }
 
-        if (mediaTypes.TryGetValue(declared.Trim(), out var contentType))
-        {
-            return contentType;
-        }
-
-        return null;
+        return mediaTypes.GetValueOrDefault(declared.Trim());
     }
 
     // The format the leading bytes belong to, or null where they are none of the ones known here.

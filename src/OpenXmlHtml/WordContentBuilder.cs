@@ -1,6 +1,6 @@
 ﻿static partial class WordContentBuilder
 {
-    static readonly HtmlParser parser = new();
+    static HtmlParser parser = new();
 
     // An image lives in its own package part, which only a MainDocumentPart can hold. Converting
     // without one resolves the image and then has nowhere to put it, so it disappears.
@@ -715,7 +715,7 @@
             Space = SpaceProcessingModeValues.Preserve
         };
 
-    static readonly char[] tabOrNewline = ['\t', '\n'];
+    static char[] tabOrNewline = ['\t', '\n'];
 
     // Only white-space:pre gets a tab or a newline this far — the normal folding rules turn either
     // into a space before it reaches here. Word treats both as a plain space inside <w:t>, so a tab
@@ -898,8 +898,7 @@
         // A paragraph of a list item after its first: no numbering, and indented under the item's
         // text instead.
         var continuesListItem = context.ListNumId == null &&
-                                context.ListDepth == 0 &&
-                                context.ListItemIndent > 0;
+                                context is {ListDepth: 0, ListItemIndent: > 0};
         var paragraph = WordHtmlConverter.BuildParagraph(context.CurrentRuns, context.ListNumId != null ? 0 : context.ListDepth);
 
         if (context.PendingPageBreak)
@@ -1057,7 +1056,7 @@
     // paragraph carries its contextualSpacing before either indentation is worked out. Word repairs
     // what it is handed, so an appended child sat in the wrong place unnoticed until something
     // stricter read the document. Anything new emitted into a pPr belongs in this list.
-    static readonly Type[] paragraphPropertyOrder =
+    static Type[] paragraphPropertyOrder =
     [
         typeof(ParagraphStyleId),
         typeof(PageBreakBefore),

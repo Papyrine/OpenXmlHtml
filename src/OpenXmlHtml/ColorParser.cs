@@ -1,7 +1,7 @@
 static class ColorParser
 {
     // All 148 CSS named colors (https://www.w3.org/TR/css-color-4/#named-colors)
-    static readonly Dictionary<string, string> namedColors = new(StringComparer.OrdinalIgnoreCase)
+    static Dictionary<string, string> namedColors = new(StringComparer.OrdinalIgnoreCase)
     {
         ["aliceblue"] = "F0F8FF",
         ["antiquewhite"] = "FAEBD7",

@@ -5,7 +5,7 @@ using System.Net.Http;
 public class WordRemoteImageTests
 {
     // 2x2 red PNG
-    public static readonly byte[] PngBytes = Convert.FromBase64String(
+    public static byte[] PngBytes = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==");
 
     static HttpClient CreateFakeClient() =>

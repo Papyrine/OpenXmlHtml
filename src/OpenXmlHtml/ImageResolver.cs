@@ -3,7 +3,7 @@ static class ImageResolver
     // The default client does NOT auto-redirect: redirects are followed manually so each hop is
     // re-checked against the image policy. Otherwise a redirect from an allowed host could point
     // at an internal address and bypass SafeDomains (an SSRF vector).
-    static readonly HttpClient sharedClient = new(
+    static HttpClient sharedClient = new(
         new HttpClientHandler
         {
             AllowAutoRedirect = false
@@ -24,7 +24,7 @@ static class ImageResolver
     // image is sized by wp:extent, which takes an absolute emu extent and nothing else.
     internal const string ExtentIsAbsolute = "wp:extent takes an absolute extent, so this size could not be resolved to one";
 
-    static readonly Dictionary<string, string> extensionToContentType = new(StringComparer.OrdinalIgnoreCase)
+    static Dictionary<string, string> extensionToContentType = new(StringComparer.OrdinalIgnoreCase)
     {
         [".jpg"] = "image/jpeg",
         [".jpeg"] = "image/jpeg",

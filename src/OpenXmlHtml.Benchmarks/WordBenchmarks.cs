@@ -78,11 +78,11 @@ public class WordBenchmarks
         </table>
         """;
 
-    static readonly string largeDocument;
-    static readonly string hyperlinkHeavy;
-    static readonly string lineHeightHeavy;
-    static readonly string directionRtlHeavy;
-    static readonly string svgDimensionHeavy;
+    static string largeDocument;
+    static string hyperlinkHeavy;
+    static string lineHeightHeavy;
+    static string directionRtlHeavy;
+    static string svgDimensionHeavy;
 
     static WordBenchmarks()
     {

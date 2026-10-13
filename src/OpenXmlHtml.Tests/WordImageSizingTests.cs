@@ -69,9 +69,10 @@ public class WordImageSizingTests
         var main = document.AddMainDocumentPart();
         WordHtmlConverter.ToElements($"""<img src="data:image/png;base64,{base64}" width="1" height="1">""", main);
 
+        // ReSharper disable once UseAwaitUsing
         using var partStream = main.ImageParts.Single().GetStream();
         using var actual = new MemoryStream();
-        partStream.CopyTo(actual);
+        await partStream.CopyToAsync(actual);
 
         await Assert.That(actual.ToArray().SequenceEqual(expected)).IsTrue();
     }
@@ -92,19 +93,19 @@ public class WordImageSizingTests
     }
 
     // Headers only: enough of each format for its size to be read, 300 wide by 150 high.
-    static readonly byte[] pngHeader =
+    static byte[] pngHeader =
     [
         0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A,
         0, 0, 0, 13, (byte)'I', (byte)'H', (byte)'D', (byte)'R',
         0, 0, 0x01, 0x2C, 0, 0, 0, 0x96
     ];
 
-    static readonly byte[] gifHeader =
+    static byte[] gifHeader =
     [
         (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a', 0x2C, 0x01, 0x96, 0x00
     ];
 
-    static readonly byte[] bmpHeader =
+    static byte[] bmpHeader =
     [
         (byte)'B', (byte)'M', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 40, 0, 0, 0,
         0x2C, 0x01, 0, 0,
@@ -113,7 +114,7 @@ public class WordImageSizingTests
     ];
 
     // An application segment first, then padding, then the start of frame that holds the size.
-    static readonly byte[] jpegHeader =
+    static byte[] jpegHeader =
     [
         0xFF, 0xD8,
         0xFF, 0xE0, 0x00, 0x04, 0x00, 0x00,

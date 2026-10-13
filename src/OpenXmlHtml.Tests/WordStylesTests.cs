@@ -1,6 +1,6 @@
 public class WordStylesTests
 {
-    static readonly string[] expectedStyleIds =
+    static string[] expectedStyleIds =
     [
         "Normal", "Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "ListParagraph"
     ];

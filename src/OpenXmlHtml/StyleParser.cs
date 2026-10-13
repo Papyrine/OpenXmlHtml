@@ -95,7 +95,7 @@ static class StyleParser
     }
 
     // The point size html's seven font sizes stand for, 3 being the default.
-    static readonly double[] htmlFontSizes = [7.5, 10, 12, 13.5, 18, 24, 36];
+    static double[] htmlFontSizes = [7.5, 10, 12, 13.5, 18, 24, 36];
 
     // <font size> is a step on a scale of 1 to 7, or a signed step away from 3. Read as points, the
     // sizes real html carries came out unreadable: size="4" was 4pt and size="+1" was 1pt. A value

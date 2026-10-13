@@ -677,7 +677,7 @@ public static class WordHtmlConverter
     }
 
     // Small PNG used as fallback for SVG images in older Word versions
-    static readonly byte[] fallbackPng = Convert.FromBase64String(
+    static byte[] fallbackPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP4z8AARAwQCgAf7gP9i18U1AAAAABJRU5ErkJggg==");
 
     // Image relationship ids are rImage{n}, so a second conversion against the same document has

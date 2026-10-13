@@ -11,7 +11,7 @@ public class WordNumberingSequenceTests
     const string nested = "<ul><li>e<ol><li>f<ul><li>g</li></ul></li></ol></li></ul>";
     const string several = """<ul><li>h</li></ul><p>text</p><ol type="i"><li>i</li></ol><ol><li>j</li></ol><ul><li>k</li></ul>""";
 
-    static readonly string[] sequence = ["numPicBullet", "abstractNum", "num", "numIdMacAtCleanup"];
+    static string[] sequence = ["numPicBullet", "abstractNum", "num", "numIdMacAtCleanup"];
 
     [Test]
     [Arguments(bulleted, 2)]

@@ -439,7 +439,7 @@ public class WordImageContentTypeTests
             }
 
             var path = Path.Combine(directory, fileName);
-            File.WriteAllBytes(path, bytes);
+            await File.WriteAllBytesAsync(path, bytes);
             var settings = new HtmlConvertSettings
             {
                 LocalImages = ImagePolicy.SafeDirectories(directory)
@@ -530,7 +530,13 @@ public class WordImageContentTypeTests
             .Select(_ => new StoredPart(_.ContentType, Path.GetExtension(_.Uri.OriginalString)))
             .ToList();
 
-        await Assert.That(parts).IsEquivalentTo([new StoredPart(contentType, extension), new StoredPart(contentType, extension)], CollectionOrdering.Matching);
+        await Assert.That(parts)
+            .IsEquivalentTo<IList<StoredPart>, StoredPart>(
+                [
+                    new(contentType, extension),
+                    new(contentType, extension)
+                ],
+                CollectionOrdering.Matching);
         await Assert.That(new OpenXmlValidator().Validate(reopened).Select(_ => _.Description)).IsEmpty();
     }
 

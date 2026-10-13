@@ -956,7 +956,7 @@ static partial class WordContentBuilder
         return 1;
     }
 
-    static readonly Type[] cellPropertyOrder =
+    static Type[] cellPropertyOrder =
     [
         typeof(TableCellWidth),
         typeof(GridSpan),
@@ -971,7 +971,7 @@ static partial class WordContentBuilder
     // CT_TblPrBase, for the children this builder writes. bidiVisual sits ahead of the width, which
     // is the one that was wrong for every table under dir="rtl"; shd, tblLayout and tblCellMar all
     // come before tblLook, which a class-styled table writes early.
-    static readonly Type[] tablePropertyOrder =
+    static Type[] tablePropertyOrder =
     [
         typeof(TableStyle),
         typeof(BiDiVisual),

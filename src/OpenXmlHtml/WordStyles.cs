@@ -7,7 +7,7 @@ public static class WordStyles
 {
     // Heading level -> half-point font size. Descending sizes, bold; enough for Word to treat each as
     // the real built-in heading (it links Heading1..6 by styleId, so the ids must be exact).
-    static readonly (int Level, int HalfPointSize)[] headings =
+    static (int Level, int HalfPointSize)[] headings =
     [
         (1, 32),
         (2, 28),
