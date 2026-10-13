@@ -28,14 +28,19 @@ static class ImageResolver
     {
         [".jpg"] = "image/jpeg",
         [".jpeg"] = "image/jpeg",
+        [".jpe"] = "image/jpeg",
+        [".jfif"] = "image/jpeg",
         [".png"] = "image/png",
         [".gif"] = "image/gif",
         [".bmp"] = "image/bmp",
+        [".dib"] = "image/bmp",
         [".tiff"] = "image/tiff",
         [".tif"] = "image/tiff",
         [".svg"] = "image/svg+xml",
         [".webp"] = "image/webp",
-        [".ico"] = "image/x-icon"
+        [".ico"] = "image/x-icon",
+        [".emf"] = "image/x-emf",
+        [".wmf"] = "image/x-wmf"
     };
 
     internal static ImageData? Resolve(IElement element, HtmlConvertSettings? settings)
@@ -80,6 +85,16 @@ static class ImageResolver
 
                 bytes = downloaded.Value.Bytes;
                 contentType = downloaded.Value.ContentType;
+
+                // A server that answers with no type, or with the generic one, leaves the url's
+                // extension as the only claim there is. The bytes are still read first, where the
+                // part is stored.
+                if (ImageFormat.FromMediaType(contentType) == null &&
+                    Uri.TryCreate(src, UriKind.Absolute, out var uri) &&
+                    extensionToContentType.TryGetValue(Path.GetExtension(uri.AbsolutePath), out var fromExtension))
+                {
+                    contentType = fromExtension;
+                }
             }
             catch
             {

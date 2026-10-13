@@ -77,6 +77,7 @@ Two code paths produce Word output:
 - **Every document-unique id carries on from what is already there.** Several calls against one `MainDocumentPart` is a documented way to build a document. Footnote and numbering ids are read from their parts, image indexes from the highest `rImage{n}` (`LastImageIndex`), bookmark ids from the document's bookmarks, lazily (`SeedBookmarkId`), since that read is the whole document. `HtmlNumberingSession` carries the next numbering id and the highest bookmark id between calls. Calls that neither share a session nor add their elements before the next call can still repeat a bookmark id.
 - **Parts and external links get fixed relationship ids from `PartRelationshipId.Next`** (`rNumbering`, `rStyles`, `rLink`, `rFootnotes`, `rHeader`, `rFooter`, `rImage{n}`). The package is still not byte-identical between runs, because zip entries record when they were written. Compare parts, not bytes.
 - **An image used more than once is stored once (`StoredImage`), and repeats share the first use's relationship id.** The SDK allows one relationship from an owner to a part. A repeat's `wp:docPr` id comes from a range above `0x40000000`, because the next call seeds from the highest `rImage{n}` and a repeat adds none.
+- **An image part is declared as what its bytes are (`ImageFormat`), not what the image was declared as.** A data uri's media type, a `Content-Type` and a file extension are claims, and are only the fallback for bytes that are not recognised; png is the fallback after that. Svg bytes take the svg path whatever they were called. The sdk names a part from its content type and has no name for webp, so that one is added with its extension.
 - **An image's missing dimension comes from the image (`ImageSize`).** With one dimension given, the other follows the natural proportions; with none, it is the natural size, read from the png, gif, bmp or jpeg header. Two departures from a browser: an unsized image is scaled down to 602 pixels wide, the text width of A4; and where the size cannot be read the fallback is 100. Svg uses its own attributes or `viewBox`.
 
 **Diagnostics**
@@ -93,7 +94,7 @@ Internal:
 - `HtmlSegmentParser`: the segment path, and the helpers both paths share.
 - `WordContentBuilder`: the DOM path. Walks the tree, accumulates runs in `WordBuildContext`, flushes paragraphs.
 - `ImageResolver`: resolves `<img>` sources. `data:` URIs are always allowed; web and local sources are checked against `HtmlConvertSettings`. Returns null for the alt-text fallback.
-- `ImageSize`, `StoredImage`: image dimensions and reuse, as above.
+- `ImageFormat`, `ImageSize`, `StoredImage`: image format, dimensions and reuse, as above.
 - `WordNumberingBuilder`: the numbering part and its definitions.
 - `WordStyleLookup`: maps css class names to Word style ids, case-insensitively.
 - `PartRelationshipId`: deterministic relationship ids.
@@ -120,6 +121,7 @@ Files whose scope is not obvious from the name:
 | `SchemaValidationTests` | Every checked-in `.verified.docx` and `.verified.xlsx`, swept against the schema |
 | `WordDiagnosticsTests` | Every deliberate drop site, and the markup that must stay silent |
 | `WordImageSizingTests` | css and attribute sizes, a missing dimension taken from the image, data uri decoding |
+| `WordImageContentTypeTests` | The content type and name of an image part: read from the bytes, then the declared type or extension |
 | `WordImageFallbackTests`, `WordRemoteImageTests` | Images that cannot be loaded; `ImagePolicy` |
 | `WordListNumberingTests`, `WordListNumberingSessionTests` | Real numbering, shared definitions, the session |
 | `WordListStyleTests`, `WordReversedListTests` | `type`, `start`, `reversed`, `list-style-type`, text markers on both paths |

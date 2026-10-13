@@ -515,7 +515,11 @@ Entry points: `ImageResolver`, `ImagePolicy`, `HtmlConvertSettings`.
 
 ### 6.4 Image Formats `DONE`
 
-- **Supported**: png, jpg/jpeg, gif, bmp, tiff, svg, webp, ico
+- **Supported**: png, jpg/jpeg, gif, bmp, tiff, svg, webp, ico, emf, wmf
+- **Behaviour**: The image part is declared as the format its leading bytes are. The declared type (the media type of a data URI, a server's `Content-Type`, a file or url extension) is only used when the bytes are not recognised, and png when that names no image format either. An svg `<img>` is stored like an inline `<svg>`, behind a png fallback.
+- **Notes**: Stored is not the same as displayed: whether a webp is drawn depends on the version of Word
+- **Class**: `ImageFormat`
+- **Test**: `WordImageContentTypeTests`
 
 
 ### 6.5 SVG `DONE` `[dom]`
