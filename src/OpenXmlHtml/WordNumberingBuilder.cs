@@ -2,6 +2,10 @@ static class WordNumberingBuilder
 {
     static readonly string[] levelIndents = ["480", "960", "1440", "1920", "2400", "2880", "3360", "3840", "4320"];
 
+    // Where the text of an item at this level starts, which is where its later paragraphs go.
+    internal static int LevelIndent(int level) =>
+        int.Parse(levelIndents[level]);
+
     internal static NumberingDefinitionsPart EnsureNumberingPart(MainDocumentPart main)
     {
         var part = main.NumberingDefinitionsPart;

@@ -90,6 +90,17 @@ static partial class WordContentBuilder
                 Type = TableWidthUnitValues.Auto
             });
 
+        // A table in a list item sits under the item's text, like the item's later paragraphs.
+        if (ctx.ListItemIndent > 0)
+        {
+            tblPr.Append(
+                new TableIndentation
+                {
+                    Width = ctx.ListItemIndent,
+                    Type = TableWidthUnitValues.Dxa
+                });
+        }
+
         if (styleId == null)
         {
             tblPr.Append(BorderEmitter.BuildTableBorders(defaultBorder));
@@ -965,6 +976,7 @@ static partial class WordContentBuilder
         typeof(TableStyle),
         typeof(BiDiVisual),
         typeof(TableWidth),
+        typeof(TableIndentation),
         typeof(TableBorders),
         typeof(Shading),
         typeof(TableLayout),

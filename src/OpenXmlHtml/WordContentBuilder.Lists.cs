@@ -2,7 +2,7 @@ static partial class WordContentBuilder
 {
     static void BuildList(IElement element, string tag, in FormatState newFormat, List<OpenXmlElement> elements, WordBuildContext context, bool inPre)
     {
-        FlushParagraph(elements, context);
+        FlushBeforeBlockWithoutParagraph(elements, context);
         var isReversed = tag == "ol" && element.HasAttribute("reversed");
 
         if (context.MainPart == null || isReversed)
@@ -107,6 +107,11 @@ static partial class WordContentBuilder
             }
         }
 
+        // What the item's later paragraphs are indented by, so they sit under its text. Only the
+        // first paragraph carries the numbering: a second numbered paragraph would be a second
+        // item. Left alone the rest fell back to the page margin, outside the list altogether.
+        var outerIndent = context.ListItemIndent;
+        context.ListItemIndent = 0;
         if (context.ListStack.Count > 0)
         {
             var (numId, ilvl, _, inside, noMarker) = context.ListStack.Peek();
@@ -114,12 +119,14 @@ static partial class WordContentBuilder
             {
                 // list-style-type:none — render as plain paragraph with indentation
                 context.ListDepth = ilvl + 1;
+                context.ListItemIndent = (ilvl + 1) * 240;
             }
             else
             {
                 context.ListNumId = numId;
                 context.ListIlvl = ilvl;
                 context.ListInside = inside;
+                context.ListItemIndent = WordNumberingBuilder.LevelIndent(ilvl);
             }
         }
         else
@@ -157,5 +164,21 @@ static partial class WordContentBuilder
         // Decremented first, so an empty <li></li> clears the list state here rather than leaking
         // it onto whatever follows the list.
         FlushParagraph(elements, context);
+
+        // The item is over. Inside an enclosing item the flush above leaves the list state alone
+        // when it has nothing to write, and an empty nested item's numbering then landed on the
+        // enclosing item's next paragraph.
+        context.ListNumId = null;
+        context.ListIlvl = null;
+        context.ListInside = false;
+        context.ListDepth = 0;
+        context.ListItemIndent = outerIndent;
     }
+
+    // A table or a nested list has no paragraph for the item's numbering to sit on. Where one
+    // opens an item, the numbering goes on an empty paragraph ahead of it, which is the marker a
+    // browser still draws. Without it the item was never counted: <ol><li><table>...</table></li>
+    // <li>two</li></ol> numbered "two" as 1.
+    static void FlushBeforeBlockWithoutParagraph(List<OpenXmlElement> elements, WordBuildContext context) =>
+        FlushParagraph(elements, context, context.ListNumId != null && AtListItemStart(context));
 }
