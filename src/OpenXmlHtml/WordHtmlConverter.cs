@@ -749,7 +749,7 @@ public static class WordHtmlConverter
             return existing.RelationshipId;
         }
 
-        var imagePart = part.AddNewPart<ImagePart>(contentType, relationshipId);
+        var imagePart = AddImagePart(part, contentType, relationshipId);
         using (var stream = new MemoryStream(bytes))
         {
             imagePart.FeedData(stream);
@@ -760,14 +760,36 @@ public static class WordHtmlConverter
         return relationshipId;
     }
 
+    // The sdk names a part from its content type, and has no name for webp: it would be stored as
+    // image.bin. Given the extension as well, it is image.webp. That overload lives on each of the
+    // parts an image can belong to rather than on their base.
+    static ImagePart AddImagePart(OpenXmlPart part, string contentType, string relationshipId)
+    {
+        if (contentType != ImageFormat.Webp)
+        {
+            return part.AddNewPart<ImagePart>(contentType, relationshipId);
+        }
+
+        var webp = new PartTypeInfo(ImageFormat.Webp, ".webp");
+        return part switch
+        {
+            MainDocumentPart main => main.AddImagePart(webp, relationshipId),
+            HeaderPart header => header.AddImagePart(webp, relationshipId),
+            FooterPart footer => footer.AddImagePart(webp, relationshipId),
+            _ => part.AddNewPart<ImagePart>(contentType, relationshipId)
+        };
+    }
+
     internal static Run BuildImageRun(OpenXmlPart part, ImageData image, int imageIndex, Dictionary<string, StoredImage> stored)
     {
-        if (image.ContentType == "image/svg+xml")
+        // What the bytes are, not what they were declared as: see ImageFormat.
+        var contentType = ImageFormat.Resolve(image.Bytes, image.ContentType);
+        if (contentType == ImageFormat.Svg)
         {
             return BuildSvgImageRun(part, image, imageIndex, stored);
         }
 
-        var relationshipId = StoreImage(part, GetImagePartType(image.ContentType), image.Bytes, imageIndex, $"rImage{imageIndex}", stored, out var drawingId);
+        var relationshipId = StoreImage(part, contentType, image.Bytes, imageIndex, $"rImage{imageIndex}", stored, out var drawingId);
 
         var (widthPx, heightPx) = ImageSize.Resolve(image);
         var widthEmu = (long)widthPx * 9525;
@@ -934,31 +956,5 @@ public static class WordHtmlConverter
                 LayoutInCell = true,
                 AllowOverlap = true
             });
-    }
-
-    static string GetImagePartType(string contentType)
-    {
-        if (contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) ||
-            contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase))
-        {
-            return "image/jpeg";
-        }
-
-        if (contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase))
-        {
-            return "image/gif";
-        }
-
-        if (contentType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase))
-        {
-            return "image/bmp";
-        }
-
-        if (contentType.Equals("image/tiff", StringComparison.OrdinalIgnoreCase))
-        {
-            return "image/tiff";
-        }
-
-        return "image/png";
     }
 }
