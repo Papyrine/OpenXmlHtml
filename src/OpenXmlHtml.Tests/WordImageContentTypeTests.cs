@@ -246,7 +246,9 @@ public class WordImageContentTypeTests
     static string DataUri(string declared, byte[] bytes) =>
         $"data:{declared};base64,{Convert.ToBase64String(bytes)}";
 
+    // ReSharper disable NotAccessedPositionalProperty.Local
     record StoredPart(string ContentType, string Extension);
+    // ReSharper restore NotAccessedPositionalProperty.Local
 
     // The part each drawing's picture resolves to, in document order, and what the validator makes
     // of the document.
