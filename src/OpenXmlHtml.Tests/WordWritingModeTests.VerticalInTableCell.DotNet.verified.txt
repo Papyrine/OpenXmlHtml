@@ -3,7 +3,7 @@
   Pages: [
     {
       Number: 1,
-      Text: Vertical cell text	Normal cell text
+      Text: Verti cal cell text	Normal cell text
     }
   ]
 }

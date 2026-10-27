@@ -5,7 +5,7 @@
       Number: 1,
       Text:
 Nested Tables
-Outer cell 1	Inner A Inner B Inner C Inner D
+Outer cell 1	Inne r A Inne r B Inne r C Inne r D
 Outer cell 2	Plain text
 List Inside Table
 Feature	Details
@@ -79,15 +79,15 @@ Nested Table With Formatting
 Bold italic Red link
 Complex Link Content
 Bold, italic, and code in one link
+    },
+    {
+      Number: 4,
+      Text:
 Large green link text
 Quotation Combos
 She said “hello world” emphatically.
 Bold with “quoted” text
 Figure With Rich Caption
-    },
-    {
-      Number: 4,
-      Text:
 Figure 1: A chart showing growth over time
 Section A
 ———
