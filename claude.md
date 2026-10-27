@@ -56,7 +56,7 @@ Two code paths produce Word output:
 - **What an enclosing block owes its paragraphs lives on the context as an "ambient" value, restored on the way out.** Entering a child block flushes first, which clears per-paragraph state before any text arrives. `AmbientParagraphStyleId` carries a class-mapped style; `AmbientParagraphFormat` carries alignment, line height, indent, background, border and side margins. Top and bottom margins are the block's own. A table cell's `text-align` reaches its paragraphs the same way.
 - **A block's border is its paragraph's (`pBdr`) and a cell's is its `tcBorders`; neither goes on the runs.** `ApplyInlineStyle` reads `border` into `FormatState` for any element, so block and cell handling reset it. Left alone it drew a second box around the text.
 - **A block bookmark waits in `PendingBookmarks` for a paragraph to sit in.** Written straight into the pending runs, a container's markers were flushed out as two empty paragraphs.
-- **Both walks check the stack before descending (`HasStackToRecurse`) and flatten an over-deep subtree to its text.** html has no nesting limit and a stack overflow cannot be caught.
+- **Both walks check the stack before descending (`HasStackToRecurse`) and flatten an over-deep subtree to its text.** html has no nesting limit and a stack overflow cannot be caught. AngleSharp (since 1.8.6) stops nesting at about 500 levels, which a full size stack survives, so `DeepNestingKeepsTextInElements` converts on a 256 KB thread to reach the guard.
 
 **Schema order**
 

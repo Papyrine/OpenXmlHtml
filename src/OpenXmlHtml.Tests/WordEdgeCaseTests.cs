@@ -1,3 +1,5 @@
+using System.Runtime.ExceptionServices;
+
 public class WordEdgeCaseTests
 {
     [Test]
@@ -213,6 +215,9 @@ public class WordEdgeCaseTests
     // Nesting a few hundred elements deep used to run the thread out of stack, which cannot be
     // caught and takes the process down. Both paths, since each recurses on its own. The text has
     // to survive; the markup past the point the stack runs short does not.
+    // Since 1.8.6 AngleSharp stops nesting at about 500 levels and makes anything deeper a sibling,
+    // which a full size stack has room for. A caller's thread can have less, so this converts on a
+    // small one to reach the point where the stack runs short.
     [Test]
     public async Task DeepNestingKeepsTextInElements()
     {
@@ -222,7 +227,7 @@ public class WordEdgeCaseTests
             OnDiagnostic = reported.Add
         };
 
-        var elements = WordHtmlConverter.ToElements(DeeplyNested(), null, settings);
+        var elements = OnSmallStack(() => WordHtmlConverter.ToElements(DeeplyNested(), null, settings));
 
         await Assert.That(string.Concat(elements.Select(_ => _.InnerText))).IsEqualTo("deep");
         await Assert.That(reported.Count).IsEqualTo(1);
@@ -261,6 +266,31 @@ public class WordEdgeCaseTests
         }
 
         return builder.ToString();
+    }
+
+    const int smallStackSize = 256 * 1024;
+
+    static T OnSmallStack<T>(Func<T> func)
+    {
+        var result = default(T);
+        ExceptionDispatchInfo? exception = null;
+        var thread = new Thread(
+            () =>
+            {
+                try
+                {
+                    result = func();
+                }
+                catch (Exception caught)
+                {
+                    exception = ExceptionDispatchInfo.Capture(caught);
+                }
+            },
+            smallStackSize);
+        thread.Start();
+        thread.Join();
+        exception?.Throw();
+        return result!;
     }
 
     // The element path only moved its fold state for text nodes, so a run written any other way

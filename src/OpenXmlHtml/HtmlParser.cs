@@ -358,8 +358,10 @@ static class HtmlSegmentParser
 
     // The walk recurses once per nesting level, and html puts no limit on nesting: a few hundred
     // nested elements used to run the thread out of stack, which cannot be caught and takes the
-    // process with it. When the stack is nearly spent the rest of the subtree is flattened to its
-    // text instead, read with TextNodes, which does not recurse.
+    // process with it. Since 1.8.6 AngleSharp stops nesting at about 500 levels, which a full size
+    // stack has room for, but a caller's thread can be smaller. When the stack is nearly spent the
+    // rest of the subtree is flattened to its text instead, read with TextNodes, which does not
+    // recurse.
 #if NETFRAMEWORK
     internal static bool HasStackToRecurse()
     {
