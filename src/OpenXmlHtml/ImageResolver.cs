@@ -205,15 +205,8 @@ static class ImageResolver
             }
         }
 
-        if (width == null)
-        {
-            width = ParseDimensionAttribute(element, "width", settings);
-        }
-
-        if (height == null)
-        {
-            height = ParseDimensionAttribute(element, "height", settings);
-        }
+        width ??= ParseDimensionAttribute(element, "width", settings);
+        height ??= ParseDimensionAttribute(element, "height", settings);
 
         return (width, height);
     }
